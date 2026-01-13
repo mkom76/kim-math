@@ -208,7 +208,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div v-loading="loading" :style="{ padding: containerPadding, maxWidth: '1200px', margin: '0 auto' }">
+  <div :class="{ 'student-view': !isTeacherView, 'teacher-view': isTeacherView }" v-loading="loading" :style="{ padding: containerPadding, maxWidth: '1200px', margin: '0 auto' }">
     <!-- 선생님용 헤더 (뒤로가기 버튼 포함) -->
     <el-card v-if="isTeacherView" shadow="never" style="margin-bottom: 24px">
       <div style="display: flex; justify-content: space-between; align-items: center">

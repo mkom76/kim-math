@@ -97,7 +97,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div :style="{ padding: containerPadding, maxWidth: '1200px', margin: '0 auto' }">
+  <div class="student-view" :style="{ padding: containerPadding, maxWidth: '1200px', margin: '0 auto' }">
     <!-- Top Right Actions -->
     <div :style="{ display: 'flex', justifyContent: 'flex-end', gap: isMobile ? '8px' : '12px', marginBottom: isMobile ? '12px' : '16px' }">
       <el-button @click="$router.push('/settings')" :size="isMobile ? 'small' : 'default'">

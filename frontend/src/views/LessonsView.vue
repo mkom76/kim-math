@@ -176,7 +176,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div style="padding: 24px; max-width: 1400px; margin: 0 auto">
+  <div class="teacher-view" style="padding: 24px; max-width: 1400px; margin: 0 auto">
     <el-card shadow="never">
       <template #header>
         <div style="display: flex; justify-content: space-between; align-items: center">

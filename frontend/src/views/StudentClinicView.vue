@@ -131,7 +131,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
+  <div class="student-view">
     <!-- Header -->
     <el-card shadow="never" style="margin-bottom: 24px">
       <h1 :style="{ margin: 0, fontSize: h1FontSize, fontWeight: 600, color: '#303133', display: 'flex', alignItems: 'center', gap: '12px' }">

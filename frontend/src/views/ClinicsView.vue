@@ -142,7 +142,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
+  <div class="teacher-view">
     <!-- Header -->
     <el-card shadow="never" style="margin-bottom: 24px">
       <div style="display: flex; justify-content: space-between; align-items: center">

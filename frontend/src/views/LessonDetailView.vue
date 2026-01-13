@@ -391,7 +391,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div v-loading="loading" style="padding: 24px; max-width: 1200px; margin: 0 auto">
+  <div class="teacher-view" v-loading="loading" style="padding: 24px; max-width: 1200px; margin: 0 auto">
     <el-card shadow="never" style="margin-bottom: 24px">
       <template #header>
         <div style="display: flex; justify-content: space-between; align-items: center">

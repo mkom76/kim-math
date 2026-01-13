@@ -115,7 +115,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div :style="{ padding: containerPadding, maxWidth: isMobile ? '100%' : '900px', margin: '0 auto' }">
+  <div class="student-view" :style="{ padding: containerPadding, maxWidth: isMobile ? '100%' : '900px', margin: '0 auto' }">
     <el-card v-loading="loading" shadow="never">
       <!-- Test Header -->
       <template #header>

@@ -318,7 +318,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div v-loading="loading" :style="{ padding: containerPadding, maxWidth: '1200px', margin: '0 auto' }">
+  <div :class="{ 'student-view': !isTeacher, 'teacher-view': isTeacher }" v-loading="loading" :style="{ padding: containerPadding, maxWidth: '1200px', margin: '0 auto' }">
     <!-- Header -->
     <el-card shadow="never" style="margin-bottom: 24px">
       <div>

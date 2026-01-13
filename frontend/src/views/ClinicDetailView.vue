@@ -125,7 +125,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
+  <div class="teacher-view">
     <!-- Header -->
     <el-card shadow="never" style="margin-bottom: 24px">
       <template #header>
