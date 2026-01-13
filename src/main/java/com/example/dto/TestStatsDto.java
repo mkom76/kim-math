@@ -36,5 +36,6 @@ public class TestStatsDto {
     public static class QuestionStat {
         private Integer questionNumber;
         private Double correctRate;
+        private List<String> incorrectStudents; // 틀린 학생 이름 목록
     }
 }

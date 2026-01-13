@@ -154,13 +154,27 @@ public class TestService {
                 .max(Integer::compareTo)
                 .orElse(0);
 
-        // 문제별 정답률
+        // 문제별 정답률 및 틀린 학생 명단
         List<Object[]> correctRates = studentSubmissionDetailRepository.getQuestionCorrectRatesByTestId(testId);
         List<TestStatsDto.QuestionStat> questionStats = correctRates.stream()
-                .map(arr -> TestStatsDto.QuestionStat.builder()
-                        .questionNumber((Integer) arr[0])
-                        .correctRate((Double) arr[1])
-                        .build())
+                .map(arr -> {
+                    Integer questionNumber = (Integer) arr[0];
+                    Double correctRate = (Double) arr[1];
+
+                    // 해당 문제를 틀린 학생들 찾기
+                    List<String> incorrectStudents = submissions.stream()
+                            .flatMap(submission -> submission.getDetails().stream()
+                                    .filter(detail -> detail.getQuestion().getNumber().equals(questionNumber)
+                                            && Boolean.FALSE.equals(detail.getIsCorrect()))
+                                    .map(detail -> submission.getStudent().getName()))
+                            .collect(Collectors.toList());
+
+                    return TestStatsDto.QuestionStat.builder()
+                            .questionNumber(questionNumber)
+                            .correctRate(correctRate)
+                            .incorrectStudents(incorrectStudents)
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         return TestStatsDto.builder()

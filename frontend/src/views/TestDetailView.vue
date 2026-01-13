@@ -135,6 +135,127 @@ onMounted(() => {
         </el-col>
       </el-row>
 
+      <!-- Question Stats and Student Rankings -->
+      <el-row :gutter="24" style="margin-bottom: 24px">
+        <!-- Question Stats -->
+        <el-col :span="12">
+          <el-card shadow="never">
+            <template #header>
+              <div style="display: flex; align-items: center; gap: 8px">
+                <el-icon color="#f56c6c">
+                  <DataAnalysis />
+                </el-icon>
+                <span style="font-weight: 600">문항별 정답률</span>
+              </div>
+            </template>
+
+            <el-table
+              :data="stats?.questionStats || []"
+              style="width: 100%"
+              stripe
+              :max-height="400"
+            >
+              <el-table-column prop="questionNumber" label="문제 번호" width="100" align="center">
+                <template #default="{ row }">
+                  <el-tag type="info" size="large">{{ row.questionNumber }}번</el-tag>
+                </template>
+              </el-table-column>
+
+              <el-table-column prop="correctRate" label="정답률" width="300" align="center">
+                <template #default="{ row }">
+                  <div style="display: flex; align-items: center; gap: 8px">
+                    <el-progress
+                      :percentage="Math.round(row.correctRate)"
+                      :color="row.correctRate >= 70 ? '#67c23a' : row.correctRate >= 50 ? '#e6a23c' : '#f56c6c'"
+                      :stroke-width="10"
+                      style="flex: 1"
+                    />
+                    <span style="font-weight: 600; min-width: 50px; text-align: right">
+                      {{ Math.round(row.correctRate) }}%
+                    </span>
+                  </div>
+                </template>
+              </el-table-column>
+
+              <el-table-column prop="incorrectStudents" label="틀린 학생" min-width="200">
+                <template #default="{ row }">
+                  <div v-if="row.incorrectStudents && row.incorrectStudents.length > 0" style="display: flex; flex-wrap: wrap; gap: 4px">
+                    <el-tag
+                      v-for="(student, index) in row.incorrectStudents"
+                      :key="index"
+                      type="danger"
+                      size="small"
+                      effect="plain"
+                    >
+                      {{ student }}
+                    </el-tag>
+                  </div>
+                  <span v-else style="color: #67c23a; font-weight: 500">전원 정답 ✓</span>
+                </template>
+              </el-table-column>
+            </el-table>
+
+            <el-empty v-if="!stats?.questionStats || stats.questionStats.length === 0"
+              description="문항 통계가 없습니다" :image-size="80" />
+          </el-card>
+        </el-col>
+
+        <!-- Student Rankings -->
+        <el-col :span="12">
+          <el-card shadow="never">
+            <template #header>
+              <div style="display: flex; align-items: center; gap: 8px">
+                <el-icon color="#e6a23c">
+                  <TrophyBase />
+                </el-icon>
+                <span style="font-weight: 600">학생 순위</span>
+              </div>
+            </template>
+
+            <el-table
+              :data="stats?.studentScores || []"
+              style="width: 100%"
+              stripe
+              :max-height="400"
+            >
+              <el-table-column label="순위" width="80" align="center">
+                <template #default="{ $index }">
+                  <div style="font-weight: 600; font-size: 16px">
+                    <span v-if="$index === 0" style="color: #ffd700">🥇</span>
+                    <span v-else-if="$index === 1" style="color: #c0c0c0">🥈</span>
+                    <span v-else-if="$index === 2" style="color: #cd7f32">🥉</span>
+                    <span v-else style="color: #909399">{{ $index + 1 }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+
+              <el-table-column prop="studentName" label="학생명" min-width="120">
+                <template #default="{ row }">
+                  <div style="display: flex; align-items: center; gap: 8px">
+                    <el-avatar size="small" :icon="UserFilled" />
+                    <span style="font-weight: 500">{{ row.studentName }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+
+              <el-table-column prop="totalScore" label="점수" width="120" align="center">
+                <template #default="{ row }">
+                  <el-tag
+                    :type="row.totalScore >= 80 ? 'success' : row.totalScore >= 60 ? 'warning' : 'danger'"
+                    size="large"
+                  >
+                    {{ row.totalScore }}점
+                  </el-tag>
+                </template>
+              </el-table-column>
+            </el-table>
+
+            <el-empty v-if="!stats?.studentScores || stats.studentScores.length === 0"
+              description="응시한 학생이 없습니다" :image-size="80" />
+          </el-card>
+        </el-col>
+      </el-row>
+
       <!-- Submissions -->
       <el-card shadow="never">
         <template #header>
