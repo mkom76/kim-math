@@ -7,6 +7,10 @@ const loading = ref(false)
 const clinicInfo = ref<StudentClinicInfo | null>(null)
 const currentUser = ref<AuthResponse | null>(null)
 
+const isMobile = ref(false)
+const h1FontSize = computed(() => isMobile.value ? '16px' : '28px')
+const h3FontSize = computed(() => isMobile.value ? '13px' : '18px')
+
 const hasUpcomingClinic = computed(() => {
   return clinicInfo.value?.upcomingClinic != null
 })
@@ -114,6 +118,13 @@ const cancelRegistration = async () => {
 }
 
 onMounted(async () => {
+  // Mobile detection
+  const checkMobile = () => {
+    isMobile.value = window.innerWidth < 768
+  }
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+
   await fetchCurrentUser()
   await fetchClinicInfo()
 })
@@ -123,7 +134,7 @@ onMounted(async () => {
   <div>
     <!-- Header -->
     <el-card shadow="never" style="margin-bottom: 24px">
-      <h1 style="margin: 0; font-size: 28px; font-weight: 600; color: #303133; display: flex; align-items: center; gap: 12px">
+      <h1 :style="{ margin: 0, fontSize: h1FontSize, fontWeight: 600, color: '#303133', display: 'flex', alignItems: 'center', gap: '12px' }">
         <el-icon size="32" color="#67c23a">
           <MagicStick />
         </el-icon>
@@ -162,7 +173,7 @@ onMounted(async () => {
         <el-card shadow="never" style="margin-bottom: 24px">
           <template #header>
             <div style="display: flex; justify-content: space-between; align-items: center">
-              <h3 style="margin: 0; font-size: 18px; font-weight: 600">
+              <h3 :style="{ margin: 0, fontSize: h3FontSize, fontWeight: 600 }">
                 다가오는 클리닉
               </h3>
               <el-tag v-if="isRegistered" type="success" size="large">신청 완료</el-tag>
@@ -172,12 +183,12 @@ onMounted(async () => {
 
           <el-descriptions :column="2" border>
             <el-descriptions-item label="날짜">
-              <span style="font-weight: 600; font-size: 16px">
+              <span :style="{ fontWeight: 600, fontSize: h3FontSize }">
                 {{ formatDate(clinicInfo!.upcomingClinic!.clinicDate) }}
               </span>
             </el-descriptions-item>
             <el-descriptions-item label="시간">
-              <span style="font-weight: 600; font-size: 16px">
+              <span :style="{ fontWeight: 600, fontSize: h3FontSize }">
                 {{ formatTime(clinicInfo!.upcomingClinic!.clinicTime) }}
               </span>
             </el-descriptions-item>
@@ -210,7 +221,7 @@ onMounted(async () => {
         <!-- Incomplete Homeworks -->
         <el-card v-if="clinicInfo.incompleteHomeworks.length > 0" shadow="never">
           <template #header>
-            <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #e6a23c">
+            <h3 :style="{ margin: 0, fontSize: h3FontSize, fontWeight: 600, color: '#e6a23c' }">
               <el-icon style="margin-right: 8px"><Warning /></el-icon>
               완성도가 낮은 숙제 ({{ clinicInfo.incompleteHomeworks.length }}개)
             </h3>
@@ -221,7 +232,7 @@ onMounted(async () => {
             <el-table-column prop="lessonDate" label="수업 날짜" width="150" />
             <el-table-column prop="completion" label="완성도" width="120" align="center">
               <template #default="{ row }">
-                <span :style="{ color: getCompletionColor(row.completion), fontWeight: 600, fontSize: '16px' }">
+                <span :style="{ color: getCompletionColor(row.completion), fontWeight: 600, fontSize: h3FontSize }">
                   {{ row.completion || 0 }}%
                 </span>
               </template>

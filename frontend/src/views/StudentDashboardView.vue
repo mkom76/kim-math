@@ -15,7 +15,16 @@ const mySubmissions = ref<Submission[]>([])
 const pastTestsDialogVisible = ref(false)
 
 const { isMobile } = useBreakpoint()
-const containerPadding = computed(() => isMobile.value ? '12px' : '24px')
+const containerPadding = computed(() => isMobile.value ? '10px' : '24px')
+const cardPadding = computed(() => isMobile.value ? '12px' : '20px')
+const iconSize = computed(() => isMobile.value ? 24 : 32)
+const statIconSize = computed(() => isMobile.value ? 38 : 48)
+const h1FontSize = computed(() => isMobile.value ? '16px' : '28px')
+const h2FontSize = computed(() => isMobile.value ? '14px' : '20px')
+const h3FontSize = computed(() => isMobile.value ? '13px' : '18px')
+const statFontSize = computed(() => isMobile.value ? '22px' : '32px')
+const bodyFontSize = computed(() => isMobile.value ? '11px' : '14px')
+const tableFontSize = computed(() => isMobile.value ? '10px' : '14px')
 
 const fetchCurrentUser = async () => {
   try {
@@ -90,41 +99,41 @@ onMounted(() => {
 <template>
   <div :style="{ padding: containerPadding, maxWidth: '1200px', margin: '0 auto' }">
     <!-- Top Right Actions -->
-    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 16px">
-      <el-button @click="$router.push('/settings')">
-        <el-icon style="margin-right: 8px"><Setting /></el-icon>
+    <div :style="{ display: 'flex', justifyContent: 'flex-end', gap: isMobile ? '8px' : '12px', marginBottom: isMobile ? '12px' : '16px' }">
+      <el-button @click="$router.push('/settings')" :size="isMobile ? 'small' : 'default'">
+        <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><Setting /></el-icon>
         설정
       </el-button>
-      <el-button type="danger" @click="handleLogout">
+      <el-button type="danger" @click="handleLogout" :size="isMobile ? 'small' : 'default'">
         로그아웃
       </el-button>
     </div>
 
     <!-- Header -->
-    <el-card shadow="never" style="margin-bottom: 24px">
+    <el-card shadow="never" :style="{ marginBottom: isMobile ? '16px' : '24px' }">
       <div>
-        <div style="margin-bottom: 16px">
-          <h1 style="margin: 0; font-size: 28px; font-weight: 600; color: #303133; display: flex; align-items: center; gap: 12px">
-            <el-icon size="32" color="#409eff">
+        <div :style="{ marginBottom: isMobile ? '12px' : '16px' }">
+          <h1 :style="{ margin: 0, fontSize: h1FontSize, fontWeight: 600, color: '#303133', display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px' }">
+            <el-icon :size="iconSize" color="#409eff">
               <UserFilled />
             </el-icon>
             <span>{{ currentUser.name }}님</span>
           </h1>
-          <p v-if="studentInfo" style="margin: 8px 0 0 0; color: #909399; font-size: 14px">
+          <p v-if="studentInfo" :style="{ margin: '8px 0 0 0', color: '#909399', fontSize: bodyFontSize }">
             {{ studentInfo.academyName }} · {{ studentInfo.className }}
           </p>
         </div>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-content: flex-start; justify-content: flex-start; margin: 0; width: 100%">
-          <el-button type="success" @click="$router.push(`/student/stats`)" style="margin: 0">
-            <el-icon style="margin-right: 8px"><TrendCharts /></el-icon>
+        <div :style="{ display: 'flex', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap', alignContent: 'flex-start', justifyContent: 'flex-start', margin: 0, width: '100%' }">
+          <el-button type="success" @click="$router.push(`/student/stats`)" :size="isMobile ? 'small' : 'default'" style="margin: 0">
+            <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><TrendCharts /></el-icon>
             내 학습 통계
           </el-button>
-          <el-button type="primary" @click="$router.push('/student/daily-feedback')" style="margin: 0">
-            <el-icon style="margin-right: 8px"><Document /></el-icon>
+          <el-button type="primary" @click="$router.push('/student/daily-feedback')" :size="isMobile ? 'small' : 'default'" style="margin: 0">
+            <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><Document /></el-icon>
             수업 피드백
           </el-button>
-          <el-button type="warning" @click="$router.push('/student/clinic')" style="margin: 0">
-            <el-icon style="margin-right: 8px"><MagicStick /></el-icon>
+          <el-button type="warning" @click="$router.push('/student/clinic')" :size="isMobile ? 'small' : 'default'" style="margin: 0">
+            <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><MagicStick /></el-icon>
             클리닉 신청
           </el-button>
         </div>
@@ -132,48 +141,33 @@ onMounted(() => {
     </el-card>
 
     <!-- Student Info Card -->
-    <el-row :gutter="24" style="margin-bottom: 24px">
-      <el-col :xs="24" :sm="12" :md="8">
-        <el-card shadow="hover">
+    <el-row :gutter="isMobile ? 12 : 24" :style="{ marginBottom: isMobile ? '12px' : '24px' }">
+      <el-col :xs="8" :sm="8" :md="8">
+        <el-card shadow="hover" :body-style="{ padding: isMobile ? '10px' : '20px' }">
           <div style="text-align: center">
-            <div style="display: inline-block; padding: 16px; background: #409eff; border-radius: 16px; margin-bottom: 16px">
-              <el-icon size="48" color="white">
-                <User />
-              </el-icon>
-            </div>
-            <h3 style="margin: 0; font-size: 18px; color: #303133">내 정보</h3>
-            <p style="margin: 8px 0; color: #606266">{{ studentInfo?.school || '-' }}</p>
-            <p style="margin: 0; color: #909399; font-size: 14px">{{ studentInfo?.grade || '-' }}</p>
+            <h3 :style="{ margin: 0, fontSize: h3FontSize, color: '#409eff', marginBottom: isMobile ? '4px' : '8px' }">내 정보</h3>
+            <p :style="{ margin: isMobile ? '2px 0' : '4px 0', color: '#606266', fontSize: bodyFontSize }">{{ studentInfo?.school || '-' }}</p>
+            <p :style="{ margin: 0, color: '#909399', fontSize: bodyFontSize }">{{ studentInfo?.grade || '-' }}</p>
           </div>
         </el-card>
       </el-col>
 
-      <el-col :xs="24" :sm="12" :md="8">
-        <el-card shadow="hover">
+      <el-col :xs="8" :sm="8" :md="8">
+        <el-card shadow="hover" :body-style="{ padding: isMobile ? '10px' : '20px' }">
           <div style="text-align: center">
-            <div style="display: inline-block; padding: 16px; background: #67c23a; border-radius: 16px; margin-bottom: 16px">
-              <el-icon size="48" color="white">
-                <Document />
-              </el-icon>
-            </div>
-            <h3 style="margin: 0; font-size: 18px; color: #303133">미응시한 시험</h3>
-            <p style="margin: 8px 0; color: #606266; font-size: 32px; font-weight: 700">
+            <h3 :style="{ margin: 0, fontSize: h3FontSize, color: '#67c23a', marginBottom: isMobile ? '4px' : '8px' }">미응시</h3>
+            <p :style="{ margin: 0, color: '#606266', fontSize: statFontSize, fontWeight: 700 }">
               {{ untakenTestsCount() }}
             </p>
           </div>
         </el-card>
       </el-col>
 
-      <el-col :xs="24" :sm="12" :md="8">
-        <el-card shadow="hover" style="cursor: pointer" @click="showPastTestsDialog">
+      <el-col :xs="8" :sm="8" :md="8">
+        <el-card shadow="hover" style="cursor: pointer" :body-style="{ padding: isMobile ? '10px' : '20px' }" @click="showPastTestsDialog">
           <div style="text-align: center">
-            <div style="display: inline-block; padding: 16px; background: #e6a23c; border-radius: 16px; margin-bottom: 16px">
-              <el-icon size="48" color="white">
-                <Check />
-              </el-icon>
-            </div>
-            <h3 style="margin: 0; font-size: 18px; color: #303133">지난 시험</h3>
-            <p style="margin: 8px 0; color: #606266; font-size: 32px; font-weight: 700">
+            <h3 :style="{ margin: 0, fontSize: h3FontSize, color: '#e6a23c', marginBottom: isMobile ? '4px' : '8px' }">지난 시험</h3>
+            <p :style="{ margin: 0, color: '#606266', fontSize: statFontSize, fontWeight: 700 }">
               {{ mySubmissions.length }}
             </p>
           </div>
@@ -185,7 +179,7 @@ onMounted(() => {
     <el-card shadow="never">
       <template #header>
         <div style="display: flex; justify-content: space-between; align-items: center">
-          <h2 style="margin: 0; font-size: 20px; font-weight: 600">시험 리스트</h2>
+          <h2 :style="{ margin: 0, fontSize: h2FontSize, fontWeight: 600 }">시험 리스트</h2>
         </div>
       </template>
 
@@ -252,40 +246,41 @@ onMounted(() => {
           v-for="test in availableTests"
           :key="test.id"
           shadow="hover"
-          style="margin-bottom: 16px"
+          :style="{ marginBottom: isMobile ? '10px' : '16px' }"
+          :body-style="{ padding: isMobile ? '12px' : '20px' }"
         >
-          <div style="display: flex; flex-direction: column; gap: 12px">
+          <div :style="{ display: 'flex', flexDirection: 'column', gap: isMobile ? '8px' : '12px' }">
             <!-- Title and Status -->
-            <div style="display: flex; justify-content: space-between; align-items: start; gap: 12px">
-              <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #303133; flex: 1">
+            <div :style="{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: isMobile ? '8px' : '12px' }">
+              <h3 :style="{ margin: 0, fontSize: h3FontSize, fontWeight: 600, color: '#303133', flex: 1 }">
                 {{ test.title }}
               </h3>
-              <el-tag v-if="getSubmissionForTest(test.id)" type="success" size="large">
+              <el-tag v-if="getSubmissionForTest(test.id)" type="success" :size="isMobile ? 'small' : 'default'" :style="{ fontSize: tableFontSize }">
                 제출 완료
               </el-tag>
-              <el-tag v-else type="warning" size="large">
+              <el-tag v-else type="warning" :size="isMobile ? 'small' : 'default'" :style="{ fontSize: tableFontSize }">
                 미제출
               </el-tag>
             </div>
 
             <!-- Info Grid -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px; color: #606266">
-              <div style="display: flex; align-items: center; gap: 4px">
-                <el-icon><Calendar /></el-icon>
+            <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isMobile ? '6px' : '8px', fontSize: bodyFontSize, color: '#606266' }">
+              <div :style="{ display: 'flex', alignItems: 'center', gap: isMobile ? '3px' : '4px' }">
+                <el-icon :size="isMobile ? 14 : 16"><Calendar /></el-icon>
                 <span>{{ test.lessonDate ? new Date(test.lessonDate).toLocaleDateString('ko-KR', {
-                  month: 'long', day: 'numeric'
+                  month: isMobile ? 'numeric' : 'long', day: 'numeric'
                 }) : '-' }}</span>
               </div>
-              <div style="display: flex; align-items: center; gap: 4px">
-                <el-icon><School /></el-icon>
+              <div :style="{ display: 'flex', alignItems: 'center', gap: isMobile ? '3px' : '4px' }">
+                <el-icon :size="isMobile ? 14 : 16"><School /></el-icon>
                 <span>{{ test.className }}</span>
               </div>
-              <div v-if="test.questionCount" style="display: flex; align-items: center; gap: 4px">
-                <el-icon><Document /></el-icon>
+              <div v-if="test.questionCount" :style="{ display: 'flex', alignItems: 'center', gap: isMobile ? '3px' : '4px' }">
+                <el-icon :size="isMobile ? 14 : 16"><Document /></el-icon>
                 <span>{{ test.questionCount }}문제</span>
               </div>
-              <div v-if="getSubmissionForTest(test.id)" style="display: flex; align-items: center; gap: 4px">
-                <el-icon><Trophy /></el-icon>
+              <div v-if="getSubmissionForTest(test.id)" :style="{ display: 'flex', alignItems: 'center', gap: isMobile ? '3px' : '4px' }">
+                <el-icon :size="isMobile ? 14 : 16"><Trophy /></el-icon>
                 <span style="font-weight: 600; color: #409eff">
                   {{ getSubmissionForTest(test.id)?.totalScore }}점
                 </span>
@@ -296,21 +291,21 @@ onMounted(() => {
             <el-button
               v-if="!getSubmissionForTest(test.id)"
               type="primary"
-              size="large"
+              size="small"
               @click="handleTakeTest(test.id)"
-              style="width: 100%; margin-top: 4px"
+              :style="{ width: '100%', marginTop: isMobile ? '0' : '4px' }"
             >
-              <el-icon style="margin-right: 8px"><Edit /></el-icon>
+              <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><Edit /></el-icon>
               시험 보기
             </el-button>
             <el-button
               v-else
               type="info"
-              size="large"
+              size="small"
               disabled
-              style="width: 100%; margin-top: 4px"
+              :style="{ width: '100%', marginTop: isMobile ? '0' : '4px' }"
             >
-              <el-icon style="margin-right: 8px"><Check /></el-icon>
+              <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><Check /></el-icon>
               완료
             </el-button>
           </div>
@@ -326,43 +321,56 @@ onMounted(() => {
 
     <!-- Past Tests Dialog -->
     <el-dialog v-model="pastTestsDialogVisible" title="지난 시험 기록" :width="isMobile ? '95%' : '800px'" :fullscreen="isMobile">
-      <el-table :data="mySubmissions" style="width: 100%" stripe>
-        <el-table-column label="시험 제목" min-width="200">
+      <el-table
+        :data="mySubmissions"
+        style="width: 100%"
+        stripe
+        :size="isMobile ? 'small' : 'default'"
+        :style="{ fontSize: tableFontSize }"
+        :header-cell-style="{ fontSize: tableFontSize, padding: isMobile ? '6px 0' : '12px 0' }"
+        :cell-style="{ fontSize: tableFontSize, padding: isMobile ? '6px 8px' : '12px 8px' }"
+      >
+        <el-table-column label="시험 제목" :min-width="isMobile ? 150 : 200">
           <template #default="{ row }">
-            {{ row.testTitle || row.test?.title || '-' }}
+            <span :style="{ fontSize: tableFontSize }">{{ row.testTitle || row.test?.title || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="제출 날짜" width="180">
+        <el-table-column label="제출 날짜" :width="isMobile ? 100 : 180">
           <template #default="{ row }">
-            {{ row.submittedAt ? new Date(row.submittedAt).toLocaleDateString('ko-KR', {
-              year: 'numeric', month: 'long', day: 'numeric'
-            }) : '-' }}
+            <span :style="{ fontSize: tableFontSize }">
+              {{ row.submittedAt ? new Date(row.submittedAt).toLocaleDateString('ko-KR', {
+                year: isMobile ? '2-digit' : 'numeric',
+                month: isMobile ? 'numeric' : 'long',
+                day: 'numeric'
+              }) : '-' }}
+            </span>
           </template>
         </el-table-column>
-        <el-table-column label="내 점수" width="100" align="center">
+        <el-table-column label="내 점수" :width="isMobile ? 70 : 100" align="center">
           <template #default="{ row }">
             <el-tag
               :type="row.totalScore >= 90 ? 'success' : row.totalScore >= 70 ? 'warning' : 'danger'"
-              size="large"
+              :size="isMobile ? 'small' : 'default'"
+              :style="{ fontSize: tableFontSize }"
             >
               {{ row.totalScore }}점
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="반 평균" width="100" align="center">
+        <el-table-column label="반 평균" :width="isMobile ? 70 : 100" align="center">
           <template #default="{ row }">
-            <span v-if="row.classAverage !== null && row.classAverage !== undefined">
+            <span v-if="row.classAverage !== null && row.classAverage !== undefined" :style="{ fontSize: tableFontSize }">
               {{ Math.round(row.classAverage) }}점
             </span>
-            <span v-else style="color: #909399">-</span>
+            <span v-else :style="{ color: '#909399', fontSize: tableFontSize }">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="반 등수" width="100" align="center">
+        <el-table-column label="반 등수" :width="isMobile ? 70 : 100" align="center">
           <template #default="{ row }">
-            <span v-if="row.rank !== null && row.rank !== undefined">
+            <span v-if="row.rank !== null && row.rank !== undefined" :style="{ fontSize: tableFontSize }">
               {{ row.rank }}등
             </span>
-            <span v-else style="color: #909399">-</span>
+            <span v-else :style="{ color: '#909399', fontSize: tableFontSize }">-</span>
           </template>
         </el-table-column>
       </el-table>

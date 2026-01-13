@@ -37,6 +37,17 @@ const incompleteHomeworksDialogVisible = ref(false)
 // 반응형 breakpoint
 const { isMobile, isSmallScreen } = useBreakpoint()
 
+// Responsive font sizes
+const h1FontSize = computed(() => isMobile.value ? '16px' : '28px')
+const h2FontSize = computed(() => isMobile.value ? '14px' : '24px')
+const h3FontSize = computed(() => isMobile.value ? '13px' : '18px')
+const statFontSize = computed(() => isMobile.value ? '22px' : '32px')
+const textFontSize = computed(() => isMobile.value ? '11px' : '15px')
+const smallTextFontSize = computed(() => isMobile.value ? '9px' : '13px')
+const bodyFontSize = computed(() => isMobile.value ? '11px' : '14px')
+const cardPadding = computed(() => isMobile.value ? '16px' : '20px')
+const iconSize = computed(() => isMobile.value ? 24 : 32)
+
 // 터치 제스처 (차트용)
 const {
   zoom: touchZoom,
@@ -311,18 +322,18 @@ onMounted(() => {
     <!-- Header -->
     <el-card shadow="never" style="margin-bottom: 24px">
       <div>
-        <h1 style="margin: 0 0 16px 0; font-size: 28px; font-weight: 600; color: #303133; display: flex; align-items: center; gap: 12px">
-          <el-icon size="32" color="#409eff">
+        <h1 :style="{ margin: isMobile ? '0 0 12px 0' : '0 0 16px 0', fontSize: h1FontSize, fontWeight: 600, color: '#303133', display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px' }">
+          <el-icon :size="iconSize" color="#409eff">
             <User />
           </el-icon>
           <span>{{ student?.name || '학생 상세' }}</span>
         </h1>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-content: flex-start; justify-content: flex-start; margin: 0; width: 100%">
-          <el-button type="primary" @click="router.push(isTeacher ? `/students/${studentId}/feedback` : '/student/daily-feedback')" style="margin: 0">
-            <el-icon style="margin-right: 8px"><ChatLineSquare /></el-icon>
+        <div :style="{ display: 'flex', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap', alignContent: 'flex-start', justifyContent: 'flex-start', margin: 0, width: '100%' }">
+          <el-button type="primary" @click="router.push(isTeacher ? `/students/${studentId}/feedback` : '/student/daily-feedback')" :size="isMobile ? 'small' : 'default'" style="margin: 0">
+            <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><ChatLineSquare /></el-icon>
             수업 피드백
           </el-button>
-          <el-button @click="goBack" :icon="ArrowLeft" style="margin: 0">
+          <el-button @click="goBack" :icon="ArrowLeft" :size="isMobile ? 'small' : 'default'" style="margin: 0">
             {{ isTeacher ? '목록으로' : '대시보드로' }}
           </el-button>
         </div>
@@ -345,24 +356,24 @@ onMounted(() => {
 
           <div style="text-align: center; padding: 20px 0">
             <el-avatar :size="80" :icon="UserFilled" style="margin-bottom: 16px" />
-            <h2 style="margin: 0 0 8px; font-size: 24px; font-weight: 600">{{ student?.name }}</h2>
+            <h2 :style="{ margin: '0 0 8px', fontSize: h2FontSize, fontWeight: 600 }">{{ student?.name }}</h2>
             <el-tag type="info" size="small">ID: {{ student?.id }}</el-tag>
 
             <div style="margin-top: 24px; text-align: left">
               <div style="padding: 12px 0; border-bottom: 1px solid #ebeef5">
-                <span style="color: #909399; font-size: 14px">학년</span>
+                <span :style="{ color: '#909399', fontSize: bodyFontSize }">학년</span>
                 <div style="margin-top: 4px; font-weight: 500">{{ student?.grade }}</div>
               </div>
               <div style="padding: 12px 0; border-bottom: 1px solid #ebeef5">
-                <span style="color: #909399; font-size: 14px">학교</span>
+                <span :style="{ color: '#909399', fontSize: bodyFontSize }">학교</span>
                 <div style="margin-top: 4px; font-weight: 500">{{ student?.school }}</div>
               </div>
               <div style="padding: 12px 0; border-bottom: 1px solid #ebeef5">
-                <span style="color: #909399; font-size: 14px">학원</span>
+                <span :style="{ color: '#909399', fontSize: bodyFontSize }">학원</span>
                 <div style="margin-top: 4px; font-weight: 500">{{ student?.academyName }}</div>
               </div>
               <div style="padding: 12px 0">
-                <span style="color: #909399; font-size: 14px">반</span>
+                <span :style="{ color: '#909399', fontSize: bodyFontSize }">반</span>
                 <div style="margin-top: 4px; font-weight: 500">{{ student?.className }}</div>
               </div>
             </div>
@@ -379,18 +390,18 @@ onMounted(() => {
               <el-row :gutter="16" style="margin-bottom: 16px">
                 <el-col :xs="12" :sm="12" :md="12">
                   <div style="text-align: center; padding: 20px; background: #f0f9ff; border-radius: 8px">
-                    <div style="font-size: 32px; font-weight: 600; color: #409eff; margin-bottom: 8px">
+                    <div :style="{ fontSize: statFontSize, fontWeight: 600, color: '#409eff', marginBottom: '8px' }">
                       {{ submissions.length }}
                     </div>
-                    <div style="color: #909399; font-size: 14px">총 응시 시험</div>
+                    <div :style="{ color: '#909399', fontSize: bodyFontSize }">총 응시 시험</div>
                   </div>
                 </el-col>
                 <el-col :xs="12" :sm="12" :md="12">
                   <div style="text-align: center; padding: 20px; background: #f0fdf4; border-radius: 8px">
-                    <div style="font-size: 32px; font-weight: 600; color: #67c23a; margin-bottom: 8px">
+                    <div :style="{ fontSize: statFontSize, fontWeight: 600, color: '#67c23a', marginBottom: '8px' }">
                       {{ averageScore }}
                     </div>
-                    <div style="color: #909399; font-size: 14px">평균 점수</div>
+                    <div :style="{ color: '#909399', fontSize: bodyFontSize }">평균 점수</div>
                   </div>
                 </el-col>
               </el-row>
@@ -398,18 +409,18 @@ onMounted(() => {
               <el-row :gutter="16">
                 <el-col :xs="12" :sm="12" :md="12">
                   <div style="text-align: center; padding: 20px; background: #fffbeb; border-radius: 8px">
-                    <div style="font-size: 32px; font-weight: 600; color: #e6a23c; margin-bottom: 8px">
+                    <div :style="{ fontSize: statFontSize, fontWeight: 600, color: '#e6a23c', marginBottom: '8px' }">
                       {{ maxScore }}
                     </div>
-                    <div style="color: #909399; font-size: 14px">최고 점수</div>
+                    <div :style="{ color: '#909399', fontSize: bodyFontSize }">최고 점수</div>
                   </div>
                 </el-col>
                 <el-col :xs="12" :sm="12" :md="12">
                   <div style="text-align: center; padding: 20px; background: #fef2f2; border-radius: 8px">
-                    <div style="font-size: 32px; font-weight: 600; color: #f56c6c; margin-bottom: 8px">
+                    <div :style="{ fontSize: statFontSize, fontWeight: 600, color: '#f56c6c', marginBottom: '8px' }">
                       {{ minScore }}
                     </div>
-                    <div style="color: #909399; font-size: 14px">최저 점수</div>
+                    <div :style="{ color: '#909399', fontSize: bodyFontSize }">최저 점수</div>
                   </div>
                 </el-col>
               </el-row>
@@ -417,8 +428,8 @@ onMounted(() => {
           <!-- 꺾은선 그래프 -->
           <div v-if="chartPoints && chartPoints.length > 0" style="margin-top: 24px; padding: 20px; background: #fafafa; border-radius: 8px; cursor: pointer; transition: all 0.3s" @click="openChartModal">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px">
-              <div style="font-weight: 600; color: #303133; font-size: 15px">점수 추이</div>
-              <div style="display: flex; gap: 12px; font-size: 11px; align-items: center; flex-wrap: nowrap">
+              <div :style="{ fontWeight: 600, color: '#303133', fontSize: textFontSize }">점수 추이</div>
+              <div :style="{ display: 'flex', gap: '12px', fontSize: smallTextFontSize, alignItems: 'center', flexWrap: 'nowrap' }">
                 <div style="display: flex; align-items: center; gap: 4px; white-space: nowrap">
                   <div style="width: 14px; height: 2.5px; background: #409eff; border-radius: 2px"></div>
                   <span style="color: #606266">내 점수</span>
@@ -427,7 +438,7 @@ onMounted(() => {
                   <div style="width: 14px; height: 2.5px; background: #67c23a; border-radius: 2px"></div>
                   <span style="color: #606266">학원 평균</span>
                 </div>
-                <el-button type="primary" size="small" :icon="ZoomIn" @click.stop="openChartModal" style="padding: 4px 8px; font-size: 11px">
+                <el-button type="primary" size="small" :icon="ZoomIn" @click.stop="openChartModal" :style="{ padding: '4px 8px', fontSize: smallTextFontSize }">
                   확대하여 보기
                 </el-button>
               </div>
@@ -523,11 +534,11 @@ onMounted(() => {
               <el-row :gutter="16" style="margin-bottom: 16px">
                 <el-col :xs="12" :sm="12" :md="12">
                   <div style="text-align: center; padding: 20px; background: #fef2f2; border-radius: 8px; position: relative">
-                    <div style="font-size: 32px; font-weight: 600; color: #f56c6c; margin-bottom: 8px">
+                    <div :style="{ fontSize: statFontSize, fontWeight: 600, color: '#f56c6c', marginBottom: '8px' }">
                       {{ incompleteHomeworkCount }}
                     </div>
                     <div
-                      style="color: #409eff; font-size: 14px; cursor: pointer; text-decoration: underline; transition: color 0.3s"
+                      :style="{ color: '#409eff', fontSize: bodyFontSize, cursor: 'pointer', textDecoration: 'underline', transition: 'color 0.3s' }"
                       @click="incompleteHomeworksDialogVisible = true"
                       @mouseenter="e => e.currentTarget.style.color = '#66b1ff'"
                       @mouseleave="e => e.currentTarget.style.color = '#409eff'"
@@ -538,10 +549,10 @@ onMounted(() => {
                 </el-col>
                 <el-col :xs="12" :sm="12" :md="12">
                   <div style="text-align: center; padding: 20px; background: #fff7e6; border-radius: 8px">
-                    <div style="font-size: 32px; font-weight: 600; color: #e6a23c; margin-bottom: 8px">
+                    <div :style="{ fontSize: statFontSize, fontWeight: 600, color: '#e6a23c', marginBottom: '8px' }">
                       {{ totalIncorrectCount }}개
                     </div>
-                    <div style="color: #909399; font-size: 14px">총 오답 개수</div>
+                    <div :style="{ color: '#909399', fontSize: bodyFontSize }">총 오답 개수</div>
                   </div>
                 </el-col>
               </el-row>
@@ -549,7 +560,7 @@ onMounted(() => {
               <el-row :gutter="16">
                 <el-col :xs="12" :sm="12" :md="12">
                   <div :style="{ padding: '10px', background: averageCompletionBgColor, borderRadius: '8px', textAlign: 'center', transition: 'background 0.3s' }">
-                    <div style="color: #909399; font-size: 14px; margin-bottom: 12px">평균 완성도</div>
+                    <div :style="{ color: '#909399', fontSize: bodyFontSize, marginBottom: '12px' }">평균 완성도</div>
                     <el-progress
                       type="circle"
                       :percentage="averageCompletion"
@@ -561,7 +572,7 @@ onMounted(() => {
                 </el-col>
                 <el-col :xs="12" :sm="12" :md="12">
                   <div :style="{ padding: '10px', background: minCompletionBgColor, borderRadius: '8px', textAlign: 'center', transition: 'background 0.3s' }">
-                    <div style="color: #909399; font-size: 14px; margin-bottom: 12px">최저 완성도</div>
+                    <div :style="{ color: '#909399', fontSize: bodyFontSize, marginBottom: '12px' }">최저 완성도</div>
                     <el-progress
                       type="circle"
                       :percentage="minCompletion"
@@ -669,7 +680,7 @@ onMounted(() => {
             <!-- Title and Score -->
             <div style="display: flex; justify-content: space-between; align-items: start; gap: 12px">
               <div style="flex: 1">
-                <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #409eff">
+                <h3 :style="{ margin: 0, fontSize: h3FontSize, fontWeight: 600, color: '#409eff' }">
                   {{ submission.testTitle || '시험명 없음' }}
                 </h3>
               </div>
@@ -682,7 +693,7 @@ onMounted(() => {
             </div>
 
             <!-- Date Info -->
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #606266">
+            <div :style="{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: bodyFontSize, color: '#606266' }">
               <el-icon color="#909399">
                 <Calendar />
               </el-icon>
@@ -707,7 +718,7 @@ onMounted(() => {
       :close-on-click-modal="false"
     >
       <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center">
-        <div style="display: flex; gap: 16px; font-size: 14px">
+        <div :style="{ display: 'flex', gap: '16px', fontSize: bodyFontSize }">
           <div style="display: flex; align-items: center; gap: 8px">
             <div style="width: 20px; height: 4px; background: #409eff; border-radius: 2px"></div>
             <span style="color: #606266">내 점수</span>
@@ -718,7 +729,7 @@ onMounted(() => {
           </div>
         </div>
         <div style="display: flex; gap: 12px; align-items: center">
-          <span style="color: #909399; font-size: 13px">확대: {{ Math.round(combinedZoom * 100) }}%</span>
+          <span :style="{ color: '#909399', fontSize: smallTextFontSize }">확대: {{ Math.round(combinedZoom * 100) }}%</span>
           <el-button size="small" @click="resetZoomAndPan" :icon="Refresh">초기화</el-button>
         </div>
       </div>
@@ -842,7 +853,7 @@ onMounted(() => {
         </svg>
       </div>
 
-      <div style="margin-top: 16px; padding: 12px; background: #f0f9ff; border-radius: 8px; font-size: 13px; color: #606266">
+      <div :style="{ marginTop: '16px', padding: '12px', background: '#f0f9ff', borderRadius: '8px', fontSize: smallTextFontSize, color: '#606266' }">
         <div style="font-weight: 600; margin-bottom: 8px; color: #409eff">사용 방법</div>
         <div v-if="isMobile">• 핀치: 확대/축소</div>
         <div v-if="isMobile">• 드래그: 차트 이동</div>

@@ -17,7 +17,9 @@ const answers = ref<Record<number, string>>({})
 
 const { isMobile } = useBreakpoint()
 const containerPadding = computed(() => isMobile.value ? '12px' : '24px')
-const badgeSize = computed(() => isMobile.value ? '48px' : '60px')
+const badgeSize = computed(() => isMobile.value ? '40px' : '60px')
+const badgeFontSize = computed(() => isMobile.value ? '14px' : '24px')
+const testTitleFontSize = computed(() => isMobile.value ? '16px' : '24px')
 const testId = computed(() => Number(route.params.id))
 
 const fetchTestData = async () => {
@@ -119,8 +121,8 @@ onMounted(() => {
       <template #header>
         <div style="display: flex; justify-content: space-between; align-items: center">
           <div>
-            <h1 style="margin: 0; font-size: 24px; font-weight: 700">{{ test?.title }}</h1>
-            <p style="margin: 8px 0 0; color: #909399; font-size: 14px">
+            <h1 :style="{ margin: 0, fontSize: testTitleFontSize, fontWeight: 700 }">{{ test?.title }}</h1>
+            <p :style="{ margin: '8px 0 0', color: '#909399', fontSize: isMobile ? '11px' : '14px' }">
               총 {{ questions.length }}문제
             </p>
           </div>
@@ -137,7 +139,7 @@ onMounted(() => {
         style="margin-bottom: 24px"
       >
         <template #title>
-          <div style="font-size: 14px">
+          <div :style="{ fontSize: isMobile ? '11px' : '14px' }">
             <strong>응시자:</strong> {{ currentUser.name }} |
             <strong>시험:</strong> {{ test?.title }}
           </div>
@@ -148,7 +150,7 @@ onMounted(() => {
       <div v-for="question in questions" :key="question.id" style="margin-bottom: 32px">
         <div :style="{ display: 'flex', alignItems: isMobile ? 'stretch' : 'start', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '12px' : '16px' }">
           <div :style="{ flexShrink: 0, width: badgeSize, height: badgeSize, background: 'linear-gradient(135deg, #409eff, #67c23a)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }">
-            <span :style="{ color: 'white', fontSize: isMobile ? '20px' : '24px', fontWeight: 700 }">{{ question.number }}</span>
+            <span :style="{ color: 'white', fontSize: badgeFontSize, fontWeight: 700 }">{{ question.number }}</span>
           </div>
           <div style="flex: 1">
             <div style="margin-bottom: 12px">

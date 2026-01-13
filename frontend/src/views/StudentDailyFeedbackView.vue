@@ -25,6 +25,13 @@ const editedAuthorName = ref('')
 const { isMobile } = useBreakpoint()
 
 const containerPadding = computed(() => isMobile.value ? '12px' : '24px')
+const h1FontSize = computed(() => isMobile.value ? '16px' : isTeacherView.value ? '28px' : '32px')
+const h3FontSize = computed(() => isMobile.value ? '12px' : '16px')
+const sectionTitleFontSize = computed(() => isMobile.value ? '14px' : '20px')
+const labelFontSize = computed(() => isMobile.value ? '12px' : '16px')
+const textFontSize = computed(() => isMobile.value ? '11px' : '15px')
+const smallTextFontSize = computed(() => isMobile.value ? '10px' : '13px')
+const tableFontSize = computed(() => isMobile.value ? '10px' : '14px')
 
 const fetchLessons = async () => {
   try {
@@ -206,7 +213,7 @@ onMounted(() => {
     <el-card v-if="isTeacherView" shadow="never" style="margin-bottom: 24px">
       <div style="display: flex; justify-content: space-between; align-items: center">
         <div>
-          <h1 style="margin: 0 0 8px; font-size: 28px; font-weight: 600; color: #303133">
+          <h1 :style="{ margin: '0 0 8px', fontSize: h1FontSize, fontWeight: 600, color: '#303133' }">
             {{ studentName }}님의 수업 피드백
           </h1>
         </div>
@@ -219,10 +226,10 @@ onMounted(() => {
     <!-- 공통 헤더 -->
     <el-card shadow="never" style="margin-bottom: 24px">
       <div style="text-align: center">
-        <h1 v-if="!isTeacherView" style="margin: 0 0 8px; font-size: 32px; font-weight: 600; color: #303133">
+        <h1 v-if="!isTeacherView" :style="{ margin: '0 0 8px', fontSize: h1FontSize, fontWeight: 600, color: '#303133' }">
           수업 피드백
         </h1>
-        <p v-if="feedback" style="margin: 0 0 16px; color: #909399; font-size: 16px">
+        <p v-if="feedback" :style="{ margin: '0 0 16px', color: '#909399', fontSize: labelFontSize }">
           {{ new Date(feedback.lessonDate).toLocaleDateString('ko-KR', {
             year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
           }) }}
@@ -255,18 +262,18 @@ onMounted(() => {
       <template #header>
         <div style="display: flex; align-items: center; gap: 8px">
           <el-icon size="20" color="#e6a23c"><BellFilled /></el-icon>
-          <span style="font-weight: 600; font-size: 16px">공지사항</span>
+          <span :style="{ fontWeight: 600, fontSize: labelFontSize }">공지사항</span>
         </div>
       </template>
-      <div style="
-        background: #fef0f0;
-        padding: 20px;
-        border-radius: 8px;
-        line-height: 1.8;
-        font-size: 15px;
-        color: #303133;
-        white-space: pre-wrap;
-      ">
+      <div :style="{
+        background: '#fef0f0',
+        padding: '20px',
+        borderRadius: '8px',
+        lineHeight: '1.8',
+        fontSize: textFontSize,
+        color: '#303133',
+        whiteSpace: 'pre-wrap'
+      }">
         {{ selectedLesson.announcement }}
       </div>
     </el-card>
@@ -278,28 +285,29 @@ onMounted(() => {
             <template #header>
               <div style="display: flex; align-items: center; gap: 8px">
                 <el-icon size="20" color="#409eff"><Document /></el-icon>
-                <span style="font-weight: 600; font-size: 16px">오늘의 숙제</span>
+                <span :style="{ fontWeight: 600, fontSize: labelFontSize }">오늘의 숙제</span>
               </div>
             </template>
 
             <div v-if="feedback.todayHomework">
-              <div style="font-size: 20px; font-weight: 600; margin-bottom: 16px">
+              <div :style="{ fontSize: sectionTitleFontSize, fontWeight: 600, marginBottom: isMobile ? '12px' : '16px' }">
                 {{ feedback.todayHomework.homeworkTitle }}
               </div>
 
-              <el-descriptions :column="1" border>
-                <el-descriptions-item label="문제 수">
+              <el-descriptions :column="1" border :size="isMobile ? 'small' : 'default'" :style="{ fontSize: tableFontSize }">
+                <el-descriptions-item label="문제 수" :label-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }" :content-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }">
                   {{ feedback.todayHomework.questionCount }}문제
                 </el-descriptions-item>
-                <el-descriptions-item label="완성도">
-                  <div style="display: flex; align-items: center; gap: 12px">
+                <el-descriptions-item label="완성도" :label-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }" :content-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }">
+                  <div :style="{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px' }">
                     <el-progress
                       :percentage="feedback.todayHomework.completion || 0"
                       :color="todayHomeworkStatus?.color"
                       style="flex: 1"
+                      :stroke-width="isMobile ? 4 : 6"
                     />
                   </div>
-                  <div v-if="feedback.todayHomework.incorrectCount !== null && feedback.todayHomework.incorrectCount !== undefined" style="margin-top: 8px; font-size: 13px">
+                  <div v-if="feedback.todayHomework.incorrectCount !== null && feedback.todayHomework.incorrectCount !== undefined" :style="{ marginTop: isMobile ? '6px' : '8px', fontSize: smallTextFontSize }">
                     <div style="color: #f56c6c; font-weight: 500">
                       오답 개수: {{ feedback.todayHomework.incorrectCount }}개
                     </div>
@@ -311,7 +319,7 @@ onMounted(() => {
                     </div>
                   </div>
                 </el-descriptions-item>
-                <el-descriptions-item label="마감일" v-if="feedback.todayHomework.dueDate">
+                <el-descriptions-item label="마감일" v-if="feedback.todayHomework.dueDate" :label-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }" :content-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }">
                   {{ new Date(feedback.todayHomework.dueDate).toLocaleDateString('ko-KR') }}
                 </el-descriptions-item>
               </el-descriptions>
@@ -325,20 +333,20 @@ onMounted(() => {
             <template #header>
               <div style="display: flex; align-items: center; gap: 8px">
                 <el-icon size="20" color="#67c23a"><Calendar /></el-icon>
-                <span style="font-weight: 600; font-size: 16px">다음 수업 숙제</span>
+                <span :style="{ fontWeight: 600, fontSize: labelFontSize }">다음 수업 숙제</span>
               </div>
             </template>
 
             <div v-if="feedback.nextHomework">
-              <div style="font-size: 20px; font-weight: 600; margin-bottom: 16px">
+              <div :style="{ fontSize: sectionTitleFontSize, fontWeight: 600, marginBottom: isMobile ? '12px' : '16px' }">
                 {{ feedback.nextHomework.homeworkTitle }}
               </div>
 
-              <el-descriptions :column="1" border>
-                <el-descriptions-item label="문제 수">
+              <el-descriptions :column="1" border :size="isMobile ? 'small' : 'default'" :style="{ fontSize: tableFontSize }">
+                <el-descriptions-item label="문제 수" :label-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }" :content-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }">
                   {{ feedback.nextHomework.questionCount }}문제
                 </el-descriptions-item>
-                <el-descriptions-item label="마감일" v-if="feedback.nextHomework.dueDate">
+                <el-descriptions-item label="마감일" v-if="feedback.nextHomework.dueDate" :label-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }" :content-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }">
                   {{ new Date(feedback.nextHomework.dueDate).toLocaleDateString('ko-KR') }}
                 </el-descriptions-item>
               </el-descriptions>
@@ -353,7 +361,7 @@ onMounted(() => {
           <div style="display: flex; justify-content: space-between; align-items: center">
             <div style="display: flex; align-items: center; gap: 8px">
               <el-icon size="20" color="#e6a23c"><EditPen /></el-icon>
-              <span style="font-weight: 600; font-size: 16px">오늘의 시험 결과</span>
+              <span :style="{ fontWeight: 600, fontSize: labelFontSize }">오늘의 시험 결과</span>
             </div>
             <el-tag :type="'success'" size="large">
               {{ feedback.todayTest.studentScore }}점
@@ -362,19 +370,19 @@ onMounted(() => {
         </template>
 
         <div style="margin-bottom: 20px">
-          <h3 style="margin: 0 0 12px; font-size: 16px; color: #303133">
+          <h3 :style="{ margin: '0 0 12px', fontSize: h3FontSize, color: '#303133' }">
             {{ feedback.todayTest.testTitle }}
           </h3>
           <div style="display: flex; gap: 16px; align-items: center">
             <div style="padding: 8px 16px; background: #f0f9ff; border-radius: 6px; border-left: 3px solid #409eff">
-              <span style="color: #909399; font-size: 13px">반 평균</span>
-              <span style="margin-left: 8px; font-weight: 600; color: #303133; font-size: 15px">
+              <span :style="{ color: '#909399', fontSize: smallTextFontSize }">반 평균</span>
+              <span :style="{ marginLeft: '8px', fontWeight: 600, color: '#303133', fontSize: textFontSize }">
                 {{ Math.round(feedback.todayTest.classAverage) }}점
               </span>
             </div>
             <div style="padding: 8px 16px; background: #fef0f0; border-radius: 6px; border-left: 3px solid #f56c6c">
-              <span style="color: #909399; font-size: 13px">반 등수</span>
-              <span style="margin-left: 8px; font-weight: 600; color: #303133; font-size: 15px">
+              <span :style="{ color: '#909399', fontSize: smallTextFontSize }">반 등수</span>
+              <span :style="{ marginLeft: '8px', fontWeight: 600, color: '#303133', fontSize: textFontSize }">
                 {{ feedback.todayTest.rank }}등
               </span>
             </div>
@@ -382,32 +390,41 @@ onMounted(() => {
         </div>
 
         <div v-if="incorrectQuestionsWithRate.length > 0">
-          <div style="font-weight: 600; margin-bottom: 12px; color: #f56c6c; font-size: 16px">
+          <div :style="{ fontWeight: 600, marginBottom: isMobile ? '8px' : '12px', color: '#f56c6c', fontSize: labelFontSize }">
             틀린 문제 분석 ({{ incorrectQuestionsWithRate.length }}개)
           </div>
-          <el-table :data="incorrectQuestionsWithRate" stripe>
-            <el-table-column prop="questionNumber" label="문제 번호" width="120" align="center">
+          <el-table
+            :data="incorrectQuestionsWithRate"
+            stripe
+            :style="{ fontSize: tableFontSize }"
+            :size="isMobile ? 'small' : 'default'"
+            :header-cell-style="{ fontSize: tableFontSize, padding: isMobile ? '6px 0' : '12px 0' }"
+            :cell-style="{ fontSize: tableFontSize, padding: isMobile ? '6px 2px' : '12px 8px' }"
+          >
+            <el-table-column prop="questionNumber" label="문제 번호" :width="isMobile ? 70 : 120" align="center">
               <template #default="{ row }">
-                <el-tag type="danger" size="large">{{ row.questionNumber }}번</el-tag>
+                <el-tag type="danger" :size="isMobile ? 'small' : 'default'" :style="{ fontSize: tableFontSize }">{{ row.questionNumber }}번</el-tag>
               </template>
             </el-table-column>
             <el-table-column label="학원 평균 정답률" align="center">
               <template #default="{ row }">
-                <div style="display: flex; align-items: center; gap: 12px">
+                <div :style="{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '8px' }">
                   <el-progress
                     :percentage="Math.round(row.academyCorrectRate)"
                     :color="row.difficulty.color"
-                    style="flex: 1"
+                    :show-text="false"
+                    :style="{flex: 1, fontSize: tableFontSize}"
+                    :stroke-width="isMobile ? 4 : 6"
                   />
-                  <span style="font-weight: 600; color: #606266">
+                  <span :style="{ fontWeight: 300, color: '#606266', fontSize: tableFontSize, whiteSpace: 'nowrap' }">
                     {{ Math.round(row.academyCorrectRate) }}%
                   </span>
                 </div>
               </template>
             </el-table-column>
-            <el-table-column label="난이도" width="130" align="center">
+            <el-table-column label="난이도" :width="isMobile ? 90 : 130" align="center">
               <template #default="{ row }">
-                <el-tag :color="row.difficulty.color" style="color: white; border: none">
+                <el-tag :color="row.difficulty.color" :size="isMobile ? 'small' : 'default'" :style="{ color: 'white', border: 'none', fontSize: tableFontSize }">
                   {{ row.difficulty.text }}
                 </el-tag>
               </template>
@@ -428,7 +445,7 @@ onMounted(() => {
         <template #header>
           <div style="display: flex; align-items: center; gap: 8px">
             <el-icon size="20" color="#909399"><EditPen /></el-icon>
-            <span style="font-weight: 600; font-size: 16px">시험 결과</span>
+            <span :style="{ fontWeight: 600, fontSize: labelFontSize }">시험 결과</span>
           </div>
         </template>
         <el-empty description="응시한 시험이 없습니다" :image-size="80">
@@ -443,18 +460,18 @@ onMounted(() => {
         <template #header>
           <div style="display: flex; align-items: center; gap: 8px">
             <el-icon size="20" color="#409eff"><ChatLineSquare /></el-icon>
-            <span style="font-weight: 600; font-size: 16px">수업 공통 피드백</span>
+            <span :style="{ fontWeight: 600, fontSize: labelFontSize }">수업 공통 피드백</span>
           </div>
         </template>
-        <div style="
-          background: #f5f7fa;
-          padding: 20px;
-          border-radius: 8px;
-          line-height: 1.8;
-          font-size: 15px;
-          color: #303133;
-          white-space: pre-wrap;
-        ">
+        <div :style="{
+          background: '#f5f7fa',
+          padding: '20px',
+          borderRadius: '8px',
+          lineHeight: '1.8',
+          fontSize: textFontSize,
+          color: '#303133',
+          whiteSpace: 'pre-wrap'
+        }">
           {{ selectedLesson.commonFeedback }}
         </div>
       </el-card>
@@ -464,7 +481,7 @@ onMounted(() => {
           <div style="display: flex; justify-content: space-between; align-items: center">
             <div style="display: flex; align-items: center; gap: 8px">
               <el-icon size="20" color="#f56c6c"><ChatDotRound /></el-icon>
-              <span style="font-weight: 600; font-size: 16px">개별 피드백</span>
+              <span :style="{ fontWeight: 600, fontSize: labelFontSize }">개별 피드백</span>
             </div>
             <el-button
               v-if="isTeacherView && !isEditingFeedback"
@@ -505,15 +522,15 @@ onMounted(() => {
             <div style="margin-bottom: 12px">
               <el-tag type="success">{{ feedback.feedbackAuthor || '선생님' }}</el-tag>
             </div>
-            <div style="
-              background: #f5f7fa;
-              padding: 20px;
-              border-radius: 8px;
-              line-height: 1.8;
-              font-size: 15px;
-              color: #303133;
-              white-space: pre-wrap;
-            ">
+            <div :style="{
+              background: '#f5f7fa',
+              padding: '20px',
+              borderRadius: '8px',
+              lineHeight: '1.8',
+              fontSize: textFontSize,
+              color: '#303133',
+              whiteSpace: 'pre-wrap'
+            }">
               {{ feedback.instructorFeedback }}
             </div>
           </div>
