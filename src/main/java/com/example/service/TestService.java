@@ -146,6 +146,7 @@ public class TestService {
                         .studentName(s.getStudent().getName())
                         .totalScore(s.getTotalScore())
                         .build())
+                .sorted((a, b) -> b.getTotalScore().compareTo(a.getTotalScore())) // 점수 내림차순 정렬
                 .collect(Collectors.toList());
 
         // 최고 점수

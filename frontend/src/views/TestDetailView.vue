@@ -292,7 +292,7 @@ onMounted(() => {
             </template>
           </el-table-column>
 
-          <el-table-column label="응시일" width="180">
+          <el-table-column label="응시일" width="250">
             <template #default="{ row }">
               <div style="display: flex; align-items: center; gap: 8px">
                 <el-icon color="#909399">
@@ -308,7 +308,6 @@ onMounted(() => {
               <div style="font-size: 13px; color: #606266">
                 <div>🏫 {{ row.student?.school || '-' }}</div>
                 <div style="margin-top: 4px">📚 {{ row.student?.grade || '-' }}</div>
-                <div style="margin-top: 4px">🏢 {{ row.student?.academy || '-' }}</div>
               </div>
             </template>
           </el-table-column>
