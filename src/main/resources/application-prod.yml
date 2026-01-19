@@ -22,7 +22,7 @@ spring:
 
   servlet:
     session:
-      timeout: 30m
+      timeout: 120m
       cookie:
         http-only: true
         secure: true  # HTTPS 적용 후 true

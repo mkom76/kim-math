@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { clinicAPI, studentHomeworkAPI, type ClinicDetail, type StudentClinicHomework, type HomeworkProgress } from '../api/client'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { clinicAPI, studentHomeworkAPI, type ClinicDetail, type StudentClinicHomework, type HomeworkProgress, type ClinicHomeworkProgress } from '../api/client'
 
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
 const clinicDetail = ref<ClinicDetail | null>(null)
+const progressData = ref<ClinicHomeworkProgress[]>([])
 const editingHomeworkMap = ref<Record<string, boolean>>({})
 const editIncorrectCountMap = ref<Record<string, number>>({})
 const editUnsolvedCountMap = ref<Record<string, number>>({})
@@ -29,10 +30,71 @@ const fetchClinicDetail = async () => {
   try {
     const response = await clinicAPI.getClinicDetail(clinicId.value)
     clinicDetail.value = response.data
+    await fetchClinicProgress()
   } catch (error) {
     ElMessage.error('클리닉 상세 정보를 불러오는데 실패했습니다.')
   } finally {
     loading.value = false
+  }
+}
+
+const fetchClinicProgress = async () => {
+  try {
+    const response = await clinicAPI.getClinicProgress(clinicId.value)
+    progressData.value = response.data
+  } catch (error) {
+    // Progress data is optional
+    progressData.value = []
+  }
+}
+
+const getProgress = (studentId: number, homeworkId: number): ClinicHomeworkProgress | undefined => {
+  return progressData.value.find(
+    p => p.studentId === studentId && p.homeworkId === homeworkId
+  )
+}
+
+const startClinic = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '클리닉을 시작하시겠습니까? 현재 모든 학생의 미완성 숙제 상태가 "전" 스냅샷으로 저장됩니다.',
+      '클리닉 시작',
+      {
+        confirmButtonText: '시작',
+        cancelButtonText: '취소',
+        type: 'warning',
+      }
+    )
+
+    await clinicAPI.startClinic(clinicId.value)
+    ElMessage.success('클리닉이 시작되었습니다.')
+    await fetchClinicDetail()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('클리닉 시작에 실패했습니다.')
+    }
+  }
+}
+
+const endClinic = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '클리닉을 종료하시겠습니까? 현재 모든 학생의 미완성 숙제 상태가 "후" 스냅샷으로 저장됩니다.',
+      '클리닉 종료',
+      {
+        confirmButtonText: '종료',
+        cancelButtonText: '취소',
+        type: 'warning',
+      }
+    )
+
+    await clinicAPI.endClinic(clinicId.value)
+    ElMessage.success('클리닉이 종료되었습니다. 변화량을 확인하세요.')
+    await fetchClinicDetail()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('클리닉 종료에 실패했습니다.')
+    }
   }
 }
 
@@ -131,7 +193,17 @@ onMounted(() => {
       <template #header>
         <div style="display: flex; justify-content: space-between; align-items: center">
           <h2 style="margin: 0; font-size: 20px; font-weight: 600">클리닉 상세</h2>
-          <el-button @click="router.push('/clinics')">목록으로</el-button>
+          <div style="display: flex; gap: 12px">
+            <el-button type="success" @click="startClinic">
+              <el-icon style="margin-right: 4px"><VideoPlay /></el-icon>
+              클리닉 시작
+            </el-button>
+            <el-button type="warning" @click="endClinic">
+              <el-icon style="margin-right: 4px"><VideoPause /></el-icon>
+              클리닉 종료
+            </el-button>
+            <el-button @click="router.push('/clinics')">목록으로</el-button>
+          </div>
         </div>
       </template>
 
@@ -219,11 +291,35 @@ onMounted(() => {
                 />
               </template>
             </el-table-column>
-            <el-table-column prop="completion" label="완성도" width="120" align="center">
+            <el-table-column prop="completion" label="완성도" width="100" align="center">
               <template #default="{ row }">
                 <span :style="{ color: getCompletionColor(row.completion), fontWeight: 600 }">
                   {{ row.completion || 0 }}%
                 </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="클리닉 변화" width="180" align="center">
+              <template #default="{ row }">
+                <div v-if="getProgress(student.studentId, row.homeworkId)" style="font-size: 13px">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 8px">
+                    <span style="color: #909399">
+                      {{ getProgress(student.studentId, row.homeworkId)!.completionBefore }}%
+                    </span>
+                    <el-icon><Right /></el-icon>
+                    <span :style="{ color: getCompletionColor(getProgress(student.studentId, row.homeworkId)!.completionAfter), fontWeight: 600 }">
+                      {{ getProgress(student.studentId, row.homeworkId)!.completionAfter ?? '-' }}%
+                    </span>
+                  </div>
+                  <div v-if="getProgress(student.studentId, row.homeworkId)!.completionChange !== null && getProgress(student.studentId, row.homeworkId)!.completionChange !== undefined"
+                       :style="{
+                         color: getProgress(student.studentId, row.homeworkId)!.completionChange! >= 0 ? '#67c23a' : '#f56c6c',
+                         fontWeight: 600,
+                         marginTop: '4px'
+                       }">
+                    {{ getProgress(student.studentId, row.homeworkId)!.completionChange! >= 0 ? '+' : '' }}{{ getProgress(student.studentId, row.homeworkId)!.completionChange }}%p
+                  </div>
+                </div>
+                <span v-else style="color: #909399; font-size: 13px">-</span>
               </template>
             </el-table-column>
             <el-table-column label="작업" width="180" align="center">

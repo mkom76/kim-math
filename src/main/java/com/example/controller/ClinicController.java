@@ -86,6 +86,23 @@ public class ClinicController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{clinicId}/start")
+    public ResponseEntity<Void> startClinic(@PathVariable Long clinicId) {
+        clinicService.startClinic(clinicId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{clinicId}/end")
+    public ResponseEntity<Void> endClinic(@PathVariable Long clinicId) {
+        clinicService.endClinic(clinicId);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{clinicId}/progress")
+    public ResponseEntity<List<ClinicHomeworkProgressDto>> getClinicProgress(@PathVariable Long clinicId) {
+        return ResponseEntity.ok(clinicService.getClinicProgress(clinicId));
+    }
+
     // Request DTOs
     public static class CreateClinicRequest {
         private LocalDate clinicDate;

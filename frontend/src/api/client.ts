@@ -390,6 +390,23 @@ export interface IncompleteHomework {
   lessonDate?: string;
 }
 
+export interface ClinicHomeworkProgress {
+  id?: number;
+  clinicId: number;
+  studentId: number;
+  studentName: string;
+  homeworkId: number;
+  homeworkTitle: string;
+  homeworkQuestionCount: number;
+  incorrectCountBefore?: number;
+  unsolvedCountBefore?: number;
+  completionBefore?: number;
+  incorrectCountAfter?: number;
+  unsolvedCountAfter?: number;
+  completionAfter?: number;
+  completionChange?: number;
+}
+
 export const clinicAPI = {
   createClinicForThisWeek: (classId: number) =>
     client.post<Clinic>(`/clinics/class/${classId}/create-for-this-week`),
@@ -413,6 +430,12 @@ export const clinicAPI = {
     client.put<Clinic>(`/clinics/${clinicId}/close`),
   deleteClinic: (clinicId: number) =>
     client.delete(`/clinics/${clinicId}`),
+  startClinic: (clinicId: number) =>
+    client.post(`/clinics/${clinicId}/start`),
+  endClinic: (clinicId: number) =>
+    client.post(`/clinics/${clinicId}/end`),
+  getClinicProgress: (clinicId: number) =>
+    client.get<ClinicHomeworkProgress[]>(`/clinics/${clinicId}/progress`),
 };
 
 export default client;
@@ -443,5 +466,6 @@ export type {
   StudentClinicHomework,
   HomeworkProgress,
   StudentClinicInfo,
-  IncompleteHomework
+  IncompleteHomework,
+  ClinicHomeworkProgress
 };

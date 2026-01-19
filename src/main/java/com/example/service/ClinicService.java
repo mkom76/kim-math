@@ -24,6 +24,8 @@ public class ClinicService {
     private final AcademyClassRepository academyClassRepository;
     private final StudentRepository studentRepository;
     private final StudentHomeworkRepository studentHomeworkRepository;
+    private final ClinicHomeworkProgressRepository clinicHomeworkProgressRepository;
+    private final HomeworkRepository homeworkRepository;
 
     /**
      * 이번주 클리닉 생성 (반의 기본 설정 기반)
@@ -129,13 +131,29 @@ public class ClinicService {
         // Build student list with homework info
         List<ClinicDetailDto.StudentClinicHomeworkDto> studentDtos = students.stream()
                 .map(student -> {
-                    // Get incomplete homeworks (completion < 90%)
-                    List<StudentHomework> incompleteHomeworks = studentHomeworkRepository
-                            .findByStudentId(student.getId()).stream()
-                            .filter(sh -> sh.getCompletion() != null && sh.getCompletion() < 90)
+                    // 1. Get incomplete homeworks (completion < 100%)
+                    List<StudentHomework> allStudentHomeworks = studentHomeworkRepository
+                            .findByStudentId(student.getId());
+
+                    List<StudentHomework> incompleteHomeworks = allStudentHomeworks.stream()
+                            .filter(sh -> sh.getCompletion() != null && sh.getCompletion() < 100)
                             .collect(Collectors.toList());
 
-                    List<ClinicDetailDto.HomeworkProgressDto> homeworkDtos = incompleteHomeworks.stream()
+                    // 2. Get homework IDs that are being tracked in this clinic
+                    List<Long> trackedHomeworkIds = clinicHomeworkProgressRepository
+                            .findByClinicIdAndStudentId(clinicId, student.getId()).stream()
+                            .map(p -> p.getHomework().getId())
+                            .collect(Collectors.toList());
+
+                    // 3. Add tracked homeworks that reached 100% (not in incomplete list)
+                    List<StudentHomework> displayHomeworks = new ArrayList<>(incompleteHomeworks);
+                    allStudentHomeworks.stream()
+                            .filter(sh -> trackedHomeworkIds.contains(sh.getHomework().getId()))
+                            .filter(sh -> displayHomeworks.stream()
+                                    .noneMatch(dh -> dh.getHomework().getId().equals(sh.getHomework().getId())))
+                            .forEach(displayHomeworks::add);
+
+                    List<ClinicDetailDto.HomeworkProgressDto> homeworkDtos = displayHomeworks.stream()
                             .map(sh -> ClinicDetailDto.HomeworkProgressDto.builder()
                                     .homeworkId(sh.getHomework().getId())
                                     .homeworkTitle(sh.getHomework().getTitle())
@@ -254,10 +272,10 @@ public class ClinicService {
         Optional<ClinicRegistration> registration = clinicRegistrationRepository
                 .findByClinicIdAndStudentId(upcomingClinic.get().getId(), studentId);
 
-        // Get incomplete homeworks (completion < 90%)
+        // Get incomplete homeworks (completion < 100%)
         List<StudentHomework> incompleteHomeworks = studentHomeworkRepository
                 .findByStudentId(studentId).stream()
-                .filter(sh -> sh.getCompletion() != null && sh.getCompletion() < 90)
+                .filter(sh -> sh.getCompletion() != null && sh.getCompletion() < 100)
                 .collect(Collectors.toList());
 
         List<StudentClinicInfoDto.IncompleteHomeworkDto> homeworkDtos = incompleteHomeworks.stream()
@@ -303,5 +321,98 @@ public class ClinicService {
         }
 
         clinicRepository.deleteById(clinicId);
+    }
+
+    /**
+     * 클리닉 시작 - 모든 학생의 미완성 숙제 상태를 "전" 스냅샷으로 저장
+     */
+    public void startClinic(Long clinicId) {
+        Clinic clinic = clinicRepository.findById(clinicId)
+                .orElseThrow(() -> new RuntimeException("Clinic not found"));
+
+        // Get all students in the class
+        List<Student> students = studentRepository.findAll().stream()
+                .filter(s -> s.getAcademyClass() != null &&
+                            s.getAcademyClass().getId().equals(clinic.getAcademyClass().getId()))
+                .collect(Collectors.toList());
+
+        // For each student, snapshot all incomplete homeworks (completion < 100%)
+        List<ClinicHomeworkProgress> progressList = new ArrayList<>();
+
+        for (Student student : students) {
+            List<StudentHomework> incompleteHomeworks = studentHomeworkRepository
+                    .findByStudentId(student.getId()).stream()
+                    .filter(sh -> sh.getCompletion() != null && sh.getCompletion() < 100)
+                    .collect(Collectors.toList());
+
+            for (StudentHomework sh : incompleteHomeworks) {
+                // Check if progress already exists
+                Optional<ClinicHomeworkProgress> existing = clinicHomeworkProgressRepository
+                        .findByClinicIdAndStudentIdAndHomeworkId(clinicId, student.getId(), sh.getHomework().getId());
+
+                ClinicHomeworkProgress progress;
+                if (existing.isPresent()) {
+                    // Update existing
+                    progress = existing.get();
+                } else {
+                    // Create new
+                    progress = ClinicHomeworkProgress.builder()
+                            .clinic(clinic)
+                            .student(student)
+                            .homework(sh.getHomework())
+                            .build();
+                }
+
+                // Save "before" snapshot
+                progress.setIncorrectCountBefore(sh.getIncorrectCount());
+                progress.setUnsolvedCountBefore(sh.getUnsolvedCount());
+
+                progressList.add(progress);
+            }
+        }
+
+        clinicHomeworkProgressRepository.saveAll(progressList);
+    }
+
+    /**
+     * 클리닉 종료 - 진행 추적 중인 모든 숙제의 "후" 스냅샷 저장
+     */
+    public void endClinic(Long clinicId) {
+        Clinic clinic = clinicRepository.findById(clinicId)
+                .orElseThrow(() -> new RuntimeException("Clinic not found"));
+
+        // Get all progress records for this clinic
+        List<ClinicHomeworkProgress> progressList = clinicHomeworkProgressRepository.findByClinicId(clinicId);
+
+        // Update "after" snapshot for each tracked homework
+        for (ClinicHomeworkProgress progress : progressList) {
+            Long studentId = progress.getStudent().getId();
+            Long homeworkId = progress.getHomework().getId();
+
+            // Get current homework state
+            Optional<StudentHomework> currentHomework = studentHomeworkRepository
+                    .findByStudentId(studentId).stream()
+                    .filter(sh -> sh.getHomework().getId().equals(homeworkId))
+                    .findFirst();
+
+            if (currentHomework.isPresent()) {
+                StudentHomework sh = currentHomework.get();
+                // Save "after" snapshot (even if completion is 100%)
+                progress.setIncorrectCountAfter(sh.getIncorrectCount());
+                progress.setUnsolvedCountAfter(sh.getUnsolvedCount());
+            }
+        }
+
+        clinicHomeworkProgressRepository.saveAll(progressList);
+    }
+
+    /**
+     * 클리닉 진행 상황 조회
+     */
+    @Transactional(readOnly = true)
+    public List<ClinicHomeworkProgressDto> getClinicProgress(Long clinicId) {
+        return clinicHomeworkProgressRepository.findByClinicId(clinicId).stream()
+                .map(ClinicHomeworkProgressDto::from)
+                .collect(Collectors.toList());
     }
 }
