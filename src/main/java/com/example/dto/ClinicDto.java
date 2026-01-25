@@ -1,6 +1,7 @@
 package com.example.dto;
 
 import com.example.entity.Clinic;
+import com.example.entity.ClinicRegistrationStatus;
 import com.example.entity.ClinicStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,7 +36,9 @@ public class ClinicDto {
                 .clinicDate(clinic.getClinicDate())
                 .clinicTime(clinic.getClinicTime())
                 .status(clinic.getStatus())
-                .registrationCount(clinic.getRegistrations().size())
+                .registrationCount((int) clinic.getRegistrations().stream()
+                        .filter(r -> r.getStatus() == ClinicRegistrationStatus.REGISTERED)
+                        .count())
                 .build();
     }
 }

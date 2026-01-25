@@ -138,7 +138,7 @@ onMounted(async () => {
         <el-icon size="32" color="#67c23a">
           <MagicStick />
         </el-icon>
-        클리닉 신청
+        클리닉 관리
       </h1>
       <p style="margin: 8px 0 0; color: #909399">완성도가 낮은 숙제를 집중적으로 보충하는 시간입니다</p>
     </el-card>

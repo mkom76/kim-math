@@ -134,7 +134,7 @@ onMounted(() => {
           </el-button>
           <el-button type="warning" @click="$router.push('/student/clinic')" :size="isMobile ? 'small' : 'default'" style="margin: 0">
             <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><MagicStick /></el-icon>
-            클리닉 신청
+            클리닉 관리
           </el-button>
         </div>
       </div>
