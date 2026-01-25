@@ -380,6 +380,10 @@ public class ClinicService {
         Clinic clinic = clinicRepository.findById(clinicId)
                 .orElseThrow(() -> new RuntimeException("Clinic not found"));
 
+        // Set clinic status to CLOSED
+        clinic.setStatus(ClinicStatus.CLOSED);
+        clinicRepository.save(clinic);
+
         // Get all progress records for this clinic
         List<ClinicHomeworkProgress> progressList = clinicHomeworkProgressRepository.findByClinicId(clinicId);
 
@@ -458,53 +462,54 @@ public class ClinicService {
 
         // Build homework DTOs
         List<RecentClinicResultDto.RecentClinicHomeworkDto> homeworkDtos = new ArrayList<>();
-        double totalCompletionBefore = 0;
-        double totalCompletionAfter = 0;
+        int totalIncorrectBefore = 0;
+        int totalIncorrectAfter = 0;
+        int totalUnsolvedBefore = 0;
+        int totalUnsolvedAfter = 0;
         int improvedCount = 0;
 
         for (ClinicHomeworkProgress progress : progressList) {
-            int questionCount = progress.getHomework().getQuestionCount();
-
-            // Calculate completion before
             int incorrectBefore = progress.getIncorrectCountBefore() != null ? progress.getIncorrectCountBefore() : 0;
-            int unsolvedBefore = progress.getUnsolvedCountBefore() != null ? progress.getUnsolvedCountBefore() : 0;
-            int completionBefore = Math.max(0, 100 - ((incorrectBefore + unsolvedBefore) * 100 / questionCount));
-
-            // Calculate completion after
             int incorrectAfter = progress.getIncorrectCountAfter() != null ? progress.getIncorrectCountAfter() : 0;
+            int unsolvedBefore = progress.getUnsolvedCountBefore() != null ? progress.getUnsolvedCountBefore() : 0;
             int unsolvedAfter = progress.getUnsolvedCountAfter() != null ? progress.getUnsolvedCountAfter() : 0;
-            int completionAfter = Math.max(0, 100 - ((incorrectAfter + unsolvedAfter) * 100 / questionCount));
 
-            int completionChange = completionAfter - completionBefore;
+            int incorrectChange = incorrectAfter - incorrectBefore;
+            int unsolvedChange = unsolvedAfter - unsolvedBefore;
 
-            if (completionChange > 0) {
+            // 오답 또는 안 푼 문제가 감소했으면 개선된 것으로 카운트
+            if (incorrectChange < 0 || unsolvedChange < 0) {
                 improvedCount++;
             }
 
-            totalCompletionBefore += completionBefore;
-            totalCompletionAfter += completionAfter;
+            totalIncorrectBefore += incorrectBefore;
+            totalIncorrectAfter += incorrectAfter;
+            totalUnsolvedBefore += unsolvedBefore;
+            totalUnsolvedAfter += unsolvedAfter;
 
             homeworkDtos.add(RecentClinicResultDto.RecentClinicHomeworkDto.builder()
                     .homeworkId(progress.getHomework().getId())
                     .homeworkTitle(progress.getHomework().getTitle())
-                    .completionBefore(completionBefore)
-                    .completionAfter(completionAfter)
-                    .completionChange(completionChange)
+                    .incorrectCountBefore(incorrectBefore)
+                    .incorrectCountAfter(incorrectAfter)
+                    .incorrectCountChange(incorrectChange)
+                    .unsolvedCountBefore(unsolvedBefore)
+                    .unsolvedCountAfter(unsolvedAfter)
+                    .unsolvedCountChange(unsolvedChange)
                     .build());
         }
-
-        int averageCompletionBefore = progressList.isEmpty() ? 0 : (int) (totalCompletionBefore / progressList.size());
-        int averageCompletionAfter = progressList.isEmpty() ? 0 : (int) (totalCompletionAfter / progressList.size());
-        int averageCompletionChange = averageCompletionAfter - averageCompletionBefore;
 
         return Optional.of(RecentClinicResultDto.builder()
                 .clinicId(clinic.getId())
                 .clinicDate(clinic.getClinicDate().toString())
                 .clinicTime(clinic.getClinicTime().toString())
                 .improvedHomeworkCount(improvedCount)
-                .averageCompletionBefore(averageCompletionBefore)
-                .averageCompletionAfter(averageCompletionAfter)
-                .averageCompletionChange(averageCompletionChange)
+                .totalIncorrectCountBefore(totalIncorrectBefore)
+                .totalIncorrectCountAfter(totalIncorrectAfter)
+                .totalIncorrectCountChange(totalIncorrectAfter - totalIncorrectBefore)
+                .totalUnsolvedCountBefore(totalUnsolvedBefore)
+                .totalUnsolvedCountAfter(totalUnsolvedAfter)
+                .totalUnsolvedCountChange(totalUnsolvedAfter - totalUnsolvedBefore)
                 .homeworks(homeworkDtos)
                 .build());
     }

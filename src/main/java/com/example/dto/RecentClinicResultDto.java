@@ -16,9 +16,12 @@ public class RecentClinicResultDto {
     private String clinicDate;
     private String clinicTime;
     private Integer improvedHomeworkCount;
-    private Integer averageCompletionBefore;
-    private Integer averageCompletionAfter;
-    private Integer averageCompletionChange;
+    private Integer totalIncorrectCountBefore;
+    private Integer totalIncorrectCountAfter;
+    private Integer totalIncorrectCountChange;
+    private Integer totalUnsolvedCountBefore;
+    private Integer totalUnsolvedCountAfter;
+    private Integer totalUnsolvedCountChange;
     private List<RecentClinicHomeworkDto> homeworks;
 
     @Data
@@ -28,8 +31,11 @@ public class RecentClinicResultDto {
     public static class RecentClinicHomeworkDto {
         private Long homeworkId;
         private String homeworkTitle;
-        private Integer completionBefore;
-        private Integer completionAfter;
-        private Integer completionChange;
+        private Integer incorrectCountBefore;
+        private Integer incorrectCountAfter;
+        private Integer incorrectCountChange;
+        private Integer unsolvedCountBefore;
+        private Integer unsolvedCountAfter;
+        private Integer unsolvedCountChange;
     }
 }

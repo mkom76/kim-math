@@ -83,14 +83,15 @@ const getCompletionColor = (completion?: number) => {
 }
 
 const getChangeColor = (change: number) => {
-  if (change > 0) return '#67c23a'
-  if (change < 0) return '#f56c6c'
+  // 오답/안 푼 문제는 감소가 좋은 것
+  if (change < 0) return '#67c23a'
+  if (change > 0) return '#f56c6c'
   return '#909399'
 }
 
 const getChangeText = (change: number) => {
-  if (change > 0) return `+${change}%`
-  return `${change}%`
+  if (change === 0) return '변화 없음'
+  return `${Math.abs(change)}개`
 }
 
 const registerForClinic = async () => {
@@ -299,41 +300,59 @@ onMounted(async () => {
             <el-descriptions-item label="개선한 숙제">
               {{ recentResult.improvedHomeworkCount }}개
             </el-descriptions-item>
-            <el-descriptions-item label="평균 완성도">
-              {{ recentResult.averageCompletionBefore }}%
+            <el-descriptions-item label="전체 오답 개수">
+              {{ recentResult.totalIncorrectCountBefore }}개
               <el-icon style="margin: 0 4px"><Right /></el-icon>
-              {{ recentResult.averageCompletionAfter }}%
+              {{ recentResult.totalIncorrectCountAfter }}개
               <span :style="{
-                color: getChangeColor(recentResult.averageCompletionChange),
+                color: getChangeColor(recentResult.totalIncorrectCountChange),
                 fontWeight: 600,
                 marginLeft: '8px'
               }">
-                {{ getChangeText(recentResult.averageCompletionChange) }}
-                <el-icon v-if="recentResult.averageCompletionChange > 0"><CaretTop /></el-icon>
-                <el-icon v-else-if="recentResult.averageCompletionChange < 0"><CaretBottom /></el-icon>
+                {{ getChangeText(recentResult.totalIncorrectCountChange) }}
+                <el-icon v-if="recentResult.totalIncorrectCountChange < 0"><CaretBottom /></el-icon>
+                <el-icon v-else-if="recentResult.totalIncorrectCountChange > 0"><CaretTop /></el-icon>
+              </span>
+            </el-descriptions-item>
+            <el-descriptions-item label="전체 안 푼 문제">
+              {{ recentResult.totalUnsolvedCountBefore }}개
+              <el-icon style="margin: 0 4px"><Right /></el-icon>
+              {{ recentResult.totalUnsolvedCountAfter }}개
+              <span :style="{
+                color: getChangeColor(recentResult.totalUnsolvedCountChange),
+                fontWeight: 600,
+                marginLeft: '8px'
+              }">
+                {{ getChangeText(recentResult.totalUnsolvedCountChange) }}
+                <el-icon v-if="recentResult.totalUnsolvedCountChange < 0"><CaretBottom /></el-icon>
+                <el-icon v-else-if="recentResult.totalUnsolvedCountChange > 0"><CaretTop /></el-icon>
               </span>
             </el-descriptions-item>
           </el-descriptions>
 
           <el-table :data="recentResult.homeworks" style="width: 100%">
             <el-table-column prop="homeworkTitle" label="숙제" width="100" />
-            <el-table-column label="완성도 변화" width="200" align="center">
+            <el-table-column label="오답 변화" width="80" align="center">
               <template #default="{ row }">
-                <div>
-                  <span>
-                    {{ row.completionBefore }}%
-                    <el-icon style="margin: 0 4px"><Right /></el-icon>
-                    {{ row.completionAfter }}%
-                  </span>
-                  <span :style="{
-                    color: getChangeColor(row.completionChange),
-                    fontWeight: 600,
-                    marginLeft: '8px'
-                  }">
-                    {{ getChangeText(row.completionChange) }}
-                    <el-icon v-if="row.completionChange > 0"><CaretTop /></el-icon>
-                    <el-icon v-else-if="row.completionChange < 0"><CaretBottom /></el-icon>
-                  </span>
+                <div :style="{
+                  color: getChangeColor(row.incorrectCountChange),
+                  fontWeight: 600
+                }">
+                  {{ getChangeText(row.incorrectCountChange) }}
+                  <el-icon v-if="row.incorrectCountChange < 0"><CaretBottom /></el-icon>
+                  <el-icon v-else-if="row.incorrectCountChange > 0"><CaretTop /></el-icon>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="안 푼 문제 변화" width="100" align="center">
+              <template #default="{ row }">
+                <div :style="{
+                  color: getChangeColor(row.unsolvedCountChange),
+                  fontWeight: 600
+                }">
+                  {{ getChangeText(row.unsolvedCountChange) }}
+                  <el-icon v-if="row.unsolvedCountChange < 0"><CaretBottom /></el-icon>
+                  <el-icon v-else-if="row.unsolvedCountChange > 0"><CaretTop /></el-icon>
                 </div>
               </template>
             </el-table-column>

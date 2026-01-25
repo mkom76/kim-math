@@ -412,18 +412,24 @@ export interface RecentClinicResult {
   clinicDate: string;
   clinicTime: string;
   improvedHomeworkCount: number;
-  averageCompletionBefore: number;
-  averageCompletionAfter: number;
-  averageCompletionChange: number;
+  totalIncorrectCountBefore: number;
+  totalIncorrectCountAfter: number;
+  totalIncorrectCountChange: number;
+  totalUnsolvedCountBefore: number;
+  totalUnsolvedCountAfter: number;
+  totalUnsolvedCountChange: number;
   homeworks: RecentClinicHomework[];
 }
 
 export interface RecentClinicHomework {
   homeworkId: number;
   homeworkTitle: string;
-  completionBefore: number;
-  completionAfter: number;
-  completionChange: number;
+  incorrectCountBefore: number;
+  incorrectCountAfter: number;
+  incorrectCountChange: number;
+  unsolvedCountBefore: number;
+  unsolvedCountAfter: number;
+  unsolvedCountChange: number;
 }
 
 export const clinicAPI = {

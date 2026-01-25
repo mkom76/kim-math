@@ -170,30 +170,6 @@ const viewClinicDetail = (clinic: Clinic) => {
   router.push(`/clinics/${clinic.id}`)
 }
 
-const closeClinic = async (clinic: Clinic) => {
-  if (!clinic.id) return
-
-  try {
-    await ElMessageBox.confirm(
-      '클리닉을 종료하시겠습니까? 종료 후에는 학생들이 신청할 수 없습니다.',
-      '클리닉 종료',
-      {
-        confirmButtonText: '종료',
-        cancelButtonText: '취소',
-        type: 'warning',
-      }
-    )
-
-    await clinicAPI.closeClinic(clinic.id)
-    ElMessage.success('클리닉이 종료되었습니다.')
-    fetchClinics()
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('클리닉 종료에 실패했습니다.')
-    }
-  }
-}
-
 const deleteClinic = async (clinic: Clinic) => {
   if (!clinic.id) return
 
@@ -288,19 +264,11 @@ onMounted(() => {
             <el-tag :type="getStatusTag(row.status)">{{ getStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="작업" width="300" align="center">
+        <el-table-column label="작업" width="200" align="center">
           <template #default="{ row }">
             <el-button size="small" type="primary" @click="viewClinicDetail(row)">
               <el-icon style="margin-right: 4px"><View /></el-icon>
               상세보기
-            </el-button>
-            <el-button
-              size="small"
-              type="warning"
-              @click="closeClinic(row)"
-              :disabled="row.status === 'CLOSED'"
-            >
-              종료
             </el-button>
             <el-button size="small" type="danger" @click="deleteClinic(row)">삭제</el-button>
           </template>

@@ -37,7 +37,8 @@ public class ClinicDto {
                 .clinicTime(clinic.getClinicTime())
                 .status(clinic.getStatus())
                 .registrationCount((int) clinic.getRegistrations().stream()
-                        .filter(r -> r.getStatus() == ClinicRegistrationStatus.REGISTERED)
+                        .filter(r -> r.getStatus() == ClinicRegistrationStatus.REGISTERED ||
+                                     r.getStatus() == ClinicRegistrationStatus.ATTENDED)
                         .count())
                 .build();
     }
