@@ -15,4 +15,6 @@ public interface TestRepository extends JpaRepository<Test, Long> {
     List<Test> findUnattachedByAcademyIdAndClassId(
             @Param("academyId") Long academyId,
             @Param("classId") Long classId);
+
+    List<Test> findAllByOrderByCreatedAtDesc();
 }

@@ -170,9 +170,6 @@ onMounted(() => {
                       :stroke-width="10"
                       style="flex: 1"
                     />
-                    <span style="font-weight: 600; min-width: 50px; text-align: right">
-                      {{ Math.round(row.correctRate) }}%
-                    </span>
                   </div>
                 </template>
               </el-table-column>

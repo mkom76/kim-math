@@ -407,6 +407,25 @@ export interface ClinicHomeworkProgress {
   completionChange?: number;
 }
 
+export interface RecentClinicResult {
+  clinicId: number;
+  clinicDate: string;
+  clinicTime: string;
+  improvedHomeworkCount: number;
+  averageCompletionBefore: number;
+  averageCompletionAfter: number;
+  averageCompletionChange: number;
+  homeworks: RecentClinicHomework[];
+}
+
+export interface RecentClinicHomework {
+  homeworkId: number;
+  homeworkTitle: string;
+  completionBefore: number;
+  completionAfter: number;
+  completionChange: number;
+}
+
 export const clinicAPI = {
   createClinicForThisWeek: (classId: number) =>
     client.post<Clinic>(`/clinics/class/${classId}/create-for-this-week`),
@@ -436,6 +455,8 @@ export const clinicAPI = {
     client.post(`/clinics/${clinicId}/end`),
   getClinicProgress: (clinicId: number) =>
     client.get<ClinicHomeworkProgress[]>(`/clinics/${clinicId}/progress`),
+  getRecentClinicResult: (studentId: number) =>
+    client.get<RecentClinicResult>(`/clinics/student/${studentId}/recent-result`),
 };
 
 export default client;
@@ -467,5 +488,7 @@ export type {
   HomeworkProgress,
   StudentClinicInfo,
   IncompleteHomework,
-  ClinicHomeworkProgress
+  ClinicHomeworkProgress,
+  RecentClinicResult,
+  RecentClinicHomework
 };

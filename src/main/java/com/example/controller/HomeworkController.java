@@ -5,6 +5,8 @@ import com.example.service.HomeworkService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +20,8 @@ public class HomeworkController {
     private final HomeworkService homeworkService;
 
     @GetMapping
-    public ResponseEntity<Page<HomeworkDto>> getHomeworks(Pageable pageable) {
+    public ResponseEntity<Page<HomeworkDto>> getHomeworks(
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(homeworkService.getHomeworks(pageable));
     }
 

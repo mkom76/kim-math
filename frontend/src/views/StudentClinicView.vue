@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { clinicAPI, authAPI, type StudentClinicInfo, type AuthResponse } from '../api/client'
+import { MagicStick, Calendar, Warning, Check, Close, TrophyBase, Right, CaretTop, CaretBottom } from '@element-plus/icons-vue'
+import { clinicAPI, authAPI, type StudentClinicInfo, type AuthResponse, type RecentClinicResult } from '../api/client'
 
 const loading = ref(false)
 const clinicInfo = ref<StudentClinicInfo | null>(null)
 const currentUser = ref<AuthResponse | null>(null)
+const recentResult = ref<RecentClinicResult | null>(null)
 
 const isMobile = ref(false)
 const h1FontSize = computed(() => isMobile.value ? '16px' : '28px')
@@ -47,6 +49,18 @@ const fetchClinicInfo = async () => {
   }
 }
 
+const fetchRecentResult = async () => {
+  if (!currentUser.value?.userId) return
+
+  try {
+    const response = await clinicAPI.getRecentClinicResult(currentUser.value.userId)
+    recentResult.value = response.data
+  } catch (error) {
+    // 204 or error - 조용히 실패 (결과 없음은 정상)
+    recentResult.value = null
+  }
+}
+
 const formatDate = (dateStr: string) => {
   const date = new Date(dateStr)
   return date.toLocaleDateString('ko-KR', {
@@ -66,6 +80,17 @@ const getCompletionColor = (completion?: number) => {
   if (completion >= 90) return '#67c23a'
   if (completion >= 70) return '#e6a23c'
   return '#f56c6c'
+}
+
+const getChangeColor = (change: number) => {
+  if (change > 0) return '#67c23a'
+  if (change < 0) return '#f56c6c'
+  return '#909399'
+}
+
+const getChangeText = (change: number) => {
+  if (change > 0) return `+${change}%`
+  return `${change}%`
 }
 
 const registerForClinic = async () => {
@@ -127,6 +152,7 @@ onMounted(async () => {
 
   await fetchCurrentUser()
   await fetchClinicInfo()
+  await fetchRecentResult()
 })
 </script>
 
@@ -181,16 +207,12 @@ onMounted(async () => {
             </div>
           </template>
 
-          <el-descriptions :column="2" border>
+          <el-descriptions :column="1" border>
             <el-descriptions-item label="날짜">
-              <span :style="{ fontWeight: 600, fontSize: h3FontSize }">
-                {{ formatDate(clinicInfo!.upcomingClinic!.clinicDate) }}
-              </span>
+              {{ formatDate(clinicInfo!.upcomingClinic!.clinicDate) }}
             </el-descriptions-item>
             <el-descriptions-item label="시간">
-              <span :style="{ fontWeight: 600, fontSize: h3FontSize }">
-                {{ formatTime(clinicInfo!.upcomingClinic!.clinicTime) }}
-              </span>
+              {{ formatTime(clinicInfo!.upcomingClinic!.clinicTime) }}
             </el-descriptions-item>
           </el-descriptions>
 
@@ -228,8 +250,8 @@ onMounted(async () => {
           </template>
 
           <el-table :data="clinicInfo.incompleteHomeworks" style="width: 100%">
-            <el-table-column prop="homeworkTitle" label="숙제" />
-            <el-table-column prop="lessonDate" label="수업 날짜" width="150" />
+            <el-table-column prop="homeworkTitle" label="숙제" width="100" />
+            <el-table-column prop="lessonDate" label="수업 날짜" width="90" />
             <el-table-column prop="completion" label="완성도" width="120" align="center">
               <template #default="{ row }">
                 <span :style="{ color: getCompletionColor(row.completion), fontWeight: 600, fontSize: h3FontSize }">
@@ -257,6 +279,65 @@ onMounted(async () => {
               모든 숙제의 완성도가 90% 이상입니다. 계속 열심히 해주세요!
             </template>
           </el-result>
+        </el-card>
+
+        <!-- Recent Clinic Result -->
+        <el-card v-if="recentResult" shadow="never" style="margin-top: 24px">
+          <template #header>
+            <div>
+              <h3 :style="{ margin: 0, fontSize: h3FontSize, fontWeight: 600, color: '#67c23a' }">
+                <el-icon style="margin-right: 8px"><TrophyBase /></el-icon>
+                최근 클리닉 결과
+              </h3>
+              <p style="margin: 8px 0 0; color: #909399; font-size: 14px">
+                {{ formatDate(recentResult.clinicDate) }} {{ formatTime(recentResult.clinicTime) }}
+              </p>
+            </div>
+          </template>
+
+          <el-descriptions :column="1" border style="margin-bottom: 16px">
+            <el-descriptions-item label="개선한 숙제">
+              {{ recentResult.improvedHomeworkCount }}개
+            </el-descriptions-item>
+            <el-descriptions-item label="평균 완성도">
+              {{ recentResult.averageCompletionBefore }}%
+              <el-icon style="margin: 0 4px"><Right /></el-icon>
+              {{ recentResult.averageCompletionAfter }}%
+              <span :style="{
+                color: getChangeColor(recentResult.averageCompletionChange),
+                fontWeight: 600,
+                marginLeft: '8px'
+              }">
+                {{ getChangeText(recentResult.averageCompletionChange) }}
+                <el-icon v-if="recentResult.averageCompletionChange > 0"><CaretTop /></el-icon>
+                <el-icon v-else-if="recentResult.averageCompletionChange < 0"><CaretBottom /></el-icon>
+              </span>
+            </el-descriptions-item>
+          </el-descriptions>
+
+          <el-table :data="recentResult.homeworks" style="width: 100%">
+            <el-table-column prop="homeworkTitle" label="숙제" width="100" />
+            <el-table-column label="완성도 변화" width="200" align="center">
+              <template #default="{ row }">
+                <div>
+                  <span>
+                    {{ row.completionBefore }}%
+                    <el-icon style="margin: 0 4px"><Right /></el-icon>
+                    {{ row.completionAfter }}%
+                  </span>
+                  <span :style="{
+                    color: getChangeColor(row.completionChange),
+                    fontWeight: 600,
+                    marginLeft: '8px'
+                  }">
+                    {{ getChangeText(row.completionChange) }}
+                    <el-icon v-if="row.completionChange > 0"><CaretTop /></el-icon>
+                    <el-icon v-else-if="row.completionChange < 0"><CaretBottom /></el-icon>
+                  </span>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
         </el-card>
       </div>
     </div>

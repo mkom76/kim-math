@@ -25,7 +25,6 @@ public class ClinicService {
     private final StudentRepository studentRepository;
     private final StudentHomeworkRepository studentHomeworkRepository;
     private final ClinicHomeworkProgressRepository clinicHomeworkProgressRepository;
-    private final HomeworkRepository homeworkRepository;
 
     /**
      * 이번주 클리닉 생성 (반의 기본 설정 기반)
@@ -414,5 +413,99 @@ public class ClinicService {
         return clinicHomeworkProgressRepository.findByClinicId(clinicId).stream()
                 .map(ClinicHomeworkProgressDto::from)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 학생의 최근 클리닉 결과 조회
+     */
+    @Transactional(readOnly = true)
+    public Optional<RecentClinicResultDto> getRecentClinicResult(Long studentId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        if (student.getAcademyClass() == null) {
+            return Optional.empty();
+        }
+
+        // Get all CLOSED clinics for the student's class
+        List<Clinic> closedClinics = clinicRepository
+                .findByAcademyClassIdOrderByClinicDateDesc(student.getAcademyClass().getId()).stream()
+                .filter(c -> c.getStatus() == ClinicStatus.CLOSED)
+                .collect(Collectors.toList());
+
+        // Find the most recent clinic where student ATTENDED
+        Optional<Clinic> recentClinic = closedClinics.stream()
+                .filter(clinic -> {
+                    Optional<ClinicRegistration> reg = clinicRegistrationRepository
+                            .findByClinicIdAndStudentId(clinic.getId(), studentId);
+                    return reg.isPresent() && reg.get().getStatus() == ClinicRegistrationStatus.ATTENDED;
+                })
+                .findFirst();
+
+        if (recentClinic.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Clinic clinic = recentClinic.get();
+
+        // Get clinic homework progress for this student
+        List<ClinicHomeworkProgress> progressList = clinicHomeworkProgressRepository
+                .findByClinicIdAndStudentId(clinic.getId(), studentId);
+
+        if (progressList.isEmpty()) {
+            return Optional.empty();
+        }
+
+        // Build homework DTOs
+        List<RecentClinicResultDto.RecentClinicHomeworkDto> homeworkDtos = new ArrayList<>();
+        double totalCompletionBefore = 0;
+        double totalCompletionAfter = 0;
+        int improvedCount = 0;
+
+        for (ClinicHomeworkProgress progress : progressList) {
+            int questionCount = progress.getHomework().getQuestionCount();
+
+            // Calculate completion before
+            int incorrectBefore = progress.getIncorrectCountBefore() != null ? progress.getIncorrectCountBefore() : 0;
+            int unsolvedBefore = progress.getUnsolvedCountBefore() != null ? progress.getUnsolvedCountBefore() : 0;
+            int completionBefore = Math.max(0, 100 - ((incorrectBefore + unsolvedBefore) * 100 / questionCount));
+
+            // Calculate completion after
+            int incorrectAfter = progress.getIncorrectCountAfter() != null ? progress.getIncorrectCountAfter() : 0;
+            int unsolvedAfter = progress.getUnsolvedCountAfter() != null ? progress.getUnsolvedCountAfter() : 0;
+            int completionAfter = Math.max(0, 100 - ((incorrectAfter + unsolvedAfter) * 100 / questionCount));
+
+            int completionChange = completionAfter - completionBefore;
+
+            if (completionChange > 0) {
+                improvedCount++;
+            }
+
+            totalCompletionBefore += completionBefore;
+            totalCompletionAfter += completionAfter;
+
+            homeworkDtos.add(RecentClinicResultDto.RecentClinicHomeworkDto.builder()
+                    .homeworkId(progress.getHomework().getId())
+                    .homeworkTitle(progress.getHomework().getTitle())
+                    .completionBefore(completionBefore)
+                    .completionAfter(completionAfter)
+                    .completionChange(completionChange)
+                    .build());
+        }
+
+        int averageCompletionBefore = progressList.isEmpty() ? 0 : (int) (totalCompletionBefore / progressList.size());
+        int averageCompletionAfter = progressList.isEmpty() ? 0 : (int) (totalCompletionAfter / progressList.size());
+        int averageCompletionChange = averageCompletionAfter - averageCompletionBefore;
+
+        return Optional.of(RecentClinicResultDto.builder()
+                .clinicId(clinic.getId())
+                .clinicDate(clinic.getClinicDate().toString())
+                .clinicTime(clinic.getClinicTime().toString())
+                .improvedHomeworkCount(improvedCount)
+                .averageCompletionBefore(averageCompletionBefore)
+                .averageCompletionAfter(averageCompletionAfter)
+                .averageCompletionChange(averageCompletionChange)
+                .homeworks(homeworkDtos)
+                .build());
     }
 }

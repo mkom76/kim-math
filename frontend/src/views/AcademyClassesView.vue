@@ -12,8 +12,10 @@ const searchQuery = ref('')
 const dialogVisible = ref(false)
 const editMode = ref(false)
 const currentClass = ref<AcademyClass>({ name: '', academyId: undefined })
+const currentPage = ref(1)
+const pageSize = ref(10)
 
-const tableData = computed(() => {
+const filteredData = computed(() => {
   if (!searchQuery.value) return academyClasses.value
   return academyClasses.value.filter(cls =>
     (cls.name || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -21,10 +23,18 @@ const tableData = computed(() => {
   )
 })
 
+const tableData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredData.value.slice(start, end)
+})
+
+const totalItems = computed(() => filteredData.value.length)
+
 const fetchAcademyClasses = async () => {
   loading.value = true
   try {
-    const response = await academyClassAPI.getAcademyClasses()
+    const response = await academyClassAPI.getAcademyClasses({ size: 10000 })
     academyClasses.value = response.data.content || response.data
   } catch (error) {
     ElMessage.error('반 목록을 불러오는데 실패했습니다.')
@@ -35,7 +45,7 @@ const fetchAcademyClasses = async () => {
 
 const fetchAcademies = async () => {
   try {
-    const response = await academyAPI.getAcademies()
+    const response = await academyAPI.getAcademies({ size: 10000 })
     academies.value = response.data.content || response.data
   } catch (error) {
     ElMessage.error('학원 목록을 불러오는데 실패했습니다.')
@@ -173,6 +183,20 @@ onMounted(() => {
           </template>
         </el-table-column>
       </el-table>
+
+      <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center">
+        <span style="color: #909399; font-size: 14px">
+          전체 {{ totalItems }}개
+        </span>
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="totalItems"
+          layout="sizes, prev, pager, next, jumper"
+          background
+        />
+      </div>
     </el-card>
 
     <el-dialog

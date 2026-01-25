@@ -103,6 +103,13 @@ public class ClinicController {
         return ResponseEntity.ok(clinicService.getClinicProgress(clinicId));
     }
 
+    @GetMapping("/student/{studentId}/recent-result")
+    public ResponseEntity<RecentClinicResultDto> getRecentClinicResult(@PathVariable Long studentId) {
+        Optional<RecentClinicResultDto> result = clinicService.getRecentClinicResult(studentId);
+        return result.map(ResponseEntity::ok)
+                     .orElse(ResponseEntity.noContent().build());
+    }
+
     // Request DTOs
     public static class CreateClinicRequest {
         private LocalDate clinicDate;

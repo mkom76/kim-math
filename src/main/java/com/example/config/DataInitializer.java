@@ -36,7 +36,8 @@ public class DataInitializer {
             TeacherRepository teacherRepository,
             LessonRepository lessonRepository,
             ClinicRepository clinicRepository,
-            ClinicRegistrationRepository clinicRegistrationRepository
+            ClinicRegistrationRepository clinicRegistrationRepository,
+            ClinicHomeworkProgressRepository clinicHomeworkProgressRepository
     ) {
         return args -> {
             log.info("Initializing sample data...");
@@ -698,6 +699,109 @@ public class DataInitializer {
 
             log.info("Created {} clinic registrations", 3);
 
+            // 13. 과거 종료된 클리닉 데이터 생성 (최근 클리닉 결과 테스트용)
+            // 2주 전 토요일 클리닉 (class1)
+            LocalDate twoWeeksAgo = LocalDate.now().minusWeeks(2);
+            Clinic pastClinic1 = new Clinic();
+            pastClinic1.setAcademyClass(class1);
+            pastClinic1.setClinicDate(twoWeeksAgo);
+            pastClinic1.setClinicTime(LocalTime.of(10, 0));
+            pastClinic1.setStatus(ClinicStatus.CLOSED);
+            pastClinic1 = clinicRepository.save(pastClinic1);
+
+            // 1주 전 토요일 클리닉 (class2)
+            LocalDate oneWeekAgo = LocalDate.now().minusWeeks(1);
+            Clinic pastClinic2 = new Clinic();
+            pastClinic2.setAcademyClass(class2);
+            pastClinic2.setClinicDate(oneWeekAgo);
+            pastClinic2.setClinicTime(LocalTime.of(14, 0));
+            pastClinic2.setStatus(ClinicStatus.CLOSED);
+            pastClinic2 = clinicRepository.save(pastClinic2);
+
+            log.info("Created {} past clinics", 2);
+
+            // 14. 과거 클리닉 참석 데이터 생성
+            // pastClinic1에 student1 참석
+            ClinicRegistration pastReg1 = new ClinicRegistration();
+            pastReg1.setClinic(pastClinic1);
+            pastReg1.setStudent(student1);
+            pastReg1.setStatus(ClinicRegistrationStatus.ATTENDED);
+            clinicRegistrationRepository.save(pastReg1);
+
+            // pastClinic1에 student2 참석
+            ClinicRegistration pastReg2 = new ClinicRegistration();
+            pastReg2.setClinic(pastClinic1);
+            pastReg2.setStudent(student2);
+            pastReg2.setStatus(ClinicRegistrationStatus.ATTENDED);
+            clinicRegistrationRepository.save(pastReg2);
+
+            // pastClinic2에 student3 참석
+            ClinicRegistration pastReg3 = new ClinicRegistration();
+            pastReg3.setClinic(pastClinic2);
+            pastReg3.setStudent(student3);
+            pastReg3.setStatus(ClinicRegistrationStatus.ATTENDED);
+            clinicRegistrationRepository.save(pastReg3);
+
+            log.info("Created {} past clinic attendances", 3);
+
+            // 15. 클리닉 숙제 진행 상황 데이터 생성 (전/후 비교)
+            // student1 - homework1 개선: 20문제 중 8개 오답 -> 2개 오답 (60% -> 90% 완성도)
+            ClinicHomeworkProgress progress1 = new ClinicHomeworkProgress();
+            progress1.setClinic(pastClinic1);
+            progress1.setStudent(student1);
+            progress1.setHomework(homework1);
+            progress1.setIncorrectCountBefore(8);
+            progress1.setUnsolvedCountBefore(0);
+            progress1.setIncorrectCountAfter(2);
+            progress1.setUnsolvedCountAfter(0);
+            clinicHomeworkProgressRepository.save(progress1);
+
+            // student1 - homework6 개선: 45문제 중 14개 오답 -> 5개 오답 (69% -> 89% 완성도)
+            ClinicHomeworkProgress progress2 = new ClinicHomeworkProgress();
+            progress2.setClinic(pastClinic1);
+            progress2.setStudent(student1);
+            progress2.setHomework(homework6);
+            progress2.setIncorrectCountBefore(14);
+            progress2.setUnsolvedCountBefore(0);
+            progress2.setIncorrectCountAfter(5);
+            progress2.setUnsolvedCountAfter(0);
+            clinicHomeworkProgressRepository.save(progress2);
+
+            // student2 - homework1a 개선: 25문제 중 5개 오답, 2개 미완성 -> 1개 오답, 0개 미완성 (72% -> 96% 완성도)
+            ClinicHomeworkProgress progress3 = new ClinicHomeworkProgress();
+            progress3.setClinic(pastClinic1);
+            progress3.setStudent(student2);
+            progress3.setHomework(homework1a);
+            progress3.setIncorrectCountBefore(5);
+            progress3.setUnsolvedCountBefore(2);
+            progress3.setIncorrectCountAfter(1);
+            progress3.setUnsolvedCountAfter(0);
+            clinicHomeworkProgressRepository.save(progress3);
+
+            // student3 - homework2 개선: 25문제 중 3개 오답 -> 0개 오답 (88% -> 100% 완성도)
+            ClinicHomeworkProgress progress4 = new ClinicHomeworkProgress();
+            progress4.setClinic(pastClinic2);
+            progress4.setStudent(student3);
+            progress4.setHomework(homework2);
+            progress4.setIncorrectCountBefore(3);
+            progress4.setUnsolvedCountBefore(0);
+            progress4.setIncorrectCountAfter(0);
+            progress4.setUnsolvedCountAfter(0);
+            clinicHomeworkProgressRepository.save(progress4);
+
+            // student3 - homework1b 개선: 15문제 중 1개 오답, 1개 미완성 -> 0개 오답, 0개 미완성 (87% -> 100% 완성도)
+            ClinicHomeworkProgress progress5 = new ClinicHomeworkProgress();
+            progress5.setClinic(pastClinic2);
+            progress5.setStudent(student3);
+            progress5.setHomework(homework1b);
+            progress5.setIncorrectCountBefore(1);
+            progress5.setUnsolvedCountBefore(1);
+            progress5.setIncorrectCountAfter(0);
+            progress5.setUnsolvedCountAfter(0);
+            clinicHomeworkProgressRepository.save(progress5);
+
+            log.info("Created {} clinic homework progress records", 5);
+
             log.info("Sample data initialization completed successfully!");
             log.info("===================================================");
             log.info("Summary:");
@@ -711,8 +815,11 @@ public class DataInitializer {
             log.info("- Student Submissions: 8");
             log.info("- Homeworks: 9 (모두 수학 숙제, lesson1에 3개 숙제 등록 예시)");
             log.info("- Student Homework Records: 11 (학생별 다른 숙제 할당 예시)");
-            log.info("- Clinics: 2 (이번주, 다음주 토요일)");
+            log.info("- Upcoming Clinics: 2 (이번주, 다음주 토요일)");
             log.info("- Clinic Registrations: 3 (완성도 낮은 학생들 신청)");
+            log.info("- Past Clinics (CLOSED): 2 (1주 전, 2주 전)");
+            log.info("- Past Clinic Attendances (ATTENDED): 3");
+            log.info("- Clinic Homework Progress: 5 (숙제 개선 전/후 데이터)");
             log.info("===================================================");
         };
     }

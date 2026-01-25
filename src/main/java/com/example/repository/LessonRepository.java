@@ -28,4 +28,6 @@ LessonRepository extends JpaRepository<Lesson, Long> {
            "AND l.lessonDate > :currentDate ORDER BY l.lessonDate ASC")
     List<Lesson> findNextLessonsAfter(@Param("classId") Long classId,
                                        @Param("currentDate") LocalDate currentDate);
+
+    List<Lesson> findAllByOrderByCreatedAtDesc();
 }

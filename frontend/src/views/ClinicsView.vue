@@ -12,6 +12,8 @@ const selectedClassId = ref<number | undefined>(undefined)
 const createDialogVisible = ref(false)
 const selectedDate = ref<Date | null>(null)
 const selectedTime = ref<Date | null>(null)
+const currentPage = ref(1)
+const pageSize = ref(10)
 
 const selectedClass = computed(() => {
   if (!selectedClassId.value) return null
@@ -23,9 +25,17 @@ const filteredClinics = computed(() => {
   return clinics.value.filter(c => c.classId === selectedClassId.value)
 })
 
+const tableData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredClinics.value.slice(start, end)
+})
+
+const totalItems = computed(() => filteredClinics.value.length)
+
 const fetchAcademyClasses = async () => {
   try {
-    const response = await academyClassAPI.getAcademyClasses()
+    const response = await academyClassAPI.getAcademyClasses({ size: 10000 })
     academyClasses.value = response.data.content || response.data
 
     // Select first class by default
@@ -253,7 +263,7 @@ onMounted(() => {
     <!-- Clinics List -->
     <el-card shadow="never">
       <el-table
-        :data="filteredClinics"
+        :data="tableData"
         v-loading="loading"
         style="width: 100%"
       >
@@ -297,7 +307,21 @@ onMounted(() => {
         </el-table-column>
       </el-table>
 
-      <el-empty v-if="!loading && filteredClinics.length === 0" description="등록된 클리닉이 없습니다" />
+      <el-empty v-if="!loading && totalItems === 0" description="등록된 클리닉이 없습니다" />
+
+      <div v-if="totalItems > 0" style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center">
+        <span style="color: #909399; font-size: 14px">
+          전체 {{ totalItems }}개
+        </span>
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="totalItems"
+          layout="sizes, prev, pager, next, jumper"
+          background
+        />
+      </div>
     </el-card>
 
     <!-- Create Clinic Dialog -->

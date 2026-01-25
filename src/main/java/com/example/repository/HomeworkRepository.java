@@ -15,4 +15,6 @@ public interface HomeworkRepository extends JpaRepository<Homework, Long> {
     List<Homework> findUnattachedByAcademyIdAndClassId(
             @Param("academyId") Long academyId,
             @Param("classId") Long classId);
+
+    List<Homework> findAllByOrderByCreatedAtDesc();
 }
