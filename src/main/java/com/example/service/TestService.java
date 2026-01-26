@@ -102,34 +102,42 @@ public class TestService {
         recalculateScores(dto.getTestId());
     }
     
-    private void recalculateScores(Long testId) {
+    public void recalculateScores(Long testId) {
         List<StudentSubmission> submissions = studentSubmissionRepository.findByTestId(testId);
         List<TestQuestion> questions = testQuestionRepository.findByTestIdOrderByNumber(testId);
-        
+
         for (StudentSubmission submission : submissions) {
-            int correctCount = 0;
-            
+            double earnedPoints = 0.0;
+            double totalPoints = 0.0;
+
             for (StudentSubmissionDetail detail : submission.getDetails()) {
                 TestQuestion question = questions.stream()
                         .filter(q -> q.getNumber().equals(detail.getQuestion().getNumber()))
                         .findFirst()
                         .orElse(null);
-                
-                if (question != null && question.getAnswer() != null) {
-                    boolean isCorrect = question.getAnswer().equals(detail.getStudentAnswer());
-                    detail.setIsCorrect(isCorrect);
-                    if (isCorrect) correctCount++;
+
+                if (question != null) {
+                    // 배점 합산
+                    totalPoints += question.getPoints();
+
+                    if (question.getAnswer() != null) {
+                        boolean isCorrect = question.getAnswer().equals(detail.getStudentAnswer());
+                        detail.setIsCorrect(isCorrect);
+                        if (isCorrect) {
+                            earnedPoints += question.getPoints();
+                        }
+                    }
                 }
             }
-            
-            // 총점 계산 (100점 만점 기준)
-            int totalScore = questions.isEmpty() ? 0 : (correctCount * 100 / questions.size());
+
+            // 총점 계산 (배점 기반, 반올림) - submitAnswers와 동일한 방식
+            int totalScore = totalPoints == 0 ? 0 : (int) Math.round((earnedPoints / totalPoints) * 100);
             submission.setTotalScore(totalScore);
         }
-        
+
         studentSubmissionRepository.saveAll(submissions);
     }
-    
+
     public TestStatsDto getTestStats(Long testId) {
         Test test = testRepository.findById(testId)
                 .orElseThrow(() -> new RuntimeException("Test not found"));

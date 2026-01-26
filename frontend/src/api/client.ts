@@ -179,6 +179,7 @@ export const testAPI = {
   deleteQuestion: (id: number) => client.delete(`/questions/${id}`),
   getUnattachedTests: (academyId: number, classId: number) =>
     client.get('/tests/unattached', { params: { academyId, classId } }),
+  recalculateScores: (id: number) => client.post(`/tests/${id}/recalculate`),
 };
 
 // Submissions API

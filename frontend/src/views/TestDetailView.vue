@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { testAPI, submissionAPI, type Test, type Submission } from '../api/client'
 
 const route = useRoute()
@@ -9,6 +9,7 @@ const router = useRouter()
 const testId = route.params.id as string
 
 const loading = ref(false)
+const recalculating = ref(false)
 const test = ref<Test | null>(null)
 const submissions = ref<Submission[]>([])
 const stats = ref<any>(null)
@@ -29,6 +30,33 @@ const fetchTestDetail = async () => {
     ElMessage.error('시험 정보를 불러오는데 실패했습니다.')
   } finally {
     loading.value = false
+  }
+}
+
+const recalculateScores = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '모든 학생의 점수를 재계산합니다. 계속하시겠습니까?',
+      '재채점 확인',
+      {
+        confirmButtonText: '재채점',
+        cancelButtonText: '취소',
+        type: 'warning',
+      }
+    )
+
+    recalculating.value = true
+    await testAPI.recalculateScores(Number(testId))
+    ElMessage.success('재채점이 완료되었습니다.')
+
+    // 데이터 새로고침
+    await fetchTestDetail()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error('재채점에 실패했습니다.')
+    }
+  } finally {
+    recalculating.value = false
   }
 }
 
@@ -59,6 +87,14 @@ onMounted(() => {
           </h1>
         </div>
         <div style="display: flex; gap: 12px">
+          <el-button
+            type="primary"
+            @click="recalculateScores"
+            :loading="recalculating"
+            :icon="Refresh"
+          >
+            재채점
+          </el-button>
           <el-button type="warning" @click="navigateToAnswers" :icon="EditPen">
             정답 관리
           </el-button>

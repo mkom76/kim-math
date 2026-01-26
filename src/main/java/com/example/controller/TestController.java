@@ -86,4 +86,10 @@ public class TestController {
         return ResponseEntity.ok(testService.getUnattachedTests(academyId, classId));
     }
 
+    @PostMapping("/{id}/recalculate")
+    public ResponseEntity<Void> recalculateTestScores(@PathVariable Long id) {
+        testService.recalculateScores(id);
+        return ResponseEntity.ok().build();
+    }
+
 }
