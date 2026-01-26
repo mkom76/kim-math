@@ -82,22 +82,54 @@ public class TestService {
     public void saveTestAnswers(TestAnswersDto dto) {
         Test test = testRepository.findById(dto.getTestId())
                 .orElseThrow(() -> new RuntimeException("Test not found"));
-        
-        // 기존 문제 삭제
-        testQuestionRepository.deleteByTestId(dto.getTestId());
-        
-        // 새로운 문제와 답안 저장
-        List<TestQuestion> questions = new ArrayList<>();
+
+        // 기존 문제 조회
+        List<TestQuestion> existingQuestions = testQuestionRepository.findByTestIdOrderByNumber(dto.getTestId());
+
+        // 기존 문제를 Map으로 변환 (문제 번호 -> TestQuestion)
+        java.util.Map<Integer, TestQuestion> existingQuestionsMap = existingQuestions.stream()
+                .collect(java.util.stream.Collectors.toMap(TestQuestion::getNumber, q -> q));
+
+        // 새로운 문제 번호 Set
+        java.util.Set<Integer> newQuestionNumbers = dto.getAnswers().stream()
+                .map(TestAnswersDto.QuestionAnswer::getNumber)
+                .collect(java.util.stream.Collectors.toSet());
+
+        // 삭제할 문제 (새로운 문제 리스트에 없는 문제들)
+        List<TestQuestion> questionsToDelete = existingQuestions.stream()
+                .filter(q -> !newQuestionNumbers.contains(q.getNumber()))
+                .collect(java.util.stream.Collectors.toList());
+
+        // 업데이트 또는 생성
+        List<TestQuestion> questionsToSave = new ArrayList<>();
         for (TestAnswersDto.QuestionAnswer answer : dto.getAnswers()) {
-            TestQuestion question = TestQuestion.builder()
-                    .test(test)
-                    .number(answer.getNumber())
-                    .answer(answer.getAnswer())
-                    .build();
-            questions.add(question);
+            TestQuestion question = existingQuestionsMap.get(answer.getNumber());
+            Double points = answer.getPoints() != null ? answer.getPoints() : 0.0;
+
+            if (question != null) {
+                // 기존 문제 업데이트 (ID 유지 - 학생 답안 보존)
+                question.setAnswer(answer.getAnswer());
+                question.setPoints(points);
+            } else {
+                // 새 문제 생성
+                question = TestQuestion.builder()
+                        .test(test)
+                        .number(answer.getNumber())
+                        .answer(answer.getAnswer())
+                        .points(points)
+                        .build();
+            }
+            questionsToSave.add(question);
         }
-        testQuestionRepository.saveAll(questions);
-        
+
+        // 저장
+        testQuestionRepository.saveAll(questionsToSave);
+
+        // 삭제 (CASCADE로 관련 StudentSubmissionDetail도 삭제됨 - 학생이 제출하지 않은 새로 삭제된 문제만)
+        if (!questionsToDelete.isEmpty()) {
+            testQuestionRepository.deleteAll(questionsToDelete);
+        }
+
         // 기존 제출 답안 재채점
         recalculateScores(dto.getTestId());
     }

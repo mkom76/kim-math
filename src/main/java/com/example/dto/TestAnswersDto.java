@@ -22,5 +22,6 @@ public class TestAnswersDto {
     public static class QuestionAnswer {
         private Integer number;
         private String answer;
+        private Double points;
     }
 }

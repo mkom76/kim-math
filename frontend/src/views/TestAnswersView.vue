@@ -95,24 +95,16 @@ const handleSaveAll = async () => {
   try {
     loading.value = true
 
-    // 기존 문제 모두 삭제
-    const existingQuestions = questions.value.filter(q => q.id)
-    for (const question of existingQuestions) {
-      if (question.id) {
-        await testAPI.deleteQuestion(question.id)
-      }
-    }
+    // 일괄 저장 API 사용 (학생 답안을 삭제하지 않고 업데이트)
+    const answersToSave = questions.value
+      .filter(q => q.answer && q.answer.trim() !== '')
+      .map(q => ({
+        number: q.number!,
+        answer: q.answer!,
+        points: q.points || 0
+      }))
 
-    // 새로운 순서로 모두 추가
-    for (const question of questions.value) {
-      if (question.answer && question.answer.trim() !== '') {
-        await testAPI.addQuestion(Number(testId), {
-          number: question.number!,
-          answer: question.answer,
-          points: question.points
-        })
-      }
-    }
+    await testAPI.saveTestAnswers(Number(testId), answersToSave)
 
     ElMessage.success('모든 정답이 저장되었습니다.')
     hasChanges.value = false

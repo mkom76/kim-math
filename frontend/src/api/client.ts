@@ -180,6 +180,8 @@ export const testAPI = {
   getUnattachedTests: (academyId: number, classId: number) =>
     client.get('/tests/unattached', { params: { academyId, classId } }),
   recalculateScores: (id: number) => client.post(`/tests/${id}/recalculate`),
+  saveTestAnswers: (id: number, answers: Array<{ number: number; answer: string; points: number }>) =>
+    client.put(`/tests/${id}/answers`, { testId: id, answers }),
 };
 
 // Submissions API
