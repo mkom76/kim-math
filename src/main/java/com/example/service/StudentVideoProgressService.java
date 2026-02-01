@@ -45,14 +45,14 @@ public class StudentVideoProgressService {
                 .orElse(StudentVideoProgress.builder()
                         .student(student)
                         .lessonVideo(video)
-                        .currentTime(0)
+                        .watchedTime(0)
                         .duration(duration)
                         .completed(false)
                         .build());
 
         // Prevent progress rollback: only update if new time is greater
-        if (currentTime > progress.getCurrentTime()) {
-            progress.setCurrentTime(currentTime);
+        if (currentTime > progress.getWatchedTime()) {
+            progress.setWatchedTime(currentTime);
         }
 
         progress.setDuration(duration);

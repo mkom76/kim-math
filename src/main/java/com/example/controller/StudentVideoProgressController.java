@@ -20,15 +20,15 @@ public class StudentVideoProgressController {
             @PathVariable Long videoId,
             @RequestBody Map<String, Integer> request
     ) {
-        Integer currentTime = request.get("currentTime");
+        Integer watchedTime = request.get("watchedTime");
         Integer duration = request.get("duration");
 
-        if (currentTime == null || duration == null) {
+        if (watchedTime == null || duration == null) {
             return ResponseEntity.badRequest().build();
         }
 
         StudentVideoProgressDto progress = progressService.updateProgress(
-                studentId, videoId, currentTime, duration
+                studentId, videoId, watchedTime, duration
         );
 
         return ResponseEntity.ok(progress);

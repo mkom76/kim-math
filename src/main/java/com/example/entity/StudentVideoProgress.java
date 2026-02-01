@@ -31,8 +31,8 @@ public class StudentVideoProgress {
     @JoinColumn(name = "lesson_video_id", nullable = false)
     private LessonVideo lessonVideo;
 
-    @Column(name = "current_time", nullable = false)
-    private Integer currentTime = 0;
+    @Column(name = "watched_time", nullable = false)
+    private Integer watchedTime = 0;
 
     @Column(name = "duration", nullable = false)
     private Integer duration = 0;
@@ -55,6 +55,6 @@ public class StudentVideoProgress {
         if (duration == null || duration == 0) {
             return 0;
         }
-        return (currentTime * 100) / duration;
+        return (watchedTime * 100) / duration;
     }
 }

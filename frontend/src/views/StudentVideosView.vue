@@ -60,10 +60,17 @@ const fetchProgress = async () => {
 }
 
 const updateProgress = async (videoId: number, currentTime: number, duration: number) => {
-  if (!currentStudentId.value) return
+  console.log('[DEBUG] updateProgress called:', { videoId, currentTime, duration, studentId: currentStudentId.value })
+
+  if (!currentStudentId.value) {
+    console.warn('[DEBUG] No studentId, skipping update')
+    return
+  }
 
   // Skip detection: if time difference > 65 seconds, don't update progress
   const timeDiff = currentTime - lastCurrentTime.value
+  console.log('[DEBUG] Time diff:', timeDiff, 'Last time:', lastCurrentTime.value)
+
   if (timeDiff > MAX_ALLOWED) {
     console.log('Skip detected, not updating progress')
     lastCurrentTime.value = currentTime
@@ -73,34 +80,45 @@ const updateProgress = async (videoId: number, currentTime: number, duration: nu
   lastCurrentTime.value = currentTime
 
   try {
+    console.log('[DEBUG] Calling API to update progress...')
     const response = await videoProgressAPI.updateProgress(currentStudentId.value, videoId, {
-      currentTime,
-      duration
+      watchedTime: Math.floor(currentTime),
+      duration: Math.floor(duration)
     })
+    console.log('[DEBUG] API response:', response.data)
 
     // Update local progress map
     progressMap.value.set(videoId, response.data)
   } catch (error) {
     // Fail silently - don't interrupt user
-    console.error('Failed to update progress:', error)
+    console.error('[DEBUG] Failed to update progress:', error)
   }
 }
 
 const onPlayerReady = (event: any) => {
+  console.log('[DEBUG] onPlayerReady called')
   player.value = event.target
   lastCurrentTime.value = 0
 
   // Start 30-second interval
+  console.log('[DEBUG] Starting interval with INTERVAL_SEC:', INTERVAL_SEC)
   progressUpdateInterval.value = setInterval(() => {
+    console.log('[DEBUG] Interval fired - checking player state')
     if (player.value && selectedVideo.value) {
       const currentTime = player.value.getCurrentTime()
       const duration = player.value.getDuration()
+      console.log('[DEBUG] Player state:', { currentTime, duration, videoId: selectedVideo.value.id })
 
       if (currentTime > 0 && duration > 0) {
         updateProgress(selectedVideo.value.id, currentTime, duration)
+      } else {
+        console.log('[DEBUG] Skipping update - invalid time/duration')
       }
+    } else {
+      console.log('[DEBUG] Player or selectedVideo not available:', { hasPlayer: !!player.value, hasVideo: !!selectedVideo.value })
     }
   }, INTERVAL_SEC * 1000)
+  console.log('[DEBUG] Interval ID:', progressUpdateInterval.value)
 }
 
 const fetchVideos = async () => {
@@ -130,6 +148,7 @@ const fetchVideos = async () => {
 }
 
 const playVideo = async (video: any) => {
+  console.log('[DEBUG] playVideo called for:', video.title)
   selectedVideo.value = video
   playDialogVisible.value = true
 
@@ -139,15 +158,22 @@ const playVideo = async (video: any) => {
   await loadYouTubeAPI()
 
   // Initialize YouTube player
+  console.log('[DEBUG] Checking for YouTube API:', { hasYT: !!window.YT, hasPlayer: !!(window.YT && window.YT.Player) })
   if (window.YT && window.YT.Player) {
     const iframe = document.querySelector('iframe')
+    console.log('[DEBUG] iframe found:', !!iframe, 'src:', iframe?.getAttribute('src'))
     if (iframe) {
       player.value = new window.YT.Player(iframe, {
         events: {
           onReady: onPlayerReady
         }
       })
+      console.log('[DEBUG] YouTube player created')
+    } else {
+      console.error('[DEBUG] iframe not found in DOM')
     }
+  } else {
+    console.error('[DEBUG] YouTube API not loaded')
   }
 }
 

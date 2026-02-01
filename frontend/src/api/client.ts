@@ -509,13 +509,13 @@ export const studentVideoAPI = {
 
 // Video Progress types and API
 export interface VideoProgressUpdate {
-  currentTime: number
+  watchedTime: number
   duration: number
 }
 
 export interface VideoProgress {
   videoId: number
-  currentTime: number
+  watchedTime: number
   duration: number
   progressPercent: number
   completed: boolean

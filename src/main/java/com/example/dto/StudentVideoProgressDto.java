@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class StudentVideoProgressDto {
     private Long videoId;
-    private Integer currentTime;
+    private Integer watchedTime;
     private Integer duration;
     private Integer progressPercent;
     private Boolean completed;
@@ -23,7 +23,7 @@ public class StudentVideoProgressDto {
     public static StudentVideoProgressDto from(StudentVideoProgress progress) {
         return StudentVideoProgressDto.builder()
                 .videoId(progress.getLessonVideo().getId())
-                .currentTime(progress.getCurrentTime())
+                .watchedTime(progress.getWatchedTime())
                 .duration(progress.getDuration())
                 .progressPercent(progress.getProgressPercent())
                 .completed(progress.getCompleted())
