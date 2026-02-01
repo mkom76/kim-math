@@ -524,10 +524,10 @@ export interface VideoProgress {
 
 export const videoProgressAPI = {
   updateProgress: (studentId: number, videoId: number, data: VideoProgressUpdate) =>
-    client.put<VideoProgress>(`/api/students/${studentId}/videos/${videoId}/progress`, data),
+    client.put<VideoProgress>(`/students/${studentId}/videos/${videoId}/progress`, data),
 
   getStudentProgress: (studentId: number) =>
-    client.get<VideoProgress[]>(`/api/students/${studentId}/videos/progress`)
+    client.get<VideoProgress[]>(`/students/${studentId}/videos/progress`)
 }
 
 export default client;
@@ -543,23 +543,5 @@ export type {
   StudentHomework,
   Lesson,
   LoginDto,
-  AuthResponse,
-  DailyFeedback,
-  HomeworkSummary,
-  TestFeedback,
-  QuestionAccuracy,
-  StudentHomeworkAssignment,
-  LessonStudentStats,
-  StudentTestScore,
-  StudentHomeworkCompletion,
-  Clinic,
-  ClinicRegistration,
-  ClinicDetail,
-  StudentClinicHomework,
-  HomeworkProgress,
-  StudentClinicInfo,
-  IncompleteHomework,
-  ClinicHomeworkProgress,
-  RecentClinicResult,
-  RecentClinicHomework
+  AuthResponse
 };
