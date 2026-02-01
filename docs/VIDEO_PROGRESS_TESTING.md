@@ -1,576 +1,311 @@
 # Video Progress Tracking - Testing Guide
 
-This document provides comprehensive testing procedures for the video progress tracking feature implementation.
-
-## Table of Contents
-- [Manual Testing Checklist](#manual-testing-checklist)
-- [Performance Testing](#performance-testing)
-- [Test Scenarios](#test-scenarios)
-- [Known Limitations](#known-limitations)
-- [Troubleshooting](#troubleshooting)
-- [API Testing Examples](#api-testing-examples)
-
----
-
 ## Manual Testing Checklist
 
-### Student View Progress Tracking
+### Student View - Progress Tracking
 
 #### Basic Functionality
-- [ ] **Play video from start**
-  - Open a video that has not been watched
-  - Click play and watch for 30+ seconds
-  - Verify progress updates to the server
-  - Check that `currentTime` is recorded correctly
-
-- [ ] **1x speed playback**
-  - Watch video at normal speed for 1 minute
-  - Verify `playbackSpeed` is recorded as 1.0
-  - Check that progress updates every 30 seconds
-
-- [ ] **2x speed playback**
-  - Change playback speed to 2x
-  - Watch for 1 minute
-  - Verify `playbackSpeed` is recorded as 2.0
-  - Confirm progress updates correctly
-
-- [ ] **Page refresh persistence**
-  - Watch video to 50% completion
-  - Refresh the page
-  - Verify video resumes from last saved position
-  - Check that progress bar shows correct percentage
-
-- [ ] **90% completion threshold**
-  - Watch video to exactly 90% completion
-  - Verify video is marked as "completed"
-  - Check that completion timestamp is recorded
-  - Confirm video appears in "completed" section
+- [ ] Play video and wait 30 seconds → Progress updates (check network tab)
+- [ ] Watch video at 1x speed for 1 minute → Progress increases correctly
+- [ ] Watch video at 2x speed for 1 minute → Progress increases correctly
+- [ ] Refresh page → Progress persists
+- [ ] Watch to 90% → Completion checkmark appears
 
 #### Skip Detection
-- [ ] **Jump forward detection**
-  - Watch 1 minute of video at 1x speed
-  - Manually seek forward 5 minutes
-  - Verify skip is detected (should not save progress)
-  - Check that progress remains at pre-skip position
-
-- [ ] **Resume after skip attempt**
-  - After skip is detected, continue watching normally
-  - Verify progress tracking resumes after 65 seconds
-  - Check that subsequent progress updates are saved
-
-- [ ] **2x speed skip detection**
-  - Watch 30 seconds at 2x speed (60 seconds of content)
-  - Manually seek forward 5 minutes
-  - Verify skip is still detected
-  - Confirm playback speed is considered in skip calculation
+- [ ] Jump forward 5 minutes → Progress does NOT update (check console for "Skip detected")
+- [ ] Watch normally after skip → Progress resumes updating from current position
+- [ ] 2x speed playback for 30 seconds (60s of video) → Progress updates normally
 
 #### Progress Rollback Prevention
-- [ ] **Seek backward**
-  - Watch video to 5:00
-  - Seek back to 3:00
-  - Verify progress does NOT rollback to 3:00
-  - Confirm maxWatchedTime remains at 5:00
-
-- [ ] **Restart after completion**
-  - Complete a video (watch to 90%+)
-  - Restart video from beginning
-  - Verify completion status is maintained
-  - Check that video still shows as "completed"
+- [ ] Watch to 50%, then seek back to 20% → Progress stays at 50%
+- [ ] Watch to 100% (completed), then restart video → Stays marked as completed
 
 #### UI Display
-- [ ] **Completed state**
-  - Complete a video
-  - Verify green checkmark appears
-  - Check completion date is displayed
-  - Confirm progress bar shows 100%
-
-- [ ] **In-progress state**
-  - Watch video to 40%
-  - Navigate away and return
-  - Verify yellow progress indicator
-  - Check "Continue Watching" option appears
-
-- [ ] **Unwatched state**
-  - View a brand new video
-  - Verify no progress bar is shown
-  - Check "Start Watching" or similar prompt
-
-- [ ] **Last watched time display**
-  - Watch multiple videos partially
-  - Verify each shows correct last watched timestamp
-  - Check timestamp format is user-friendly
+- [ ] Completed video shows green progress bar + checkmark + "시청 완료"
+- [ ] In-progress video shows blue progress bar + "N% 시청중"
+- [ ] Unwatched video shows gray bar + "미시청"
+- [ ] Last watched time displays correctly ("5분 전", "2시간 전", etc.)
 
 #### Edge Cases
-- [ ] **Close video dialog mid-playback**
-  - Start watching a video
-  - Close the dialog after 45 seconds
-  - Reopen the video
-  - Verify progress was saved before closing
+- [ ] Close dialog mid-video → Progress saved up to last 30-second interval
+- [ ] Network failure during update → Fails silently, no error toast
+- [ ] Open multiple videos in different tabs → Each tracks independently
 
-- [ ] **Network failure during playback**
-  - Disable network connection
-  - Watch video for 1 minute
-  - Re-enable network
-  - Verify progress catches up when connection restored
+### Performance Testing
 
-- [ ] **Multiple tabs**
-  - Open same video in two browser tabs
-  - Play in both tabs with slight delay
-  - Verify no race condition issues
-  - Check that most recent progress wins
-
----
-
-## Performance Testing
-
-### Load Testing Guidelines
-
-#### Concurrent User Test
-1. **Setup**: Prepare 10+ student accounts
-2. **Execution**: Have all students watch videos simultaneously
-3. **Monitoring**: Observe server response times
-4. **Success Criteria**:
-   - All progress updates complete within 5 seconds
-   - No failed requests (check server logs)
-   - UI remains responsive
-
-#### Progress Update Load
-1. **Setup**: Create script to simulate 100+ concurrent progress updates
-2. **Test**: Send batch updates at 30-second intervals
-3. **Monitor**: Database connection pool usage
-4. **Success Criteria**:
-   - 95% of requests complete within 2 seconds
-   - No database deadlocks
-   - Connection pool does not exhaust
-
-### Server Monitoring
-
-#### CPU Usage
-- Baseline: Record CPU usage with no video playback
-- Load: Monitor CPU during 10+ concurrent video sessions
-- Threshold: CPU should remain below 70% usage
-- Tools: `top`, `htop`, or server monitoring dashboard
-
-#### Memory Usage
-- Baseline: Record memory usage at idle
-- Load: Monitor memory during peak usage
-- Check for: Memory leaks (gradually increasing usage)
-- Threshold: Memory should remain stable, not exceed 80% of available RAM
-
-#### Database Query Efficiency
-- Use `EXPLAIN ANALYZE` on progress update queries
-- Verify indexes are being used on:
-  - `student_video_progress.student_id`
-  - `student_video_progress.video_id`
-  - `student_video_progress.clinic_id`
-- Check query execution time: Should be < 100ms
+#### Load Test (if possible)
+- [ ] Simulate 10+ students watching simultaneously
+- [ ] Check server CPU/memory usage
+- [ ] Verify database queries are efficient (check slow query log)
 
 ---
 
 ## Test Scenarios
 
 ### Scenario 1: Normal Viewing
-**Objective**: Verify basic progress tracking works correctly
-
-**Steps**:
-1. Login as a student
-2. Open a 5-minute video
-3. Watch for 2 minutes at 1x speed
-4. Wait for at least one 30-second update interval
-5. Refresh the page
-
-**Expected Results**:
-- Video resumes at approximately 2:00 mark
-- Progress bar shows ~40% completion
-- `currentTime` in database is around 120 seconds
-- `playbackSpeed` is 1.0
-- Video is marked as "in-progress"
+1. Student opens video
+2. Watches for 2 minutes at 1x speed
+3. Expected: 4 progress updates (30s, 1min, 1min30s, 2min)
+4. Progress bar shows ~33% (if 6-minute video)
 
 ### Scenario 2: Speed Watching
-**Objective**: Verify 2x speed tracking works correctly
-
-**Steps**:
-1. Login as a student
-2. Open a 5-minute video
-3. Set playback speed to 2x
-4. Watch for 1 minute of real time (2 minutes of video content)
-5. Check progress
-
-**Expected Results**:
-- `currentTime` is approximately 120 seconds
-- `playbackSpeed` is 2.0
-- Progress bar shows ~40% completion
-- No skip detection triggered
+1. Student sets playback to 2x speed
+2. Watches for 1 minute real time (= 2 minutes of video)
+3. Expected: 2 progress updates (30s, 1min real time = 60s, 2min video time)
+4. Progress updates correctly
 
 ### Scenario 3: Skip Attempt
-**Objective**: Verify skip detection prevents cheating
-
-**Steps**:
-1. Login as a student
-2. Open a 10-minute video
-3. Watch normally for 1 minute
-4. Manually seek forward to 5:00 mark
-5. Continue watching from 5:00
-6. Check progress after 30 seconds
-
-**Expected Results**:
-- Skip is detected (4-minute jump > 65-second threshold)
-- Progress remains at ~1:00, not 5:00
-- Console may show skip detection message
-- After watching 65+ seconds from 5:00, tracking resumes normally
+1. Student watches to 1 minute
+2. Skips to 5 minutes
+3. Expected: No progress update, console shows "Skip detected, not updating progress"
+4. Progress stays at 1 minute (or last saved position)
 
 ### Scenario 4: Completion
-**Objective**: Verify 90% threshold marks video as completed
-
-**Steps**:
-1. Login as a student
-2. Open a 10-minute video
-3. Seek to 8:00 (80%)
-4. Watch until 9:00 (90%)
-5. Wait for progress update
-
-**Expected Results**:
-- Video is marked as "completed"
-- `completedAt` timestamp is recorded
-- Green checkmark appears in UI
-- Progress bar shows 100% (or 90%+)
-- Video moves to "Completed" section
+1. Student watches to 90% (e.g., 5:24 of 6:00 video)
+2. Expected: Video marked as completed
+3. Green progress bar + checkmark appears
+4. Shows "시청 완료"
 
 ### Scenario 5: Resume Watching
-**Objective**: Verify students can resume from where they left off
-
-**Steps**:
-1. Login as a student
-2. Open a 10-minute video
-3. Watch to 4:00 (40%)
-4. Close the video dialog
-5. Navigate to another page
-6. Return and reopen the same video
-
-**Expected Results**:
-- Video automatically seeks to 4:00
-- Progress bar shows ~40% completion
-- "Continue Watching" option is available
-- Last watched timestamp is displayed
+1. Student watches to 50%
+2. Closes browser
+3. Returns next day
+4. Expected: Progress bar shows 50%, "1일 전" timestamp
 
 ---
 
 ## Known Limitations
 
-### 30-Second Update Interval
-**Issue**: Progress is only saved every 30 seconds
+1. **Progress Update Interval**
+   - Updates every 30 seconds
+   - Up to 30 seconds of progress can be lost if browser crashes
 
-**Impact**:
-- If a student closes the browser before the 30-second mark, progress may not be saved
-- Up to 30 seconds of progress can be lost in unexpected disconnections
+2. **Skip Detection Threshold**
+   - Allows up to 65 seconds of jump (to accommodate 2x speed)
+   - 30s interval × 2.0 speed + 5s tolerance = 65s
 
-**Mitigation**:
-- Updates are also sent when video is paused or dialog is closed
-- Most modern browsers keep connections alive during page transitions
+3. **Multiple Devices**
+   - Last updated device wins (potential race condition, but acceptable)
+   - No conflict resolution between simultaneous views
 
-### 65-Second Skip Threshold
-**Issue**: Skip detection threshold is fixed at 65 seconds
-
-**Impact**:
-- Students can skip up to 65 seconds without detection
-- Very short videos (< 2 minutes) may not have effective skip protection
-- At 2x speed, students can skip up to 32.5 seconds of real content
-
-**Considerations**:
-- Threshold balances legitimate seeking vs. cheating
-- Can be adjusted in `VideoPlayer.tsx` if needed
-
-### Multi-Device Race Conditions
-**Issue**: Watching the same video on multiple devices simultaneously
-
-**Impact**:
-- Progress updates may overwrite each other
-- The last update wins (last-write-wins strategy)
-- May result in slightly inaccurate progress tracking
-
-**Mitigation**:
-- Use timestamp-based conflict resolution
-- Most students use single device per session
-- Edge case unlikely in normal usage
-
-### Browser Tab Inactive State
-**Issue**: Some browsers throttle JavaScript when tab is inactive
-
-**Impact**:
-- Progress updates may be delayed if tab is in background
-- Video may pause automatically in some browsers
-
-**Behavior**:
-- This is browser-dependent (Chrome, Firefox, Safari differ)
-- Progress will catch up when tab becomes active again
+4. **Browser Tab Inactive**
+   - Background tab timers may be throttled by browser
+   - Update interval might be irregular when tab is not focused
 
 ---
 
 ## Troubleshooting
 
-### Progress Not Updating
+### Progress not updating
 
-**Symptoms**:
-- Video plays but progress is not saved
-- Refreshing returns to video start
-- No progress bar shown
+1. **Check browser console**
+   - Look for errors or "Failed to update progress" messages
+   - Verify YouTube iframe API loaded (check for `window.YT`)
 
-**Debugging Steps**:
-1. Open browser developer console (F12)
-2. Check for JavaScript errors
-3. Look for failed API requests in Network tab
-4. Verify `updateVideoProgress` function is being called
-5. Check server logs for error messages
+2. **Check network tab**
+   - Look for `PUT /students/{id}/videos/{id}/progress` requests
+   - Should see requests every 30 seconds during playback
+   - Response should be 200 OK
 
-**Common Causes**:
-- Network connectivity issues
-- Authentication token expired
-- Server-side error in update endpoint
-- Database connection issues
+3. **Verify login**
+   - Student must be logged in
+   - Check auth token is valid
 
-**Solutions**:
-- Check network connection
-- Re-login to refresh authentication
-- Check server logs for specific errors
-- Verify database is running and accessible
+### Skip detection too sensitive
 
-### Skip Detection Issues
+1. **Verify constants**
+   - `INTERVAL_SEC = 30`
+   - `MAX_ALLOWED = 65`
 
-**Symptoms**:
-- Skips are not detected when seeking forward
-- Progress updates even after large jumps
-- Skip detection triggers on legitimate playback
+2. **Check playback speed**
+   - YouTube only supports up to 2x speed officially
+   - Higher speeds may trigger skip detection
 
-**Debugging Steps**:
-1. Check console for skip detection logs
-2. Verify `lastUpdateTime` is being tracked correctly
-3. Check playback speed calculation
-4. Review skip threshold logic in code
+### Progress bar not showing
 
-**Common Causes**:
-- Threshold set too high
-- Playback speed not considered
-- Race condition in update timing
-- Video metadata loading delays
+1. **Check Vue DevTools**
+   - Inspect `progressMap` in StudentVideosView component
+   - Verify data is populated
 
-**Solutions**:
-- Adjust `SKIP_THRESHOLD_SECONDS` if needed
-- Ensure playback speed is included in calculations
-- Add additional logging to track skip detection
-- Test with videos of various lengths
+2. **Verify API response**
+   - Check `GET /students/{id}/videos/progress` returns correct data
+   - Ensure `videoId` matches video card's `video.id`
 
-### Progress Bar Not Showing
-
-**Symptoms**:
-- Video plays but no progress bar visible
-- Progress percentage is incorrect
-- Completed videos not showing checkmark
-
-**Debugging Steps**:
-1. Check if progress data exists in database
-2. Verify API response includes progress data
-3. Inspect component state in React DevTools
-4. Check CSS styling for visibility issues
-
-**Common Causes**:
-- Progress data not loaded from API
-- Component not re-rendering on data update
-- CSS display property set to none
-- Progress calculation error
-
-**Solutions**:
-- Verify API returns correct progress data
-- Force component re-render or check dependencies
-- Inspect element styles in browser DevTools
-- Check progress calculation logic
-
-### Video Not Resuming from Last Position
-
-**Symptoms**:
-- Video always starts from beginning
-- Progress exists but seek not happening
-- Intermittent resume behavior
-
-**Debugging Steps**:
-1. Verify progress data is loaded before video initializes
-2. Check if seek operation is being called
-3. Look for video metadata not loaded errors
-4. Test with different video formats
-
-**Common Causes**:
-- Progress loaded after video player initialized
-- Video metadata not ready for seek operation
-- Async timing issues
-- Video format doesn't support seeking
-
-**Solutions**:
-- Ensure progress data loads before mounting player
-- Wait for `loadedmetadata` event before seeking
-- Add retry logic for seek operations
-- Test with known-good video formats
+3. **Check console errors**
+   - Look for failed API calls
+   - Verify no TypeScript errors
 
 ---
 
 ## API Testing Examples
 
-### Update Video Progress
+### Update Progress
 
-**cURL Command**:
 ```bash
-curl -X POST https://your-domain.com/api/students/video-progress \
+curl -X PUT http://localhost:8080/api/students/1/videos/1/progress \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{
-    "videoId": 123,
-    "clinicId": 456,
-    "currentTime": 180,
-    "playbackSpeed": 1.0,
-    "completed": false
+    "currentTime": 120,
+    "duration": 600
   }'
 ```
 
-**Expected Response** (200 OK):
+**Expected Response:**
 ```json
 {
-  "success": true,
-  "data": {
-    "id": 789,
-    "studentId": 1,
-    "videoId": 123,
-    "clinicId": 456,
-    "currentTime": 180,
-    "maxWatchedTime": 180,
-    "playbackSpeed": 1.0,
-    "completed": false,
-    "completedAt": null,
-    "lastWatchedAt": "2026-02-01T10:30:00.000Z"
-  }
+  "videoId": 1,
+  "currentTime": 120,
+  "duration": 600,
+  "progressPercent": 20,
+  "completed": false,
+  "lastWatchedAt": "2026-02-01T14:30:00"
 }
 ```
 
-**Test Cases**:
-1. **First progress update**: Send with `currentTime: 60`
-2. **Update existing progress**: Send with higher `currentTime: 120`
-3. **Rollback attempt**: Send with lower `currentTime: 30` (should not decrease `maxWatchedTime`)
-4. **Completion**: Send with `completed: true` (should set `completedAt`)
-5. **Invalid data**: Send with negative `currentTime` (should return 400)
+### Get Student Progress
 
-### Get Student Progress for a Video
-
-**cURL Command**:
 ```bash
-curl -X GET "https://your-domain.com/api/students/video-progress?videoId=123&clinicId=456" \
-  -H "Authorization: Bearer YOUR_AUTH_TOKEN"
+curl http://localhost:8080/api/students/1/videos/progress
 ```
 
-**Expected Response** (200 OK):
+**Expected Response:**
 ```json
-{
-  "success": true,
-  "data": {
-    "id": 789,
-    "studentId": 1,
-    "videoId": 123,
-    "clinicId": 456,
-    "currentTime": 180,
-    "maxWatchedTime": 180,
-    "playbackSpeed": 1.0,
+[
+  {
+    "videoId": 1,
+    "currentTime": 120,
+    "duration": 600,
+    "progressPercent": 20,
     "completed": false,
-    "completedAt": null,
-    "lastWatchedAt": "2026-02-01T10:30:00.000Z"
+    "lastWatchedAt": "2026-02-01T14:30:00"
+  },
+  {
+    "videoId": 2,
+    "currentTime": 540,
+    "duration": 600,
+    "progressPercent": 90,
+    "completed": true,
+    "lastWatchedAt": "2026-02-01T13:15:00"
   }
-}
+]
 ```
 
-**Expected Response - No Progress** (200 OK):
-```json
-{
-  "success": true,
-  "data": null
-}
-```
+### Test Cases
 
-**Test Cases**:
-1. **Existing progress**: Query video with saved progress
-2. **No progress**: Query unwatched video (should return null)
-3. **Completed video**: Verify `completed: true` and `completedAt` timestamp
-4. **Invalid videoId**: Should return 400 or appropriate error
-5. **Invalid clinicId**: Should return 400 or appropriate error
+#### 1. Normal Progress Update
+- Send `currentTime: 60, duration: 600`
+- Verify `progressPercent` is 10
+- Verify `completed` is false
 
-### Get All Progress for a Clinic
+#### 2. Completion at 90%
+- Send `currentTime: 540, duration: 600`
+- Verify `progressPercent` is 90
+- Verify `completed` is true
 
-**cURL Command**:
-```bash
-curl -X GET "https://your-domain.com/api/students/video-progress/clinic/456" \
-  -H "Authorization: Bearer YOUR_AUTH_TOKEN"
-```
+#### 3. Rollback Prevention
+- First: Send `currentTime: 180, duration: 600`
+- Then: Send `currentTime: 120, duration: 600`
+- Verify `currentTime` stays at 180 (not rolled back)
 
-**Expected Response** (200 OK):
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 789,
-      "studentId": 1,
-      "videoId": 123,
-      "clinicId": 456,
-      "currentTime": 180,
-      "maxWatchedTime": 180,
-      "playbackSpeed": 1.0,
-      "completed": false,
-      "completedAt": null,
-      "lastWatchedAt": "2026-02-01T10:30:00.000Z"
-    },
-    {
-      "id": 790,
-      "studentId": 1,
-      "videoId": 124,
-      "clinicId": 456,
-      "currentTime": 300,
-      "maxWatchedTime": 300,
-      "playbackSpeed": 2.0,
-      "completed": true,
-      "completedAt": "2026-02-01T09:45:00.000Z",
-      "lastWatchedAt": "2026-02-01T09:45:00.000Z"
-    }
-  ]
-}
-```
-
-**Test Cases**:
-1. **Multiple progress records**: Student with several videos watched
-2. **No progress**: New student with no videos watched (should return empty array)
-3. **Mixed completion states**: Some completed, some in-progress
-4. **Invalid clinicId**: Should return 400 or appropriate error
+#### 4. Invalid Input
+- Send empty body → Should return 400 Bad Request
+- Send negative `currentTime` → Should handle gracefully
+- Send `duration: 0` → Should handle division by zero
 
 ---
 
-## Testing Checklist Summary
+## Database Verification
 
-Before considering the video progress tracking feature complete, ensure:
+### Check Progress Records
 
-- [ ] All manual testing checklist items pass
-- [ ] Performance testing shows acceptable load handling
-- [ ] All test scenarios produce expected results
-- [ ] Known limitations are documented and understood
-- [ ] Troubleshooting steps resolve common issues
-- [ ] API endpoints work correctly with test data
-- [ ] Database indexes are in place and effective
-- [ ] Error handling covers edge cases
-- [ ] UI displays all progress states correctly
-- [ ] Multi-device scenarios are handled gracefully
+```sql
+SELECT
+  svp.id,
+  s.name as student_name,
+  lv.title as video_title,
+  svp.current_time,
+  svp.duration,
+  ROUND((svp.current_time * 100.0) / svp.duration, 2) as progress_percent,
+  svp.completed,
+  svp.last_watched_at
+FROM student_video_progress svp
+JOIN students s ON svp.student_id = s.id
+JOIN lesson_videos lv ON svp.lesson_video_id = lv.id
+ORDER BY svp.last_watched_at DESC
+LIMIT 10;
+```
+
+### Find Incomplete Videos
+
+```sql
+SELECT
+  s.name as student_name,
+  lv.title as video_title,
+  ROUND((svp.current_time * 100.0) / svp.duration, 2) as progress_percent
+FROM student_video_progress svp
+JOIN students s ON svp.student_id = s.id
+JOIN lesson_videos lv ON svp.lesson_video_id = lv.id
+WHERE svp.completed = false
+  AND svp.current_time > 0
+ORDER BY svp.last_watched_at DESC;
+```
+
+### Check Completion Rate
+
+```sql
+SELECT
+  COUNT(*) as total_videos_watched,
+  SUM(CASE WHEN completed = true THEN 1 ELSE 0 END) as completed_videos,
+  ROUND(
+    SUM(CASE WHEN completed = true THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
+    2
+  ) as completion_rate_percent
+FROM student_video_progress
+WHERE current_time > 0;
+```
 
 ---
 
-## Additional Resources
+## Performance Benchmarks
 
-- **Implementation Plan**: See project documentation for technical details
-- **Database Schema**: `student_video_progress` table structure
-- **API Documentation**: Backend endpoint specifications
-- **Frontend Components**: `VideoPlayer.tsx`, `VideoList.tsx`
+### Expected Performance (50 concurrent students)
+
+- **Request Rate**: 100 requests/min (50 students × 1 update per 30s)
+- **Database Load**: Minimal (simple UPDATE queries with indexes)
+- **Response Time**: < 100ms per update request
+- **Memory Usage**: Negligible (stateless updates)
+
+### Monitor These Metrics
+
+1. **API Response Time**
+   - 95th percentile should be < 200ms
+   - 99th percentile should be < 500ms
+
+2. **Database Query Time**
+   - UPDATE query should be < 10ms
+   - SELECT query should be < 5ms
+
+3. **Error Rate**
+   - Should be < 1% (network failures are acceptable)
+   - 5xx errors should be 0%
+
+4. **Database Connections**
+   - Should not grow with number of students
+   - Connection pool should be sufficient
 
 ---
 
-**Last Updated**: 2026-02-01
-**Version**: 1.0
+## Acceptance Criteria
+
+This feature is ready for production when:
+
+- [ ] All manual test cases pass
+- [ ] No console errors during normal playback
+- [ ] Progress persists across page refreshes
+- [ ] Skip detection prevents cheating
+- [ ] Rollback prevention works correctly
+- [ ] UI displays all three states (completed/in-progress/unwatched)
+- [ ] API returns correct data structure
+- [ ] Database queries use proper indexes
+- [ ] 10+ concurrent students can watch without issues
+- [ ] Documentation is accurate and complete
