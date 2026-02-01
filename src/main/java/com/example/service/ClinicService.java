@@ -135,7 +135,7 @@ public class ClinicService {
                             .findByStudentId(student.getId());
 
                     List<StudentHomework> incompleteHomeworks = allStudentHomeworks.stream()
-                            .filter(sh -> sh.getCompletion() != null && sh.getCompletion() < 100)
+                            .filter(sh -> sh.getCompletion() == null || sh.getCompletion() < 100)
                             .collect(Collectors.toList());
 
                     // 2. Get homework IDs that are being tracked in this clinic
@@ -271,10 +271,10 @@ public class ClinicService {
         Optional<ClinicRegistration> registration = clinicRegistrationRepository
                 .findByClinicIdAndStudentId(upcomingClinic.get().getId(), studentId);
 
-        // Get incomplete homeworks (completion < 100%)
+        // Get incomplete homeworks (completion < 100% or not submitted)
         List<StudentHomework> incompleteHomeworks = studentHomeworkRepository
                 .findByStudentId(studentId).stream()
-                .filter(sh -> sh.getCompletion() != null && sh.getCompletion() < 100)
+                .filter(sh -> sh.getCompletion() == null || sh.getCompletion() < 100)
                 .collect(Collectors.toList());
 
         List<StudentClinicInfoDto.IncompleteHomeworkDto> homeworkDtos = incompleteHomeworks.stream()
@@ -341,7 +341,7 @@ public class ClinicService {
         for (Student student : students) {
             List<StudentHomework> incompleteHomeworks = studentHomeworkRepository
                     .findByStudentId(student.getId()).stream()
-                    .filter(sh -> sh.getCompletion() != null && sh.getCompletion() < 100)
+                    .filter(sh -> sh.getCompletion() == null || sh.getCompletion() < 100)
                     .collect(Collectors.toList());
 
             for (StudentHomework sh : incompleteHomeworks) {
