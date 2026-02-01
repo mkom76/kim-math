@@ -37,3 +37,8 @@ logging:
   level:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# YouTube Data API v3
+youtube:
+  api:
+    key: ${YOUTUBE_API_KEY:}
