@@ -507,6 +507,29 @@ export const studentVideoAPI = {
     client.get<StudentLessonVideos[]>(`/students/${studentId}/videos`)
 }
 
+// Video Progress types and API
+export interface VideoProgressUpdate {
+  currentTime: number
+  duration: number
+}
+
+export interface VideoProgress {
+  videoId: number
+  currentTime: number
+  duration: number
+  progressPercent: number
+  completed: boolean
+  lastWatchedAt: string
+}
+
+export const videoProgressAPI = {
+  updateProgress: (studentId: number, videoId: number, data: VideoProgressUpdate) =>
+    client.put<VideoProgress>(`/api/students/${studentId}/videos/${videoId}/progress`, data),
+
+  getStudentProgress: (studentId: number) =>
+    client.get<VideoProgress[]>(`/api/students/${studentId}/videos/progress`)
+}
+
 export default client;
 
 export type {
