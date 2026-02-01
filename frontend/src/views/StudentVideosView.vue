@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { studentVideoAPI, type StudentLessonVideos } from '../api/client'
+import { studentVideoAPI, authAPI, type StudentLessonVideos } from '../api/client'
 import { ElMessage } from 'element-plus'
 import { VideoPlay } from '@element-plus/icons-vue'
 
@@ -17,14 +17,16 @@ const embedUrl = computed(() => {
 const fetchVideos = async () => {
   loading.value = true
   try {
-    // Get studentId from localStorage or auth store
-    const studentId = localStorage.getItem('studentId')
+    // Get current user from auth API
+    const userResponse = await authAPI.getCurrentUser()
+    const studentId = userResponse.data.userId
+
     if (!studentId) {
       ElMessage.error('로그인이 필요합니다')
       return
     }
 
-    const response = await studentVideoAPI.getVideos(Number(studentId))
+    const response = await studentVideoAPI.getVideos(studentId)
     lessonsWithVideos.value = response.data
   } catch (error) {
     ElMessage.error('영상 목록을 불러오는데 실패했습니다')
