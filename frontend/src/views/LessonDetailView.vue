@@ -2,8 +2,8 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ChatLineSquare, BellFilled } from '@element-plus/icons-vue'
-import { lessonAPI, testAPI, homeworkAPI, studentHomeworkAPI, type Lesson, type Test, type Homework, type LessonStudentStats, type StudentHomeworkAssignment } from '../api/client'
+import { ChatLineSquare, BellFilled, VideoPlay, Plus, Top, Bottom, Delete } from '@element-plus/icons-vue'
+import { lessonAPI, testAPI, homeworkAPI, studentHomeworkAPI, lessonVideoAPI, type Lesson, type Test, type Homework, type LessonStudentStats, type StudentHomeworkAssignment, type LessonVideo } from '../api/client'
 
 const route = useRoute()
 const router = useRouter()
@@ -385,8 +385,81 @@ const calculateAverageCompletion = () => {
   return Math.round(total / completedStudents.length)
 }
 
+// Video management state
+const videos = ref<LessonVideo[]>([])
+const addVideoDialogVisible = ref(false)
+const youtubeUrl = ref('')
+
+const fetchVideos = async () => {
+  try {
+    const response = await lessonVideoAPI.getVideos(lessonId.value)
+    videos.value = response.data
+  } catch (error) {
+    // Videos are optional, don't show error
+    videos.value = []
+  }
+}
+
+const addVideo = async () => {
+  try {
+    await lessonVideoAPI.addVideo(lessonId.value, { youtubeUrl: youtubeUrl.value })
+    ElMessage.success('영상이 추가되었습니다')
+    addVideoDialogVisible.value = false
+    youtubeUrl.value = ''
+    fetchVideos()
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message || '영상 추가에 실패했습니다')
+  }
+}
+
+const moveUp = async (video: LessonVideo) => {
+  try {
+    await lessonVideoAPI.updateOrder(lessonId.value, video.id, video.orderIndex - 1)
+    fetchVideos()
+  } catch (error) {
+    ElMessage.error('순서 변경에 실패했습니다')
+  }
+}
+
+const moveDown = async (video: LessonVideo) => {
+  try {
+    await lessonVideoAPI.updateOrder(lessonId.value, video.id, video.orderIndex + 1)
+    fetchVideos()
+  } catch (error) {
+    ElMessage.error('순서 변경에 실패했습니다')
+  }
+}
+
+const deleteVideo = async (video: LessonVideo) => {
+  try {
+    await ElMessageBox.confirm('영상을 삭제하시겠습니까?', '확인')
+    await lessonVideoAPI.deleteVideo(lessonId.value, video.id)
+    ElMessage.success('영상이 삭제되었습니다')
+    fetchVideos()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('영상 삭제에 실패했습니다')
+    }
+  }
+}
+
+const formatDuration = (duration: string) => {
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
+  if (!match) return duration
+
+  const hours = parseInt(match[1] || '0')
+  const minutes = parseInt(match[2] || '0')
+  const seconds = parseInt(match[3] || '0')
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  }
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`
+}
+
 onMounted(() => {
   fetchLesson()
+  fetchVideos()
 })
 </script>
 
@@ -836,6 +909,115 @@ onMounted(() => {
           type="primary"
           @click="handleAttachHomework"
           :disabled="unattachedHomeworks.length === 0"
+        >
+          추가
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- Video Management Section -->
+    <el-card shadow="never" style="margin-top: 24px">
+      <template #header>
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <h3 style="margin: 0; font-size: 18px; font-weight: 600">
+            <el-icon style="margin-right: 8px"><VideoPlay /></el-icon>
+            수업 영상
+          </h3>
+          <el-button type="primary" @click="addVideoDialogVisible = true">
+            <el-icon style="margin-right: 4px"><Plus /></el-icon>
+            영상 추가
+          </el-button>
+        </div>
+      </template>
+
+      <div v-if="videos.length > 0">
+        <el-card
+          v-for="(video, index) in videos"
+          :key="video.id"
+          style="margin-bottom: 16px"
+        >
+          <div style="display: flex; gap: 16px; align-items: center">
+            <img
+              :src="video.thumbnailUrl"
+              style="width: 160px; height: 90px; object-fit: cover; border-radius: 4px"
+            />
+
+            <div style="flex: 1">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px">
+                <el-tag type="info" size="small">{{ index + 1 }}부</el-tag>
+                <h4 style="margin: 0; font-size: 16px">{{ video.title }}</h4>
+              </div>
+              <p style="margin: 0; color: #909399; font-size: 14px">
+                재생시간: {{ formatDuration(video.duration) }}
+              </p>
+            </div>
+
+            <div style="display: flex; gap: 8px">
+              <el-tooltip content="위로 이동" placement="top">
+                <el-button
+                  size="small"
+                  circle
+                  @click="moveUp(video)"
+                  :disabled="index === 0"
+                >
+                  <el-icon><Top /></el-icon>
+                </el-button>
+              </el-tooltip>
+
+              <el-tooltip content="아래로 이동" placement="top">
+                <el-button
+                  size="small"
+                  circle
+                  @click="moveDown(video)"
+                  :disabled="index === videos.length - 1"
+                >
+                  <el-icon><Bottom /></el-icon>
+                </el-button>
+              </el-tooltip>
+
+              <el-tooltip content="삭제" placement="top">
+                <el-button
+                  size="small"
+                  type="danger"
+                  circle
+                  @click="deleteVideo(video)"
+                >
+                  <el-icon><Delete /></el-icon>
+                </el-button>
+              </el-tooltip>
+            </div>
+          </div>
+        </el-card>
+      </div>
+
+      <el-empty v-else description="등록된 영상이 없습니다" />
+    </el-card>
+
+    <!-- Add Video Dialog -->
+    <el-dialog
+      v-model="addVideoDialogVisible"
+      title="영상 추가"
+      width="500px"
+    >
+      <el-form label-width="100px">
+        <el-form-item label="YouTube URL" required>
+          <el-input
+            v-model="youtubeUrl"
+            placeholder="https://www.youtube.com/watch?v=..."
+            clearable
+          />
+          <div style="margin-top: 8px; font-size: 12px; color: #909399">
+            YouTube 영상 URL을 입력하면 제목과 썸네일이 자동으로 가져와집니다
+          </div>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="addVideoDialogVisible = false">취소</el-button>
+        <el-button
+          type="primary"
+          @click="addVideo"
+          :disabled="!youtubeUrl"
         >
           추가
         </el-button>
