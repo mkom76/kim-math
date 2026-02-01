@@ -136,6 +136,10 @@ onMounted(() => {
             <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><MagicStick /></el-icon>
             클리닉 관리
           </el-button>
+          <el-button type="info" @click="$router.push('/student/videos')" :size="isMobile ? 'small' : 'default'" style="margin: 0">
+            <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><VideoPlay /></el-icon>
+            수업 다시보기
+          </el-button>
         </div>
       </div>
     </el-card>

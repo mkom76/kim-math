@@ -128,6 +128,12 @@ const router = createRouter({
       component: () => import('../views/StudentClinicView.vue'),
       meta: { requiresAuth: true, requiresRole: 'STUDENT' }
     },
+    {
+      path: '/student/videos',
+      name: 'student-videos',
+      component: () => import('../views/StudentVideosView.vue'),
+      meta: { requiresAuth: true, requiresRole: 'STUDENT' }
+    },
   ],
 })
 
