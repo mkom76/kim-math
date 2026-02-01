@@ -48,6 +48,11 @@ public class Lesson {
     @Builder.Default
     private List<StudentLesson> studentLessons = new ArrayList<>();
 
+    @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC")
+    @Builder.Default
+    private List<LessonVideo> videos = new ArrayList<>();
+
     @Column(name = "common_feedback", columnDefinition = "TEXT")
     private String commonFeedback; // 수업 공통 피드백
 
