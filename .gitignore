@@ -44,3 +44,7 @@ application-local.yml
 .env
 certbot/
 *.log
+
+### Documentation and Database Migrations ###
+docs/
+src/main/resources/db/migration/
