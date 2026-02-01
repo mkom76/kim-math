@@ -28,6 +28,22 @@
 - 시험별/학생별 피드백 작성
 - 피드백 조회/수정/삭제
 
+## YouTube Integration
+
+This application integrates with YouTube Data API v3 to fetch video metadata.
+
+### Setup
+
+1. Follow the [YouTube API Setup Guide](docs/YOUTUBE_API_SETUP.md)
+2. Set the `YOUTUBE_API_KEY` environment variable
+3. Restart the application
+
+### Features
+
+- Teachers can add YouTube video links to lessons
+- Video title, thumbnail, and duration are automatically fetched
+- Students can watch lesson videos in a dedicated view
+
 ## 실행 방법
 
 ### Backend 실행
