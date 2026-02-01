@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { academyClassAPI, academyAPI, type AcademyClass, type Academy } from '../api/client'
+import { usePagination } from '../composables/usePagination'
 
 const router = useRouter()
 const loading = ref(false)
@@ -12,8 +13,7 @@ const searchQuery = ref('')
 const dialogVisible = ref(false)
 const editMode = ref(false)
 const currentClass = ref<AcademyClass>({ name: '', academyId: undefined })
-const currentPage = ref(1)
-const pageSize = ref(10)
+const { currentPage, pageSize } = usePagination('academy-classes-view')
 
 const filteredData = computed(() => {
   if (!searchQuery.value) return academyClasses.value

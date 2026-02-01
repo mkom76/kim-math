@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { homeworkAPI, academyAPI, academyClassAPI, studentAPI, studentHomeworkAPI, type Homework, type Academy, type AcademyClass, type Student, type StudentHomework } from '../api/client'
+import { usePagination } from '../composables/usePagination'
 
 const loading = ref(false)
 const homeworks = ref<Homework[]>([])
@@ -19,8 +20,7 @@ const studentHomeworks = ref<StudentHomework[]>([])
 const classStudents = ref<Student[]>([])
 const completionLoading = ref(false)
 const editingIncorrectCounts = ref<Record<number, number>>({})
-const currentPage = ref(1)
-const pageSize = ref(10)
+const { currentPage, pageSize } = usePagination('homeworks-view')
 
 const availableClasses = computed(() => {
   if (!currentHomework.value.academyId) return []

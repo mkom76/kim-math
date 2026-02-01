@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { clinicAPI, academyClassAPI, type Clinic, type AcademyClass } from '../api/client'
+import { usePagination } from '../composables/usePagination'
 
 const router = useRouter()
 const loading = ref(false)
@@ -12,8 +13,7 @@ const selectedClassId = ref<number | undefined>(undefined)
 const createDialogVisible = ref(false)
 const selectedDate = ref<Date | null>(null)
 const selectedTime = ref<Date | null>(null)
-const currentPage = ref(1)
-const pageSize = ref(10)
+const { currentPage, pageSize } = usePagination('clinics-view')
 
 const selectedClass = computed(() => {
   if (!selectedClassId.value) return null

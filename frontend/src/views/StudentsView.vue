@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { studentAPI, academyAPI, academyClassAPI, type Student, type Academy, type AcademyClass } from '../api/client'
+import { usePagination } from '../composables/usePagination'
 
 const router = useRouter()
 
@@ -14,8 +15,7 @@ const searchQuery = ref('')
 const dialogVisible = ref(false)
 const editMode = ref(false)
 const currentStudent = ref<Student>({ name: '', grade: '', school: '', academyId: undefined, classId: undefined })
-const currentPage = ref(1)
-const pageSize = ref(10)
+const { currentPage, pageSize } = usePagination('students-view')
 
 const availableClasses = computed(() => {
   if (!currentStudent.value.academyId) return []

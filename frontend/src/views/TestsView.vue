@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { testAPI, academyAPI, academyClassAPI, type Test, type Academy, type AcademyClass } from '../api/client'
+import { usePagination } from '../composables/usePagination'
 
 const router = useRouter()
 const loading = ref(false)
@@ -14,8 +15,7 @@ const dialogVisible = ref(false)
 const editMode = ref(false)
 const currentTest = ref<Test>({ title: '', academyId: undefined, classId: undefined })
 const questionCountInput = ref(10)
-const currentPage = ref(1)
-const pageSize = ref(10)
+const { currentPage, pageSize } = usePagination('tests-view')
 
 const availableClasses = computed(() => {
   if (!currentTest.value.academyId) return []
