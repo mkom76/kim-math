@@ -490,21 +490,21 @@ export interface StudentLessonVideos {
 
 export const lessonVideoAPI = {
   getVideos: (lessonId: number) =>
-    client.get<LessonVideo[]>(`/api/lessons/${lessonId}/videos`),
+    client.get<LessonVideo[]>(`/lessons/${lessonId}/videos`),
 
   addVideo: (lessonId: number, data: { youtubeUrl: string }) =>
-    client.post<LessonVideo>(`/api/lessons/${lessonId}/videos`, data),
+    client.post<LessonVideo>(`/lessons/${lessonId}/videos`, data),
 
   updateOrder: (lessonId: number, videoId: number, orderIndex: number) =>
-    client.put<LessonVideo>(`/api/lessons/${lessonId}/videos/${videoId}/order`, { orderIndex }),
+    client.put<LessonVideo>(`/lessons/${lessonId}/videos/${videoId}/order`, { orderIndex }),
 
   deleteVideo: (lessonId: number, videoId: number) =>
-    client.delete(`/api/lessons/${lessonId}/videos/${videoId}`)
+    client.delete(`/lessons/${lessonId}/videos/${videoId}`)
 }
 
 export const studentVideoAPI = {
   getVideos: (studentId: number) =>
-    client.get<StudentLessonVideos[]>(`/api/students/${studentId}/videos`)
+    client.get<StudentLessonVideos[]>(`/students/${studentId}/videos`)
 }
 
 export default client;
