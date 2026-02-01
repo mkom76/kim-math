@@ -468,6 +468,45 @@ export const clinicAPI = {
     client.get<RecentClinicResult>(`/clinics/student/${studentId}/recent-result`),
 };
 
+// LessonVideo types and API
+export interface LessonVideo {
+  id: number
+  lessonId: number
+  youtubeUrl: string
+  youtubeVideoId: string
+  title: string
+  thumbnailUrl: string
+  duration: string
+  orderIndex: number
+  createdAt: string
+}
+
+export interface StudentLessonVideos {
+  lessonId: number
+  lessonDate: string
+  className: string
+  videos: LessonVideo[]
+}
+
+export const lessonVideoAPI = {
+  getVideos: (lessonId: number) =>
+    client.get<LessonVideo[]>(`/api/lessons/${lessonId}/videos`),
+
+  addVideo: (lessonId: number, data: { youtubeUrl: string }) =>
+    client.post<LessonVideo>(`/api/lessons/${lessonId}/videos`, data),
+
+  updateOrder: (lessonId: number, videoId: number, orderIndex: number) =>
+    client.put<LessonVideo>(`/api/lessons/${lessonId}/videos/${videoId}/order`, { orderIndex }),
+
+  deleteVideo: (lessonId: number, videoId: number) =>
+    client.delete(`/api/lessons/${lessonId}/videos/${videoId}`)
+}
+
+export const studentVideoAPI = {
+  getVideos: (studentId: number) =>
+    client.get<StudentLessonVideos[]>(`/api/students/${studentId}/videos`)
+}
+
 export default client;
 
 export type {
