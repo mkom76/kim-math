@@ -147,16 +147,52 @@ onMounted(() => {
       </el-alert>
 
       <!-- Questions -->
-      <div v-for="question in questions" :key="question.id" style="margin-bottom: 32px">
+      <el-card
+        v-for="question in questions"
+        :key="question.id"
+        shadow="hover"
+        :style="{ marginBottom: isMobile ? '16px' : '24px' }"
+      >
         <div :style="{ display: 'flex', alignItems: isMobile ? 'stretch' : 'start', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '12px' : '16px' }">
           <div :style="{ flexShrink: 0, width: badgeSize, height: badgeSize, background: 'linear-gradient(135deg, #409eff, #67c23a)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }">
             <span :style="{ color: 'white', fontSize: badgeFontSize, fontWeight: 700 }">{{ question.number }}</span>
           </div>
           <div style="flex: 1">
-            <div style="margin-bottom: 12px">
+            <div style="margin-bottom: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
               <el-tag type="info" size="small">{{ question.points }}점</el-tag>
+              <el-tag
+                v-if="question.questionType === 'OBJECTIVE'"
+                type="success"
+                size="small"
+              >
+                <el-icon style="margin-right: 4px"><Select /></el-icon>
+                객관식
+              </el-tag>
+              <el-tag
+                v-else
+                type="warning"
+                size="small"
+              >
+                <el-icon style="margin-right: 4px"><Edit /></el-icon>
+                주관식
+              </el-tag>
             </div>
+            <!-- 객관식: 라디오 버튼 -->
+            <el-radio-group
+              v-if="question.questionType === 'OBJECTIVE'"
+              v-model="answers[question.number]"
+              style="width: 100%"
+            >
+              <el-radio-button label="1">1</el-radio-button>
+              <el-radio-button label="2">2</el-radio-button>
+              <el-radio-button label="3">3</el-radio-button>
+              <el-radio-button label="4">4</el-radio-button>
+              <el-radio-button label="5">5</el-radio-button>
+            </el-radio-group>
+
+            <!-- 주관식: 텍스트 입력 -->
             <el-input
+              v-else
               v-model="answers[question.number]"
               placeholder="답을 입력하세요"
               size="large"
@@ -165,7 +201,7 @@ onMounted(() => {
             </el-input>
           </div>
         </div>
-      </div>
+      </el-card>
 
       <!-- Submit Button -->
       <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #dcdfe6; text-align: center">
@@ -192,3 +228,4 @@ onMounted(() => {
     </el-card>
   </div>
 </template>
+

@@ -35,7 +35,8 @@ const handleAddQuestion = () => {
   questions.value.push({
     number: newNumber,
     answer: '',
-    points: basePoints
+    points: basePoints,
+    questionType: 'OBJECTIVE'
   })
   // 배점 재분배
   redistributePoints()
@@ -101,7 +102,8 @@ const handleSaveAll = async () => {
       .map(q => ({
         number: q.number!,
         answer: q.answer!,
-        points: q.points || 0
+        points: q.points || 0,
+        questionType: q.questionType || 'SUBJECTIVE'
       }))
 
     await testAPI.saveTestAnswers(Number(testId), answersToSave)
@@ -193,9 +195,49 @@ onMounted(() => {
           </template>
         </el-table-column>
 
+        <el-table-column prop="questionType" label="문제 유형" width="180" align="center">
+          <template #default="{ row }">
+            <el-select
+              v-model="row.questionType"
+              placeholder="유형 선택"
+              @change="handleAnswerChange"
+              style="width: 100%"
+            >
+              <el-option label="객관식" value="OBJECTIVE">
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <el-icon><Select /></el-icon>
+                  <span>객관식</span>
+                </div>
+              </el-option>
+              <el-option label="주관식" value="SUBJECTIVE">
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <el-icon><Edit /></el-icon>
+                  <span>주관식</span>
+                </div>
+              </el-option>
+            </el-select>
+          </template>
+        </el-table-column>
+
         <el-table-column prop="answer" label="정답" min-width="200">
           <template #default="{ row }">
+            <!-- 객관식: 라디오 버튼 -->
+            <el-radio-group
+              v-if="row.questionType === 'OBJECTIVE'"
+              v-model="row.answer"
+              @change="handleAnswerChange"
+              style="width: 100%"
+            >
+              <el-radio-button label="1">1</el-radio-button>
+              <el-radio-button label="2">2</el-radio-button>
+              <el-radio-button label="3">3</el-radio-button>
+              <el-radio-button label="4">4</el-radio-button>
+              <el-radio-button label="5">5</el-radio-button>
+            </el-radio-group>
+
+            <!-- 주관식: 텍스트 입력 -->
             <el-input
+              v-else
               v-model="row.answer"
               placeholder="정답을 입력하세요"
               @input="handleAnswerChange"

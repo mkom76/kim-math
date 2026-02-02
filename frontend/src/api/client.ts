@@ -60,6 +60,7 @@ interface Question {
   number: number;
   answer: string;
   points: number;
+  questionType?: 'OBJECTIVE' | 'SUBJECTIVE';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -180,7 +181,7 @@ export const testAPI = {
   getUnattachedTests: (academyId: number, classId: number) =>
     client.get('/tests/unattached', { params: { academyId, classId } }),
   recalculateScores: (id: number) => client.post(`/tests/${id}/recalculate`),
-  saveTestAnswers: (id: number, answers: Array<{ number: number; answer: string; points: number }>) =>
+  saveTestAnswers: (id: number, answers: Array<{ number: number; answer: string; points: number; questionType?: 'OBJECTIVE' | 'SUBJECTIVE' }>) =>
     client.put(`/tests/${id}/answers`, { testId: id, answers }),
 };
 

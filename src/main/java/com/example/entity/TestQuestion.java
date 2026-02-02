@@ -37,6 +37,11 @@ public class TestQuestion {
     @Column(nullable = false)
     private Double points;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "question_type", nullable = false)
+    @Builder.Default
+    private QuestionType questionType = QuestionType.SUBJECTIVE;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

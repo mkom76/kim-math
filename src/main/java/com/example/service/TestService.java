@@ -105,11 +105,13 @@ public class TestService {
         for (TestAnswersDto.QuestionAnswer answer : dto.getAnswers()) {
             TestQuestion question = existingQuestionsMap.get(answer.getNumber());
             Double points = answer.getPoints() != null ? answer.getPoints() : 0.0;
+            QuestionType questionType = answer.getQuestionType() != null ? answer.getQuestionType() : QuestionType.SUBJECTIVE;
 
             if (question != null) {
                 // 기존 문제 업데이트 (ID 유지 - 학생 답안 보존)
                 question.setAnswer(answer.getAnswer());
                 question.setPoints(points);
+                question.setQuestionType(questionType);
             } else {
                 // 새 문제 생성
                 question = TestQuestion.builder()
@@ -117,6 +119,7 @@ public class TestService {
                         .number(answer.getNumber())
                         .answer(answer.getAnswer())
                         .points(points)
+                        .questionType(questionType)
                         .build();
             }
             questionsToSave.add(question);
@@ -239,11 +242,14 @@ public class TestService {
         Test test = testRepository.findById(testId)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
 
+        QuestionType questionType = dto.getQuestionType() != null ? dto.getQuestionType() : QuestionType.SUBJECTIVE;
+
         TestQuestion question = TestQuestion.builder()
                 .test(test)
                 .number(dto.getNumber())
                 .answer(dto.getAnswer())
                 .points(dto.getPoints())
+                .questionType(questionType)
                 .build();
 
         question = testQuestionRepository.save(question);

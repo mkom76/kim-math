@@ -121,7 +121,8 @@ const handleSubmit = async () => {
         await testAPI.addQuestion(newTestId, {
           number: i,
           answer: '',
-          points: points
+          points: points,
+          questionType: 'OBJECTIVE'
         })
       }
 

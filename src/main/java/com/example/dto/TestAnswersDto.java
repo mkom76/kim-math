@@ -1,5 +1,6 @@
 package com.example.dto;
 
+import com.example.entity.QuestionType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,5 +24,6 @@ public class TestAnswersDto {
         private Integer number;
         private String answer;
         private Double points;
+        private QuestionType questionType;
     }
 }

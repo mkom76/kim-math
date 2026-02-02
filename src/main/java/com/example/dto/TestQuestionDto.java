@@ -1,5 +1,6 @@
 package com.example.dto;
 
+import com.example.entity.QuestionType;
 import com.example.entity.TestQuestion;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,6 +16,7 @@ public class TestQuestionDto {
     private Integer number;
     private String answer;
     private Double points;
+    private QuestionType questionType;
 
     public static TestQuestionDto from(TestQuestion question) {
         return TestQuestionDto.builder()
@@ -22,6 +24,7 @@ public class TestQuestionDto {
                 .number(question.getNumber())
                 .answer(question.getAnswer())
                 .points(question.getPoints())
+                .questionType(question.getQuestionType())
                 .build();
     }
 }
