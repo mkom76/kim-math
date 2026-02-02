@@ -489,6 +489,20 @@ export interface StudentLessonVideos {
   videos: LessonVideo[]
 }
 
+export interface VideoStats {
+  videoId: number
+  title: string
+  studentProgress: StudentProgress[]
+}
+
+export interface StudentProgress {
+  studentId: number
+  studentName: string
+  progressPercent: number
+  completed: boolean
+  lastWatchedAt?: string
+}
+
 export const lessonVideoAPI = {
   getVideos: (lessonId: number) =>
     client.get<LessonVideo[]>(`/lessons/${lessonId}/videos`),
@@ -500,7 +514,10 @@ export const lessonVideoAPI = {
     client.put<LessonVideo>(`/lessons/${lessonId}/videos/${videoId}/order`, { orderIndex }),
 
   deleteVideo: (lessonId: number, videoId: number) =>
-    client.delete(`/lessons/${lessonId}/videos/${videoId}`)
+    client.delete(`/lessons/${lessonId}/videos/${videoId}`),
+
+  getVideoStats: (lessonId: number) =>
+    client.get<VideoStats[]>(`/lessons/${lessonId}/videos/stats`)
 }
 
 export const studentVideoAPI = {

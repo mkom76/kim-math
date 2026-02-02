@@ -83,8 +83,58 @@ public class StudentVideoProgressService {
      */
     @Transactional(readOnly = true)
     public List<VideoStatsDto> getLessonVideoStats(Long lessonId) {
-        // This will be implemented after we have the lesson video relationship
-        // For now, return empty list
-        return List.of();
+        // 1. 해당 수업의 모든 영상 가져오기
+        List<LessonVideo> videos = lessonVideoRepository.findByLessonIdOrderByOrderIndexAsc(lessonId);
+
+        if (videos.isEmpty()) {
+            return List.of();
+        }
+
+        // 2. 해당 수업의 반에 속한 모든 학생 가져오기
+        LessonVideo firstVideo = videos.get(0);
+        Long classId = firstVideo.getLesson().getAcademyClass().getId();
+        List<Student> students = studentRepository.findByAcademyClassId(classId);
+
+        // 3. 각 영상에 대해 학생들의 시청 진행률 통계 생성
+        return videos.stream()
+                .map(video -> {
+                    List<StudentProgressDto> studentProgress = students.stream()
+                            .map(student -> {
+                                StudentVideoProgress progress = progressRepository
+                                        .findByStudentIdAndLessonVideoId(student.getId(), video.getId())
+                                        .orElse(null);
+
+                                if (progress == null) {
+                                    // 아직 시청하지 않은 학생
+                                    return StudentProgressDto.builder()
+                                            .studentId(student.getId())
+                                            .studentName(student.getName())
+                                            .progressPercent(0)
+                                            .completed(false)
+                                            .lastWatchedAt(null)
+                                            .build();
+                                } else {
+                                    // 시청 기록이 있는 학생
+                                    int progressPercent = progress.getDuration() > 0
+                                            ? (progress.getWatchedTime() * 100) / progress.getDuration()
+                                            : 0;
+                                    return StudentProgressDto.builder()
+                                            .studentId(student.getId())
+                                            .studentName(student.getName())
+                                            .progressPercent(progressPercent)
+                                            .completed(progress.getCompleted())
+                                            .lastWatchedAt(progress.getLastWatchedAt())
+                                            .build();
+                                }
+                            })
+                            .collect(Collectors.toList());
+
+                    return VideoStatsDto.builder()
+                            .videoId(video.getId())
+                            .title(video.getTitle())
+                            .studentProgress(studentProgress)
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 }

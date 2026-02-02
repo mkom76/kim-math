@@ -10,7 +10,9 @@ import {
   type Submission,
   submissionAPI,
   testAPI,
-  authAPI
+  authAPI,
+  videoProgressAPI,
+  type VideoProgress
 } from '../api/client'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useTouchGestures } from '@/composables/useTouchGestures'
@@ -25,6 +27,7 @@ const student = ref<Student | null>(null)
 const submissions = ref<Submission[]>([])
 const testStats = ref<Record<number, any>>({})
 const studentHomeworks = ref<StudentHomework[]>([])
+const videoProgress = ref<VideoProgress[]>([])
 const activeTab = ref('test')
 
 // 선생님인지 확인
@@ -263,10 +266,11 @@ const fetchStudentDetail = async () => {
       studentId.value = route.params.id as string
     }
 
-    const [studentRes, submissionsRes, homeworksRes] = await Promise.all([
+    const [studentRes, submissionsRes, homeworksRes, videoProgressRes] = await Promise.all([
       studentAPI.getStudent(Number(studentId.value)),
       submissionAPI.getStudentSubmissions(Number(studentId.value)),
-      studentHomeworkAPI.getByStudentId(Number(studentId.value))
+      studentHomeworkAPI.getByStudentId(Number(studentId.value)),
+      videoProgressAPI.getStudentProgress(Number(studentId.value)).catch(() => ({ data: [] }))
     ])
 
     student.value = studentRes.data
@@ -277,6 +281,7 @@ const fetchStudentDetail = async () => {
         return dateA - dateB
       })
     studentHomeworks.value = homeworksRes.data.content || homeworksRes.data
+    videoProgress.value = videoProgressRes.data
 
     // 각 시험의 통계 가져오기
     const testIds = [...new Set(submissions.value.map(s => s.testId).filter(id => id))]
@@ -706,6 +711,86 @@ onMounted(() => {
       </div>
 
       <el-empty v-if="submissions.length === 0" description="아직 응시한 시험이 없습니다" />
+    </el-card>
+
+    <!-- 영상 시청 현황 -->
+    <el-card v-if="videoProgress.length > 0" shadow="never" style="margin-bottom: 24px">
+      <template #header>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <el-icon color="#e6a23c">
+            <VideoPlay />
+          </el-icon>
+          <span style="font-weight: 600">영상 시청 현황</span>
+        </div>
+      </template>
+
+      <el-table v-if="!isMobile" :data="videoProgress" style="width: 100%" stripe>
+        <el-table-column label="영상 제목" min-width="200">
+          <template #default="{ row }">
+            <div style="display: flex; align-items: center; gap: 8px">
+              <el-icon color="#e6a23c"><VideoPlay /></el-icon>
+              <span style="font-weight: 500">영상 {{ row.videoId }}</span>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="진행률" width="200">
+          <template #default="{ row }">
+            <el-progress
+              :percentage="row.progressPercent"
+              :color="row.completed ? '#67c23a' : '#409eff'"
+              :status="row.completed ? 'success' : undefined"
+            />
+          </template>
+        </el-table-column>
+
+        <el-table-column label="완료 여부" width="120" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="row.completed" type="success" size="small">완료</el-tag>
+            <el-tag v-else type="info" size="small">시청 중</el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="마지막 시청" width="180">
+          <template #default="{ row }">
+            <span v-if="row.lastWatchedAt" style="font-size: 13px; color: #909399">
+              {{ new Date(row.lastWatchedAt).toLocaleString('ko-KR') }}
+            </span>
+            <span v-else style="font-size: 13px; color: #c0c4cc">-</span>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- Mobile View -->
+      <div v-if="isMobile">
+        <el-card
+          v-for="progress in videoProgress"
+          :key="progress.videoId"
+          :style="{ marginBottom: '12px', padding: cardPadding }"
+          shadow="hover"
+        >
+          <div style="display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; justify-content: space-between; align-items: center">
+              <div style="display: flex; align-items: center; gap: 8px">
+                <el-icon color="#e6a23c"><VideoPlay /></el-icon>
+                <span style="font-weight: 600">영상 {{ progress.videoId }}</span>
+              </div>
+              <el-tag v-if="progress.completed" type="success" size="small">완료</el-tag>
+              <el-tag v-else type="info" size="small">시청 중</el-tag>
+            </div>
+
+            <el-progress
+              :percentage="progress.progressPercent"
+              :color="progress.completed ? '#67c23a' : '#409eff'"
+              :status="progress.completed ? 'success' : undefined"
+            />
+
+            <div v-if="progress.lastWatchedAt" :style="{ fontSize: smallTextFontSize, color: '#909399' }">
+              마지막 시청: {{ new Date(progress.lastWatchedAt).toLocaleString('ko-KR') }}
+            </div>
+          </div>
+        </el-card>
+      </div>
     </el-card>
 
     <!-- 차트 확대 모달 -->

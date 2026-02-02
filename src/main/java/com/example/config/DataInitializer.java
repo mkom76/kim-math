@@ -37,7 +37,9 @@ public class DataInitializer {
             LessonRepository lessonRepository,
             ClinicRepository clinicRepository,
             ClinicRegistrationRepository clinicRegistrationRepository,
-            ClinicHomeworkProgressRepository clinicHomeworkProgressRepository
+            ClinicHomeworkProgressRepository clinicHomeworkProgressRepository,
+            LessonVideoRepository lessonVideoRepository,
+            StudentVideoProgressRepository studentVideoProgressRepository
     ) {
         return args -> {
             log.info("Initializing sample data...");
@@ -802,6 +804,169 @@ public class DataInitializer {
 
             log.info("Created {} clinic homework progress records", 5);
 
+            // 16. 수업 영상 데이터 생성
+            // lesson1 (고1 수학 기본반) - 방정식 강의 영상
+            LessonVideo video1 = LessonVideo.builder()
+                    .lesson(lesson1)
+                    .youtubeUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+                    .youtubeVideoId("dQw4w9WgXcQ")
+                    .title("1차 방정식의 이해")
+                    .thumbnailUrl("https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg")
+                    .duration("PT15M30S")
+                    .orderIndex(1)
+                    .build();
+            video1 = lessonVideoRepository.save(video1);
+
+            LessonVideo video2 = LessonVideo.builder()
+                    .lesson(lesson1)
+                    .youtubeUrl("https://www.youtube.com/watch?v=jNQXAC9IVRw")
+                    .youtubeVideoId("jNQXAC9IVRw")
+                    .title("2차 방정식 풀이법")
+                    .thumbnailUrl("https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg")
+                    .duration("PT22M15S")
+                    .orderIndex(2)
+                    .build();
+            video2 = lessonVideoRepository.save(video2);
+
+            // lesson2 (고1 수학 심화반) - 함수 강의 영상
+            LessonVideo video3 = LessonVideo.builder()
+                    .lesson(lesson2)
+                    .youtubeUrl("https://www.youtube.com/watch?v=9bZkp7q19f0")
+                    .youtubeVideoId("9bZkp7q19f0")
+                    .title("극한의 개념")
+                    .thumbnailUrl("https://i.ytimg.com/vi/9bZkp7q19f0/hqdefault.jpg")
+                    .duration("PT18M45S")
+                    .orderIndex(1)
+                    .build();
+            video3 = lessonVideoRepository.save(video3);
+
+            // lesson3 (고2 수학 기본반) - 미분 강의 영상
+            LessonVideo video4 = LessonVideo.builder()
+                    .lesson(lesson3)
+                    .youtubeUrl("https://www.youtube.com/watch?v=kJQP7kiw5Fk")
+                    .youtubeVideoId("kJQP7kiw5Fk")
+                    .title("미분의 기초")
+                    .thumbnailUrl("https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg")
+                    .duration("PT25M10S")
+                    .orderIndex(1)
+                    .build();
+            video4 = lessonVideoRepository.save(video4);
+
+            LessonVideo video5 = LessonVideo.builder()
+                    .lesson(lesson3)
+                    .youtubeUrl("https://www.youtube.com/watch?v=y6120QOlsfU")
+                    .youtubeVideoId("y6120QOlsfU")
+                    .title("도함수의 활용")
+                    .thumbnailUrl("https://i.ytimg.com/vi/y6120QOlsfU/hqdefault.jpg")
+                    .duration("PT20M30S")
+                    .orderIndex(2)
+                    .build();
+            video5 = lessonVideoRepository.save(video5);
+
+            log.info("Created {} lesson videos", 5);
+
+            // 17. 학생 영상 시청 진행률 데이터 생성
+            // student1 - video1 완료 (100%)
+            StudentVideoProgress progress_s1v1 = StudentVideoProgress.builder()
+                    .student(student1)
+                    .lessonVideo(video1)
+                    .watchedTime(930) // 15분 30초 = 930초
+                    .duration(930)
+                    .completed(true)
+                    .lastWatchedAt(LocalDateTime.now().minusDays(29))
+                    .build();
+            studentVideoProgressRepository.save(progress_s1v1);
+
+            // student1 - video2 시청 중 (65%)
+            StudentVideoProgress progress_s1v2 = StudentVideoProgress.builder()
+                    .student(student1)
+                    .lessonVideo(video2)
+                    .watchedTime(870) // 1335초 중 870초 시청 (65%)
+                    .duration(1335)
+                    .completed(false)
+                    .lastWatchedAt(LocalDateTime.now().minusDays(28))
+                    .build();
+            studentVideoProgressRepository.save(progress_s1v2);
+
+            // student2 - video1 완료 (100%)
+            StudentVideoProgress progress_s2v1 = StudentVideoProgress.builder()
+                    .student(student2)
+                    .lessonVideo(video1)
+                    .watchedTime(930)
+                    .duration(930)
+                    .completed(true)
+                    .lastWatchedAt(LocalDateTime.now().minusDays(29))
+                    .build();
+            studentVideoProgressRepository.save(progress_s2v1);
+
+            // student2 - video2 완료 (100%)
+            StudentVideoProgress progress_s2v2 = StudentVideoProgress.builder()
+                    .student(student2)
+                    .lessonVideo(video2)
+                    .watchedTime(1335)
+                    .duration(1335)
+                    .completed(true)
+                    .lastWatchedAt(LocalDateTime.now().minusDays(28))
+                    .build();
+            studentVideoProgressRepository.save(progress_s2v2);
+
+            // student3 - video3 시청 중 (45%)
+            StudentVideoProgress progress_s3v3 = StudentVideoProgress.builder()
+                    .student(student3)
+                    .lessonVideo(video3)
+                    .watchedTime(507) // 1125초 중 507초 시청 (45%)
+                    .duration(1125)
+                    .completed(false)
+                    .lastWatchedAt(LocalDateTime.now().minusDays(27))
+                    .build();
+            studentVideoProgressRepository.save(progress_s3v3);
+
+            // student4 - video4 완료 (95%)
+            StudentVideoProgress progress_s4v4 = StudentVideoProgress.builder()
+                    .student(student4)
+                    .lessonVideo(video4)
+                    .watchedTime(1435) // 1510초 중 1435초 시청 (95%)
+                    .duration(1510)
+                    .completed(true)
+                    .lastWatchedAt(LocalDateTime.now().minusDays(24))
+                    .build();
+            studentVideoProgressRepository.save(progress_s4v4);
+
+            // student4 - video5 시청 안 함 (0%)
+            StudentVideoProgress progress_s4v5 = StudentVideoProgress.builder()
+                    .student(student4)
+                    .lessonVideo(video5)
+                    .watchedTime(0)
+                    .duration(1230)
+                    .completed(false)
+                    .lastWatchedAt(null)
+                    .build();
+            studentVideoProgressRepository.save(progress_s4v5);
+
+            // student5 - video4 완료 (100%)
+            StudentVideoProgress progress_s5v4 = StudentVideoProgress.builder()
+                    .student(student5)
+                    .lessonVideo(video4)
+                    .watchedTime(1510)
+                    .duration(1510)
+                    .completed(true)
+                    .lastWatchedAt(LocalDateTime.now().minusDays(24))
+                    .build();
+            studentVideoProgressRepository.save(progress_s5v4);
+
+            // student5 - video5 시청 중 (78%)
+            StudentVideoProgress progress_s5v5 = StudentVideoProgress.builder()
+                    .student(student5)
+                    .lessonVideo(video5)
+                    .watchedTime(959) // 1230초 중 959초 시청 (78%)
+                    .duration(1230)
+                    .completed(false)
+                    .lastWatchedAt(LocalDateTime.now().minusDays(23))
+                    .build();
+            studentVideoProgressRepository.save(progress_s5v5);
+
+            log.info("Created {} student video progress records", 8);
+
             log.info("Sample data initialization completed successfully!");
             log.info("===================================================");
             log.info("Summary:");
@@ -820,6 +985,8 @@ public class DataInitializer {
             log.info("- Past Clinics (CLOSED): 2 (1주 전, 2주 전)");
             log.info("- Past Clinic Attendances (ATTENDED): 3");
             log.info("- Clinic Homework Progress: 5 (숙제 개선 전/후 데이터)");
+            log.info("- Lesson Videos: 5 (lesson1에 2개, lesson2에 1개, lesson3에 2개)");
+            log.info("- Student Video Progress: 8 (학생들의 영상 시청 진행률)");
             log.info("===================================================");
         };
     }

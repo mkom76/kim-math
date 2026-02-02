@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ChatLineSquare, BellFilled, VideoPlay, Plus, Top, Bottom, Delete } from '@element-plus/icons-vue'
-import { lessonAPI, testAPI, homeworkAPI, studentHomeworkAPI, lessonVideoAPI, type Lesson, type Test, type Homework, type LessonStudentStats, type StudentHomeworkAssignment, type LessonVideo } from '../api/client'
+import { lessonAPI, testAPI, homeworkAPI, studentHomeworkAPI, lessonVideoAPI, type Lesson, type Test, type Homework, type LessonStudentStats, type StudentHomeworkAssignment, type LessonVideo, type VideoStats } from '../api/client'
 
 const route = useRoute()
 const router = useRouter()
@@ -387,16 +387,34 @@ const calculateAverageCompletion = () => {
 
 // Video management state
 const videos = ref<LessonVideo[]>([])
+const videoStats = ref<VideoStats[]>([])
 const addVideoDialogVisible = ref(false)
+const videoStatsDialogVisible = ref(false)
+const selectedVideoStats = ref<VideoStats | null>(null)
 const youtubeUrl = ref('')
 
 const fetchVideos = async () => {
   try {
     const response = await lessonVideoAPI.getVideos(lessonId.value)
     videos.value = response.data
+
+    // Also fetch video stats
+    if (videos.value.length > 0) {
+      fetchVideoStats()
+    }
   } catch (error) {
     // Videos are optional, don't show error
     videos.value = []
+  }
+}
+
+const fetchVideoStats = async () => {
+  try {
+    const response = await lessonVideoAPI.getVideoStats(lessonId.value)
+    videoStats.value = response.data
+  } catch (error) {
+    console.error('Failed to fetch video stats:', error)
+    videoStats.value = []
   }
 }
 
@@ -440,6 +458,16 @@ const deleteVideo = async (video: LessonVideo) => {
     if (error !== 'cancel') {
       ElMessage.error('영상 삭제에 실패했습니다')
     }
+  }
+}
+
+const showVideoStats = (video: LessonVideo) => {
+  const stats = videoStats.value.find(s => s.videoId === video.id)
+  if (stats) {
+    selectedVideoStats.value = stats
+    videoStatsDialogVisible.value = true
+  } else {
+    ElMessage.warning('시청 현황 정보를 찾을 수 없습니다')
   }
 }
 
@@ -952,7 +980,16 @@ onMounted(() => {
               </p>
             </div>
 
-            <div style="display: flex; gap: 8px">
+            <div style="display: flex; gap: 8px; align-items: center">
+              <el-button
+                size="small"
+                type="success"
+                @click="showVideoStats(video)"
+              >
+                <el-icon style="margin-right: 4px"><View /></el-icon>
+                시청 현황
+              </el-button>
+
               <el-tooltip content="위로 이동" placement="top">
                 <el-button
                   size="small"
@@ -1021,6 +1058,51 @@ onMounted(() => {
         >
           추가
         </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- Video Stats Dialog -->
+    <el-dialog
+      v-model="videoStatsDialogVisible"
+      :title="selectedVideoStats?.title + ' - 시청 현황'"
+      width="800px"
+    >
+      <div v-if="selectedVideoStats">
+        <el-table :data="selectedVideoStats.studentProgress" stripe style="width: 100%">
+          <el-table-column prop="studentName" label="학생" width="120" />
+
+          <el-table-column label="진행률" width="200">
+            <template #default="{ row }">
+              <el-progress
+                :percentage="row.progressPercent"
+                :color="row.completed ? '#67c23a' : '#409eff'"
+                :status="row.completed ? 'success' : undefined"
+              />
+            </template>
+          </el-table-column>
+
+          <el-table-column label="완료 여부" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="row.completed" type="success" size="small">완료</el-tag>
+              <el-tag v-else type="info" size="small">시청 중</el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="마지막 시청">
+            <template #default="{ row }">
+              <span v-if="row.lastWatchedAt" style="font-size: 13px; color: #909399">
+                {{ new Date(row.lastWatchedAt).toLocaleString('ko-KR') }}
+              </span>
+              <span v-else style="font-size: 13px; color: #c0c4cc">시청 기록 없음</span>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <el-empty v-if="selectedVideoStats.studentProgress.length === 0" description="시청 기록이 없습니다" />
+      </div>
+
+      <template #footer>
+        <el-button @click="videoStatsDialogVisible = false">닫기</el-button>
       </template>
     </el-dialog>
   </div>

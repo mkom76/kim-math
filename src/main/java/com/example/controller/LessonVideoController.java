@@ -1,7 +1,9 @@
 package com.example.controller;
 
 import com.example.dto.LessonVideoDto;
+import com.example.dto.VideoStatsDto;
 import com.example.service.LessonVideoService;
+import com.example.service.StudentVideoProgressService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +16,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class LessonVideoController {
     private final LessonVideoService lessonVideoService;
+    private final StudentVideoProgressService videoProgressService;
 
     @GetMapping
     public ResponseEntity<List<LessonVideoDto>> getVideos(@PathVariable Long lessonId) {
@@ -52,5 +55,10 @@ public class LessonVideoController {
     ) {
         lessonVideoService.deleteVideo(lessonId, videoId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<List<VideoStatsDto>> getVideoStats(@PathVariable Long lessonId) {
+        return ResponseEntity.ok(videoProgressService.getLessonVideoStats(lessonId));
     }
 }
