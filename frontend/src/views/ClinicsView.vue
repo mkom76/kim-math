@@ -118,8 +118,11 @@ const createClinic = async () => {
     return
   }
 
-  // 날짜 포맷: YYYY-MM-DD
-  const dateStr = selectedDate.value.toISOString().split('T')[0]
+  // 날짜 포맷: YYYY-MM-DD (로컬 타임존 유지)
+  const year = selectedDate.value.getFullYear()
+  const month = String(selectedDate.value.getMonth() + 1).padStart(2, '0')
+  const day = String(selectedDate.value.getDate()).padStart(2, '0')
+  const dateStr = `${year}-${month}-${day}`
 
   // 시간 포맷: HH:mm:ss
   const hours = selectedTime.value.getHours().toString().padStart(2, '0')

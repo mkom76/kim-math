@@ -60,7 +60,8 @@ const fetchLessons = async () => {
       lessons.value = lessonsRes.data
 
       // 오늘 날짜와 가장 가까운 레슨 자동 선택
-      const today = new Date().toISOString().split('T')[0]
+      const now = new Date()
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
       const todayLesson = lessons.value.find(l => l.lessonDate === today)
 
       if (todayLesson?.id) {

@@ -107,10 +107,12 @@ const fetchClasses = async () => {
 }
 
 const openAddDialog = () => {
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   currentLesson.value = {
     academyId: undefined,
     classId: undefined,
-    lessonDate: new Date().toISOString().split('T')[0]
+    lessonDate: today
   }
   dialogVisible.value = true
 }
