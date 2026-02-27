@@ -54,7 +54,7 @@ watch(() => route.path, () => {
 </script>
 
 <template>
-  <el-container style="min-height: 100vh">
+  <el-container style="min-height: 100vh; min-height: 100dvh; background-color: #f5f7fa; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom)">
     <!-- Header (Teacher only) -->
     <el-header v-if="isTeacherRoute" style="background-color: #fff; border-bottom: 1px solid #dcdfe6; padding: 0 20px">
       <div style="display: flex; align-items: center; justify-content: space-between; height: 100%">
