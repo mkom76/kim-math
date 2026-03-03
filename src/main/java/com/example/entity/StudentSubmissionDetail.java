@@ -37,6 +37,12 @@ public class StudentSubmissionDetail {
     @Column(name = "is_correct")
     private Boolean isCorrect;
 
+    @Column(name = "earned_points")
+    private Double earnedPoints;
+
+    @Column(name = "teacher_comment", length = 500)
+    private String teacherComment;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

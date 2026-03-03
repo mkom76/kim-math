@@ -10,7 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -198,26 +200,50 @@ public class TestService {
                 .max(Integer::compareTo)
                 .orElse(0);
 
-        // 문제별 정답률 및 틀린 학생 명단
+        // ESSAY 평균 획득률 맵 (문제번호 → 평균 획득률%)
+        Map<Integer, Double> essayAvgEarnedMap = new HashMap<>();
+        studentSubmissionDetailRepository.getEssayAvgEarnedRatesByTestId(testId)
+                .forEach(arr -> essayAvgEarnedMap.put((Integer) arr[0], (Double) arr[1]));
+
+        // 문제별 정답률 및 틀린/미채점 학생 명단
         List<Object[]> correctRates = studentSubmissionDetailRepository.getQuestionCorrectRatesByTestId(testId);
         List<TestStatsDto.QuestionStat> questionStats = correctRates.stream()
                 .map(arr -> {
                     Integer questionNumber = (Integer) arr[0];
                     Double correctRate = (Double) arr[1];
+                    QuestionType questionType = (QuestionType) arr[2];
 
-                    // 해당 문제를 틀린 학생들 찾기
-                    List<String> incorrectStudents = submissions.stream()
-                            .flatMap(submission -> submission.getDetails().stream()
-                                    .filter(detail -> detail.getQuestion().getNumber().equals(questionNumber)
-                                            && Boolean.FALSE.equals(detail.getIsCorrect()))
-                                    .map(detail -> submission.getStudent().getName()))
-                            .collect(Collectors.toList());
+                    if (questionType == QuestionType.ESSAY) {
+                        // 서술형: 미채점 학생 목록
+                        List<String> pendingStudents = submissions.stream()
+                                .flatMap(submission -> submission.getDetails().stream()
+                                        .filter(detail -> detail.getQuestion().getNumber().equals(questionNumber)
+                                                && detail.getEarnedPoints() == null)
+                                        .map(detail -> submission.getStudent().getName()))
+                                .collect(Collectors.toList());
 
-                    return TestStatsDto.QuestionStat.builder()
-                            .questionNumber(questionNumber)
-                            .correctRate(correctRate)
-                            .incorrectStudents(incorrectStudents)
-                            .build();
+                        return TestStatsDto.QuestionStat.builder()
+                                .questionNumber(questionNumber)
+                                .questionType(questionType.name())
+                                .avgEarnedRate(essayAvgEarnedMap.get(questionNumber)) // null = 아직 아무도 채점 안 됨
+                                .incorrectStudents(pendingStudents)
+                                .build();
+                    } else {
+                        // 객관식/주관식: 틀린 학생 목록
+                        List<String> incorrectStudents = submissions.stream()
+                                .flatMap(submission -> submission.getDetails().stream()
+                                        .filter(detail -> detail.getQuestion().getNumber().equals(questionNumber)
+                                                && Boolean.FALSE.equals(detail.getIsCorrect()))
+                                        .map(detail -> submission.getStudent().getName()))
+                                .collect(Collectors.toList());
+
+                        return TestStatsDto.QuestionStat.builder()
+                                .questionNumber(questionNumber)
+                                .questionType(questionType.name())
+                                .correctRate(correctRate)
+                                .incorrectStudents(incorrectStudents)
+                                .build();
+                    }
                 })
                 .collect(Collectors.toList());
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { dailyFeedbackAPI, type DailyFeedback, authAPI, lessonAPI, type Lesson, studentAPI } from '../api/client'
+import { dailyFeedbackAPI, type DailyFeedback, type EssayDetail, authAPI, lessonAPI, type Lesson, studentAPI } from '../api/client'
 import { useRouter, useRoute } from 'vue-router'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 
@@ -439,6 +439,74 @@ onMounted(() => {
             <el-icon size="80" color="#67c23a"><CircleCheck /></el-icon>
           </template>
         </el-empty>
+
+        <!-- 서술형 답안 섹션 -->
+        <div v-if="feedback.todayTest.essayDetails && feedback.todayTest.essayDetails.length > 0"
+             :style="{ marginTop: isMobile ? '16px' : '24px' }">
+          <div :style="{ fontWeight: 600, marginBottom: isMobile ? '8px' : '12px', color: '#e6a23c', fontSize: labelFontSize }">
+            서술형 답안 ({{ feedback.todayTest.essayDetails.length }}문제)
+          </div>
+          <div
+            v-for="essay in feedback.todayTest.essayDetails"
+            :key="essay.questionNumber"
+            :style="{
+              border: '1px solid #ebeef5',
+              borderRadius: '8px',
+              padding: isMobile ? '12px' : '16px',
+              marginBottom: isMobile ? '10px' : '12px',
+              borderLeft: essay.earnedPoints != null ? '4px solid #67c23a' : '4px solid #e6a23c'
+            }"
+          >
+            <!-- 문제 번호 + 채점 상태 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px">
+              <div style="display: flex; align-items: center; gap: 8px">
+                <el-tag type="warning" :size="isMobile ? 'small' : 'default'">{{ essay.questionNumber }}번 (서술형)</el-tag>
+                <el-tag type="info" effect="plain" :size="isMobile ? 'small' : 'default'" :style="{ fontSize: smallTextFontSize }">
+                  만점 {{ essay.maxPoints }}점
+                </el-tag>
+              </div>
+              <!-- 채점 완료 -->
+              <div v-if="essay.earnedPoints != null" style="display: flex; align-items: center; gap: 6px">
+                <el-tag type="success" :size="isMobile ? 'small' : 'default'">
+                  {{ essay.earnedPoints }} / {{ essay.maxPoints }}점
+                </el-tag>
+              </div>
+              <!-- 채점 대기 -->
+              <el-tag v-else type="warning" effect="plain" :size="isMobile ? 'small' : 'default'">
+                ⏳ 채점 대기 중
+              </el-tag>
+            </div>
+
+            <!-- 내 답안 -->
+            <div :style="{
+              background: '#f8f9fa',
+              borderRadius: '6px',
+              padding: isMobile ? '8px 10px' : '10px 14px',
+              fontSize: smallTextFontSize,
+              color: '#606266',
+              whiteSpace: 'pre-wrap',
+              lineHeight: '1.7',
+              marginBottom: essay.teacherComment ? '10px' : '0'
+            }">
+              <span :style="{ color: '#909399', fontSize: smallTextFontSize }">내 답안 </span>
+              {{ essay.studentAnswer || '(미작성)' }}
+            </div>
+
+            <!-- 선생님 코멘트 -->
+            <div v-if="essay.teacherComment" :style="{
+              background: '#f0f9ff',
+              borderRadius: '6px',
+              padding: isMobile ? '8px 10px' : '10px 14px',
+              fontSize: smallTextFontSize,
+              color: '#303133',
+              marginTop: '8px',
+              borderLeft: '3px solid #409eff'
+            }">
+              <span :style="{ color: '#409eff', fontWeight: 600, marginRight: '6px', fontSize: smallTextFontSize }">선생님 코멘트</span>
+              {{ essay.teacherComment }}
+            </div>
+          </div>
+        </div>
       </el-card>
 
       <!-- 시험 없는 경우 표시 -->

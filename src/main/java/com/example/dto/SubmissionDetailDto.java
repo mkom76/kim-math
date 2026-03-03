@@ -16,7 +16,11 @@ public class SubmissionDetailDto {
     private String studentAnswer;
     private String correctAnswer;
     private Boolean isCorrect;
-    
+    private Double earnedPoints;
+    private Double maxPoints;
+    private String teacherComment;
+    private String questionType;
+
     public static SubmissionDetailDto from(StudentSubmissionDetail detail) {
         return SubmissionDetailDto.builder()
                 .id(detail.getId())
@@ -24,6 +28,10 @@ public class SubmissionDetailDto {
                 .studentAnswer(detail.getStudentAnswer())
                 .correctAnswer(detail.getQuestion().getAnswer())
                 .isCorrect(detail.getIsCorrect())
+                .earnedPoints(detail.getEarnedPoints())
+                .maxPoints(detail.getQuestion().getPoints())
+                .teacherComment(detail.getTeacherComment())
+                .questionType(detail.getQuestion().getQuestionType().name())
                 .build();
     }
 }

@@ -97,14 +97,12 @@ const handleSaveAll = async () => {
     loading.value = true
 
     // 일괄 저장 API 사용 (학생 답안을 삭제하지 않고 업데이트)
-    const answersToSave = questions.value
-      .filter(q => q.answer && q.answer.trim() !== '')
-      .map(q => ({
-        number: q.number!,
-        answer: q.answer!,
-        points: q.points || 0,
-        questionType: q.questionType || 'SUBJECTIVE'
-      }))
+    const answersToSave = questions.value.map(q => ({
+      number: q.number!,
+      answer: q.answer || '',
+      points: q.points || 0,
+      questionType: q.questionType || 'SUBJECTIVE'
+    }))
 
     await testAPI.saveTestAnswers(Number(testId), answersToSave)
 
@@ -215,6 +213,12 @@ onMounted(() => {
                   <span>주관식</span>
                 </div>
               </el-option>
+              <el-option label="서술형" value="ESSAY">
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <el-icon><Memo /></el-icon>
+                  <span>서술형</span>
+                </div>
+              </el-option>
             </el-select>
           </template>
         </el-table-column>
@@ -237,7 +241,7 @@ onMounted(() => {
 
             <!-- 주관식: 텍스트 입력 -->
             <el-input
-              v-else
+              v-else-if="row.questionType === 'SUBJECTIVE'"
               v-model="row.answer"
               placeholder="정답을 입력하세요"
               @input="handleAnswerChange"
@@ -248,6 +252,9 @@ onMounted(() => {
                 </el-icon>
               </template>
             </el-input>
+
+            <!-- 서술형: 자동채점 없음 -->
+            <el-tag v-else type="info" effect="plain">선생님 직접 채점</el-tag>
           </template>
         </el-table-column>
 

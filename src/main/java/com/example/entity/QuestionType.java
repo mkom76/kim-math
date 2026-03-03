@@ -5,7 +5,8 @@ package com.example.entity;
  */
 public enum QuestionType {
     OBJECTIVE("객관식"),
-    SUBJECTIVE("주관식");
+    SUBJECTIVE("주관식"),
+    ESSAY("서술형");
 
     private final String displayName;
 

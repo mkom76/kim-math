@@ -51,7 +51,10 @@ const fetchTestData = async () => {
 }
 
 const allQuestionsAnswered = computed(() => {
-  return questions.value.every(q => answers.value[q.number]?.trim() !== '')
+  return questions.value.every(q => {
+    if (q.questionType === 'ESSAY') return true
+    return answers.value[q.number]?.trim() !== ''
+  })
 })
 
 const handleSubmit = async () => {
@@ -169,12 +172,20 @@ onMounted(() => {
                 객관식
               </el-tag>
               <el-tag
-                v-else
+                v-else-if="question.questionType === 'SUBJECTIVE'"
                 type="warning"
                 size="small"
               >
                 <el-icon style="margin-right: 4px"><Edit /></el-icon>
                 주관식
+              </el-tag>
+              <el-tag
+                v-else
+                type="danger"
+                size="small"
+              >
+                <el-icon style="margin-right: 4px"><Memo /></el-icon>
+                서술형
               </el-tag>
             </div>
             <!-- 객관식: 라디오 버튼 -->
@@ -192,13 +203,24 @@ onMounted(() => {
 
             <!-- 주관식: 텍스트 입력 -->
             <el-input
-              v-else
+              v-else-if="question.questionType === 'SUBJECTIVE'"
               v-model="answers[question.number]"
               placeholder="답을 입력하세요"
               size="large"
             >
               <template v-if="!isMobile" #prepend>답:</template>
             </el-input>
+
+            <!-- 서술형: 서면 제출 안내 -->
+            <div v-else style="border: 1px dashed #d9d9d9; border-radius: 8px; padding: 20px; background: #fafafa; text-align: center">
+              <el-icon :size="isMobile ? 28 : 36" color="#c0c4cc" style="display: block; margin: 0 auto 10px"><Memo /></el-icon>
+              <div :style="{ fontSize: isMobile ? '13px' : '15px', fontWeight: 600, color: '#606266', marginBottom: '6px' }">
+                서면으로 제출해주세요
+              </div>
+              <div :style="{ fontSize: isMobile ? '11px' : '13px', color: '#909399' }">
+                이 문제는 온라인 입력 없이 선생님께 직접 제출합니다
+              </div>
+            </div>
           </div>
         </div>
       </el-card>

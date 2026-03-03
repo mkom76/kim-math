@@ -967,6 +967,129 @@ public class DataInitializer {
 
             log.info("Created {} student video progress records", 8);
 
+            // ===== 서술형 포함 더미 시험 (student1, student2 대상) =====
+            Lesson lessonEssay = new Lesson();
+            lessonEssay.setLessonDate(LocalDate.now().minusDays(1));
+            lessonEssay.setAcademy(academy1);
+            lessonEssay.setAcademyClass(class1);
+            lessonEssay.setCommonFeedback("서술형 문제 포함 시험입니다.");
+            lessonEssay = lessonRepository.save(lessonEssay);
+
+            Test testEssay = new Test();
+            testEssay.setTitle("고1 수학 서술형 포함 테스트");
+            testEssay.setAcademy(academy1);
+            testEssay.setAcademyClass(class1);
+            testEssay.setLesson(lessonEssay);
+            testEssay = testRepository.save(testEssay);
+
+            // 문제 생성: 객관식 5개(10점), 주관식 3개(10점), 서술형 2개(10점) → 총 100점
+            List<TestQuestion> essayTestQuestions = new ArrayList<>();
+
+            // 1~5번: 객관식
+            for (int i = 1; i <= 5; i++) {
+                TestQuestion q = new TestQuestion();
+                q.setTest(testEssay);
+                q.setNumber(i);
+                q.setQuestionType(QuestionType.OBJECTIVE);
+                q.setAnswer(String.valueOf((i % 5) + 1));
+                q.setPoints(10.0);
+                essayTestQuestions.add(testQuestionRepository.save(q));
+            }
+
+            // 6~8번: 주관식
+            String[] subjAnswers = {"삼각형", "이차함수", "등차수열"};
+            for (int i = 0; i < 3; i++) {
+                TestQuestion q = new TestQuestion();
+                q.setTest(testEssay);
+                q.setNumber(6 + i);
+                q.setQuestionType(QuestionType.SUBJECTIVE);
+                q.setAnswer(subjAnswers[i]);
+                q.setPoints(10.0);
+                essayTestQuestions.add(testQuestionRepository.save(q));
+            }
+
+            // 9~10번: 서술형 (자동채점 없음)
+            for (int i = 0; i < 2; i++) {
+                TestQuestion q = new TestQuestion();
+                q.setTest(testEssay);
+                q.setNumber(9 + i);
+                q.setQuestionType(QuestionType.ESSAY);
+                q.setAnswer(null);
+                q.setPoints(10.0);
+                essayTestQuestions.add(testQuestionRepository.save(q));
+            }
+
+            // student1 제출: 객관식 4/5 정답, 주관식 2/3 정답, 서술형 채점 대기 → 60점
+            StudentSubmission submissionEssay1 = new StudentSubmission();
+            submissionEssay1.setStudent(student1);
+            submissionEssay1.setTest(testEssay);
+            submissionEssay1.setTotalScore(60);
+            submissionEssay1.setSubmittedAt(LocalDateTime.now().minusHours(2));
+            submissionEssay1 = studentSubmissionRepository.save(submissionEssay1);
+
+            for (TestQuestion q : essayTestQuestions) {
+                StudentSubmissionDetail detail = new StudentSubmissionDetail();
+                detail.setSubmission(submissionEssay1);
+                detail.setQuestion(q);
+
+                if (q.getQuestionType() == QuestionType.OBJECTIVE) {
+                    boolean isCorrect = q.getNumber() <= 4; // 1~4번 정답, 5번 오답
+                    String studentAns = isCorrect ? q.getAnswer() : "1";
+                    detail.setStudentAnswer(studentAns);
+                    detail.setIsCorrect(isCorrect);
+                    detail.setEarnedPoints(isCorrect ? q.getPoints() : 0.0);
+                } else if (q.getQuestionType() == QuestionType.SUBJECTIVE) {
+                    boolean isCorrect = q.getNumber() <= 7; // 6~7번 정답, 8번 오답
+                    String studentAns = isCorrect ? q.getAnswer() : "틀린답";
+                    detail.setStudentAnswer(studentAns);
+                    detail.setIsCorrect(isCorrect);
+                    detail.setEarnedPoints(isCorrect ? q.getPoints() : 0.0);
+                } else { // ESSAY
+                    detail.setStudentAnswer(q.getNumber() == 9
+                        ? "이차방정식의 판별식 D = b² - 4ac를 이용하여 근을 구할 수 있습니다."
+                        : "등차수열의 공차를 d라 하면 일반항 a_n = a_1 + (n-1)d입니다.");
+                    detail.setIsCorrect(null);
+                    detail.setEarnedPoints(null);
+                }
+                studentSubmissionDetailRepository.save(detail);
+            }
+
+            // student2 제출: 객관식 5/5 정답, 주관식 3/3 정답, 서술형 채점 대기 → 80점
+            StudentSubmission submissionEssay2 = new StudentSubmission();
+            submissionEssay2.setStudent(student2);
+            submissionEssay2.setTest(testEssay);
+            submissionEssay2.setTotalScore(80);
+            submissionEssay2.setSubmittedAt(LocalDateTime.now().minusHours(1));
+            submissionEssay2 = studentSubmissionRepository.save(submissionEssay2);
+
+            for (TestQuestion q : essayTestQuestions) {
+                StudentSubmissionDetail detail = new StudentSubmissionDetail();
+                detail.setSubmission(submissionEssay2);
+                detail.setQuestion(q);
+
+                if (q.getQuestionType() == QuestionType.OBJECTIVE) {
+                    detail.setStudentAnswer(q.getAnswer());
+                    detail.setIsCorrect(true);
+                    detail.setEarnedPoints(q.getPoints());
+                } else if (q.getQuestionType() == QuestionType.SUBJECTIVE) {
+                    detail.setStudentAnswer(q.getAnswer());
+                    detail.setIsCorrect(true);
+                    detail.setEarnedPoints(q.getPoints());
+                } else { // ESSAY
+                    detail.setStudentAnswer(q.getNumber() == 9
+                        ? "판별식 D = b² - 4ac > 0이면 두 근, D = 0이면 중근, D < 0이면 허근입니다."
+                        : "a_n = a_1 + (n-1)d이고 S_n = n/2 * (2a_1 + (n-1)d)입니다.");
+                    detail.setIsCorrect(null);
+                    detail.setEarnedPoints(null);
+                }
+                studentSubmissionDetailRepository.save(detail);
+            }
+
+            // student3(박도현, id=3)은 class1 소속 → lessonEssay(class1)를 통해 시험이 보이지만 제출 기록 없음
+            Student student3InClass1 = students.get(2); // 박도현
+            log.info("Created essay test '{}' with submissions for student1({}) and student2({}). student3({}) can see the test but has not submitted.",
+                    testEssay.getTitle(), student1.getName(), student2.getName(), student3InClass1.getName());
+
             log.info("Sample data initialization completed successfully!");
             log.info("===================================================");
             log.info("Summary:");

@@ -47,6 +47,7 @@ public class DailyFeedbackDto {
         private Integer rank;
         private List<Integer> incorrectQuestions;
         private List<QuestionAccuracy> questionAccuracyRates;
+        private List<EssayDetail> essayDetails;
     }
 
     @Data
@@ -56,5 +57,17 @@ public class DailyFeedbackDto {
     public static class QuestionAccuracy {
         private Integer questionNumber;
         private Double correctRate;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class EssayDetail {
+        private Integer questionNumber;
+        private Double maxPoints;
+        private String studentAnswer;
+        private Double earnedPoints;   // null = 미채점
+        private String teacherComment; // null = 코멘트 없음
     }
 }

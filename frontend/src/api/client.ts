@@ -60,9 +60,21 @@ interface Question {
   number: number;
   answer: string;
   points: number;
-  questionType?: 'OBJECTIVE' | 'SUBJECTIVE';
+  questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY';
   createdAt?: string;
   updatedAt?: string;
+}
+
+interface SubmissionDetail {
+  id: number;
+  questionNumber: number;
+  studentAnswer?: string;
+  correctAnswer?: string;
+  isCorrect?: boolean;
+  earnedPoints?: number;
+  maxPoints?: number;
+  teacherComment?: string;
+  questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY';
 }
 
 interface Submission {
@@ -72,6 +84,7 @@ interface Submission {
   testId?: number;
   testTitle?: string;
   totalScore: number;
+  pendingEssayCount?: number;
   classAverage?: number;
   rank?: number;
   submittedAt?: string;
@@ -181,7 +194,7 @@ export const testAPI = {
   getUnattachedTests: (academyId: number, classId: number) =>
     client.get('/tests/unattached', { params: { academyId, classId } }),
   recalculateScores: (id: number) => client.post(`/tests/${id}/recalculate`),
-  saveTestAnswers: (id: number, answers: Array<{ number: number; answer: string; points: number; questionType?: 'OBJECTIVE' | 'SUBJECTIVE' }>) =>
+  saveTestAnswers: (id: number, answers: Array<{ number: number; answer: string; points: number; questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY' }>) =>
     client.put(`/tests/${id}/answers`, { testId: id, answers }),
 };
 
@@ -192,6 +205,13 @@ export const submissionAPI = {
   getSubmission: (id: number) => client.get(`/submissions/${id}`),
   getByTestId: (testId: number) => client.get(`/submissions/test/${testId}`),
   getStudentSubmissions: (studentId: number) => client.get(`/submissions/student/${studentId}`),
+  gradeEssay: (detailId: number, earnedPoints: number, teacherComment?: string) =>
+    client.put<SubmissionDetail>(`/submissions/details/${detailId}/grade`, {
+      earnedPoints,
+      teacherComment,
+    }),
+  getSubmissionWithDetails: (submissionId: number) =>
+    client.get<Submission & { details: SubmissionDetail[] }>(`/submissions/${submissionId}`),
 };
 
 // Homeworks API
@@ -311,6 +331,14 @@ export interface HomeworkSummary {
   dueDate?: string;
 }
 
+export interface EssayDetail {
+  questionNumber: number;
+  maxPoints: number;
+  studentAnswer?: string;
+  earnedPoints?: number;    // null = 미채점
+  teacherComment?: string;
+}
+
 export interface TestFeedback {
   testId: number;
   testTitle: string;
@@ -319,6 +347,7 @@ export interface TestFeedback {
   rank: number;
   incorrectQuestions: number[];
   questionAccuracyRates: QuestionAccuracy[];
+  essayDetails?: EssayDetail[];
 }
 
 export interface QuestionAccuracy {
@@ -557,6 +586,7 @@ export type {
   Test,
   Question,
   Submission,
+  SubmissionDetail,
   Homework,
   StudentHomework,
   Lesson,

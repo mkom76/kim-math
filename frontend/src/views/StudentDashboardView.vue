@@ -214,11 +214,19 @@ onMounted(() => {
             <el-tag v-else type="warning">미제출</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="점수" width="100">
+        <el-table-column label="점수" width="160">
           <template #default="{ row }">
-            <span v-if="getSubmissionForTest(row.id)">
-              {{ getSubmissionForTest(row.id)?.totalScore }}점
-            </span>
+            <div v-if="getSubmissionForTest(row.id)" style="display: flex; flex-direction: column; gap: 4px">
+              <span>{{ getSubmissionForTest(row.id)?.totalScore }}점</span>
+              <el-tag
+                v-if="getSubmissionForTest(row.id)?.pendingEssayCount > 0"
+                type="warning"
+                size="small"
+                effect="plain"
+              >
+                ⏳ 서술형 채점 대기 ({{ getSubmissionForTest(row.id)?.pendingEssayCount }}문제)
+              </el-tag>
+            </div>
             <span v-else style="color: #909399">-</span>
           </template>
         </el-table-column>
@@ -289,6 +297,11 @@ onMounted(() => {
                   {{ getSubmissionForTest(test.id)?.totalScore }}점
                 </span>
               </div>
+              <div v-if="getSubmissionForTest(test.id)?.pendingEssayCount > 0" style="grid-column: span 2">
+                <el-tag type="warning" size="small" effect="plain">
+                  ⏳ 서술형 채점 대기 ({{ getSubmissionForTest(test.id)?.pendingEssayCount }}문제)
+                </el-tag>
+              </div>
             </div>
 
             <!-- Action Button -->
@@ -350,15 +363,26 @@ onMounted(() => {
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="내 점수" :width="isMobile ? 70 : 100" align="center">
+        <el-table-column label="내 점수" :width="isMobile ? 100 : 150" align="center">
           <template #default="{ row }">
-            <el-tag
-              :type="row.totalScore >= 90 ? 'success' : row.totalScore >= 70 ? 'warning' : 'danger'"
-              :size="isMobile ? 'small' : 'default'"
-              :style="{ fontSize: tableFontSize }"
-            >
-              {{ row.totalScore }}점
-            </el-tag>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px">
+              <el-tag
+                :type="row.totalScore >= 90 ? 'success' : row.totalScore >= 70 ? 'warning' : 'danger'"
+                :size="isMobile ? 'small' : 'default'"
+                :style="{ fontSize: tableFontSize }"
+              >
+                {{ row.totalScore }}점
+              </el-tag>
+              <el-tag
+                v-if="row.pendingEssayCount > 0"
+                type="warning"
+                size="small"
+                effect="plain"
+                :style="{ fontSize: tableFontSize }"
+              >
+                ⏳ 채점 대기 ({{ row.pendingEssayCount }})
+              </el-tag>
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="반 평균" :width="isMobile ? 70 : 100" align="center">

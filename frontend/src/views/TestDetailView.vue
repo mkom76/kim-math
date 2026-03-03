@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { testAPI, submissionAPI, type Test, type Submission } from '../api/client'
+import { testAPI, submissionAPI, type Test, type Submission, type SubmissionDetail } from '../api/client'
 
 const route = useRoute()
 const router = useRouter()
@@ -57,6 +57,43 @@ const recalculateScores = async () => {
     }
   } finally {
     recalculating.value = false
+  }
+}
+
+const essayGradeVisible = ref(false)
+const gradingSubmission = ref<any>(null)
+const gradingDetails = ref<any[]>([])
+const grading = ref(false)
+
+const openEssayGrade = async (submission: any) => {
+  const res = await submissionAPI.getSubmissionWithDetails(submission.id)
+  const details: SubmissionDetail[] = (res.data as any).details || []
+  gradingDetails.value = details
+    .filter((d: SubmissionDetail) => d.questionType === 'ESSAY')
+    .map((d: SubmissionDetail) => ({
+      ...d,
+      inputScore: d.earnedPoints ?? null,
+      inputComment: d.teacherComment ?? ''
+    }))
+  gradingSubmission.value = submission
+  essayGradeVisible.value = true
+}
+
+const handleGradeEssay = async () => {
+  grading.value = true
+  try {
+    for (const detail of gradingDetails.value) {
+      if (detail.inputScore !== null && detail.inputScore !== undefined) {
+        await submissionAPI.gradeEssay(detail.id, detail.inputScore, detail.inputComment)
+      }
+    }
+    ElMessage.success('서술형 채점이 완료되었습니다')
+    essayGradeVisible.value = false
+    await fetchTestDetail()
+  } catch (error) {
+    ElMessage.error('채점에 실패했습니다')
+  } finally {
+    grading.value = false
   }
 }
 
@@ -191,15 +228,31 @@ onMounted(() => {
               stripe
               :max-height="400"
             >
-              <el-table-column prop="questionNumber" label="문제 번호" width="100" align="center">
+              <el-table-column prop="questionNumber" label="문제 번호" width="120" align="center">
                 <template #default="{ row }">
-                  <el-tag type="info" size="large">{{ row.questionNumber }}번</el-tag>
+                  <div style="display: flex; flex-direction: column; align-items: center; gap: 4px">
+                    <el-tag type="info" size="large">{{ row.questionNumber }}번</el-tag>
+                    <el-tag v-if="row.questionType === 'ESSAY'" type="warning" size="small" effect="plain">서술형</el-tag>
+                  </div>
                 </template>
               </el-table-column>
 
-              <el-table-column prop="correctRate" label="정답률" width="300" align="center">
+              <el-table-column label="정답률 / 획득률" width="300" align="center">
                 <template #default="{ row }">
-                  <div style="display: flex; align-items: center; gap: 8px">
+                  <!-- 서술형: 평균 획득률 -->
+                  <div v-if="row.questionType === 'ESSAY'">
+                    <div v-if="row.avgEarnedRate != null" style="display: flex; align-items: center; gap: 8px">
+                      <el-progress
+                        :percentage="Math.round(row.avgEarnedRate)"
+                        :color="row.avgEarnedRate >= 70 ? '#67c23a' : row.avgEarnedRate >= 50 ? '#e6a23c' : '#f56c6c'"
+                        :stroke-width="10"
+                        style="flex: 1"
+                      />
+                    </div>
+                    <el-tag v-else type="info" effect="plain" size="small">채점 대기 중</el-tag>
+                  </div>
+                  <!-- 객관식/주관식: 정답률 -->
+                  <div v-else style="display: flex; align-items: center; gap: 8px">
                     <el-progress
                       :percentage="Math.round(row.correctRate)"
                       :color="row.correctRate >= 70 ? '#67c23a' : row.correctRate >= 50 ? '#e6a23c' : '#f56c6c'"
@@ -210,20 +263,42 @@ onMounted(() => {
                 </template>
               </el-table-column>
 
-              <el-table-column prop="incorrectStudents" label="틀린 학생" min-width="200">
+              <el-table-column min-width="200">
+                <template #header>
+                  <span>틀린 학생</span>
+                  <span style="color: #e6a23c; font-size: 11px; margin-left: 4px">(서술형: 미채점)</span>
+                </template>
                 <template #default="{ row }">
-                  <div v-if="row.incorrectStudents && row.incorrectStudents.length > 0" style="display: flex; flex-wrap: wrap; gap: 4px">
-                    <el-tag
-                      v-for="(student, index) in row.incorrectStudents"
-                      :key="index"
-                      type="danger"
-                      size="small"
-                      effect="plain"
-                    >
-                      {{ student }}
-                    </el-tag>
+                  <!-- 서술형: 미채점 학생 -->
+                  <div v-if="row.questionType === 'ESSAY'">
+                    <div v-if="row.incorrectStudents && row.incorrectStudents.length > 0" style="display: flex; flex-wrap: wrap; gap: 4px">
+                      <el-tag
+                        v-for="(student, index) in row.incorrectStudents"
+                        :key="index"
+                        type="warning"
+                        size="small"
+                        effect="plain"
+                      >
+                        {{ student }}
+                      </el-tag>
+                    </div>
+                    <span v-else style="color: #67c23a; font-weight: 500">전원 채점 완료 ✓</span>
                   </div>
-                  <span v-else style="color: #67c23a; font-weight: 500">전원 정답 ✓</span>
+                  <!-- 객관식/주관식: 틀린 학생 -->
+                  <div v-else>
+                    <div v-if="row.incorrectStudents && row.incorrectStudents.length > 0" style="display: flex; flex-wrap: wrap; gap: 4px">
+                      <el-tag
+                        v-for="(student, index) in row.incorrectStudents"
+                        :key="index"
+                        type="danger"
+                        size="small"
+                        effect="plain"
+                      >
+                        {{ student }}
+                      </el-tag>
+                    </div>
+                    <span v-else style="color: #67c23a; font-weight: 500">전원 정답 ✓</span>
+                  </div>
                 </template>
               </el-table-column>
             </el-table>
@@ -336,7 +411,7 @@ onMounted(() => {
             </template>
           </el-table-column>
 
-          <el-table-column label="학생 정보" min-width="250">
+          <el-table-column label="학생 정보" min-width="200">
             <template #default="{ row }">
               <div style="font-size: 13px; color: #606266">
                 <div>🏫 {{ row.student?.school || '-' }}</div>
@@ -344,11 +419,73 @@ onMounted(() => {
               </div>
             </template>
           </el-table-column>
+
+          <el-table-column label="서술형 채점" width="140" align="center">
+            <template #default="{ row }">
+              <el-button
+                v-if="row.pendingEssayCount > 0"
+                size="small"
+                type="warning"
+                @click="openEssayGrade(row)"
+              >
+                채점 ({{ row.pendingEssayCount }}문제)
+              </el-button>
+              <el-tag v-else-if="row.pendingEssayCount === 0" type="success" size="small">
+                채점 완료
+              </el-tag>
+              <span v-else style="color: #c0c4cc">-</span>
+            </template>
+          </el-table-column>
         </el-table>
 
         <el-empty v-if="submissions.length === 0" description="아직 응시한 학생이 없습니다" />
       </el-card>
     </div>
+
+    <!-- 서술형 채점 다이얼로그 -->
+    <el-dialog
+      v-model="essayGradeVisible"
+      :title="`서술형 채점 - ${gradingSubmission?.student?.name}`"
+      width="600px"
+    >
+      <div v-for="detail in gradingDetails" :key="detail.id" style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #eee">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px">
+          <strong>{{ detail.questionNumber }}번 문제</strong>
+          <el-tag type="info">최대 {{ detail.maxPoints }}점</el-tag>
+        </div>
+
+        <el-card shadow="never" style="margin-bottom: 12px; background: #f8f9fa">
+          <div style="font-size: 13px; color: #606266; white-space: pre-wrap">
+            {{ detail.studentAnswer || '(미작성)' }}
+          </div>
+        </el-card>
+
+        <el-row :gutter="12">
+          <el-col :span="10">
+            <div style="font-size: 12px; color: #909399; margin-bottom: 4px">점수 (0 ~ {{ detail.maxPoints }})</div>
+            <el-input-number
+              v-model="detail.inputScore"
+              :min="0"
+              :max="detail.maxPoints"
+              :precision="1"
+              :step="0.5"
+              style="width: 100%"
+            />
+          </el-col>
+          <el-col :span="14">
+            <div style="font-size: 12px; color: #909399; margin-bottom: 4px">코멘트 (선택)</div>
+            <el-input v-model="detail.inputComment" placeholder="학생에게 전달할 피드백" />
+          </el-col>
+        </el-row>
+      </div>
+
+      <template #footer>
+        <el-button @click="essayGradeVisible = false">취소</el-button>
+        <el-button type="primary" :loading="grading" @click="handleGradeEssay">
+          채점 완료
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 

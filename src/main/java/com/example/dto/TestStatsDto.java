@@ -35,7 +35,9 @@ public class TestStatsDto {
     @Builder
     public static class QuestionStat {
         private Integer questionNumber;
-        private Double correctRate;
-        private List<String> incorrectStudents; // 틀린 학생 이름 목록
+        private String questionType;            // OBJECTIVE / SUBJECTIVE / ESSAY
+        private Double correctRate;             // OBJECTIVE/SUBJECTIVE: 정답률 (0-100)
+        private Double avgEarnedRate;           // ESSAY: 평균 획득률 (0-100, null = 아직 미채점)
+        private List<String> incorrectStudents; // OBJECTIVE/SUBJECTIVE: 틀린 학생, ESSAY: 미채점 학생
     }
 }

@@ -1,5 +1,6 @@
 package com.example.service;
 
+import com.example.dto.EssayGradeRequest;
 import com.example.dto.StudentSubmissionDto;
 import com.example.dto.SubmissionDetailDto;
 import com.example.entity.*;
@@ -42,32 +43,35 @@ public class SubmissionService {
         
         // 답안 저장 및 채점
         List<StudentSubmissionDetail> details = new ArrayList<>();
-        double earnedPoints = 0.0;
+        double autoEarnedPoints = 0.0;
         double totalPoints = 0.0;
 
         for (TestQuestion question : questions) {
             String studentAnswer = answers.get(question.getNumber());
-            boolean isCorrect = question.getAnswer() != null &&
-                              question.getAnswer().equals(studentAnswer);
+            Boolean isCorrect = null;
+            Double earnedPoints = null;
+
+            if (question.getQuestionType() != QuestionType.ESSAY) {
+                isCorrect = question.getAnswer() != null &&
+                            question.getAnswer().equals(studentAnswer);
+                earnedPoints = isCorrect ? question.getPoints() : 0.0;
+                autoEarnedPoints += earnedPoints;
+            }
 
             StudentSubmissionDetail detail = StudentSubmissionDetail.builder()
                     .submission(submission)
                     .question(question)
                     .studentAnswer(studentAnswer)
                     .isCorrect(isCorrect)
+                    .earnedPoints(earnedPoints)
                     .build();
 
             details.add(detail);
-
-            // 배점 합산
             totalPoints += question.getPoints();
-            if (isCorrect) {
-                earnedPoints += question.getPoints();
-            }
         }
 
         // 총점 계산 (배점 기반, 반올림)
-        int totalScore = totalPoints == 0 ? 0 : (int) Math.round((earnedPoints / totalPoints) * 100);
+        int totalScore = totalPoints == 0 ? 0 : (int) Math.round((autoEarnedPoints / totalPoints) * 100);
         submission.setTotalScore(totalScore);
         submission.setSubmittedAt(LocalDateTime.now());
 
@@ -143,6 +147,7 @@ public class SubmissionService {
 
                     dto.setClassAverage(classAverage);
                     dto.setRank(rank);
+                    dto.setPendingEssayCount(submissionRepository.countPendingEssays(submission.getId()).intValue());
 
                     return dto;
                 })
@@ -152,7 +157,49 @@ public class SubmissionService {
     public List<StudentSubmissionDto> getTestSubmissions(Long testId) {
         List<StudentSubmission> submissions = submissionRepository.findByTestId(testId);
         return submissions.stream()
-                .map(StudentSubmissionDto::from)
+                .map(submission -> {
+                    StudentSubmissionDto dto = StudentSubmissionDto.from(submission);
+                    dto.setPendingEssayCount(submissionRepository.countPendingEssays(submission.getId()).intValue());
+                    return dto;
+                })
                 .collect(Collectors.toList());
+    }
+
+    public SubmissionDetailDto gradeEssay(Long detailId, EssayGradeRequest request) {
+        StudentSubmissionDetail detail = detailRepository.findById(detailId)
+                .orElseThrow(() -> new RuntimeException("Detail not found"));
+
+        if (detail.getQuestion().getQuestionType() != QuestionType.ESSAY) {
+            throw new RuntimeException("Only ESSAY type questions can be manually graded");
+        }
+
+        double maxPoints = detail.getQuestion().getPoints();
+        double earned = request.getEarnedPoints() == null ? 0.0 : request.getEarnedPoints();
+        if (earned < 0 || earned > maxPoints) {
+            throw new RuntimeException("earnedPoints must be between 0 and " + maxPoints);
+        }
+
+        detail.setEarnedPoints(earned);
+        detail.setTeacherComment(request.getTeacherComment());
+        detail = detailRepository.save(detail);
+
+        StudentSubmission submission = submissionRepository.findById(detail.getSubmission().getId())
+                .orElseThrow(() -> new RuntimeException("Submission not found"));
+        recalculateTotalScore(submission);
+
+        return SubmissionDetailDto.from(detail);
+    }
+
+    private void recalculateTotalScore(StudentSubmission submission) {
+        double earnedTotal = submission.getDetails().stream()
+                .filter(d -> d.getEarnedPoints() != null)
+                .mapToDouble(StudentSubmissionDetail::getEarnedPoints)
+                .sum();
+        double maxTotal = submission.getDetails().stream()
+                .mapToDouble(d -> d.getQuestion().getPoints())
+                .sum();
+        int totalScore = maxTotal == 0 ? 0 : (int) Math.round((earnedTotal / maxTotal) * 100);
+        submission.setTotalScore(totalScore);
+        submissionRepository.save(submission);
     }
 }

@@ -123,20 +123,34 @@ public class DailyFeedbackService {
 
         StudentSubmission sub = submission.get();
 
-        // Get incorrect question numbers
-        List<Integer> incorrectQuestions = studentSubmissionDetailRepository
-                .findBySubmissionId(sub.getId())
-                .stream()
+        List<StudentSubmissionDetail> details = studentSubmissionDetailRepository.findBySubmissionId(sub.getId());
+
+        // Get incorrect question numbers (객관식/주관식만 - ESSAY 제외)
+        List<Integer> incorrectQuestions = details.stream()
                 .filter(d -> Boolean.FALSE.equals(d.getIsCorrect()))
                 .map(d -> d.getQuestion().getNumber())
                 .sorted()
                 .collect(Collectors.toList());
 
-        // Get academy accuracy rates
+        // Get essay details
+        List<DailyFeedbackDto.EssayDetail> essayDetails = details.stream()
+                .filter(d -> d.getQuestion().getQuestionType() == QuestionType.ESSAY)
+                .sorted(java.util.Comparator.comparing(d -> d.getQuestion().getNumber()))
+                .map(d -> DailyFeedbackDto.EssayDetail.builder()
+                        .questionNumber(d.getQuestion().getNumber())
+                        .maxPoints(d.getQuestion().getPoints())
+                        .studentAnswer(d.getStudentAnswer())
+                        .earnedPoints(d.getEarnedPoints())
+                        .teacherComment(d.getTeacherComment())
+                        .build())
+                .collect(Collectors.toList());
+
+        // Get academy accuracy rates (서술형 제외 - questionType으로 필터)
         List<Object[]> accuracyData = studentSubmissionDetailRepository
                 .getQuestionCorrectRatesByTestId(test.getId());
 
         List<DailyFeedbackDto.QuestionAccuracy> rates = accuracyData.stream()
+                .filter(arr -> arr[2] != QuestionType.ESSAY)
                 .map(arr -> DailyFeedbackDto.QuestionAccuracy.builder()
                         .questionNumber((Integer) arr[0])
                         .correctRate((Double) arr[1])
@@ -174,6 +188,7 @@ public class DailyFeedbackService {
                 .rank(rank)
                 .incorrectQuestions(incorrectQuestions)
                 .questionAccuracyRates(rates)
+                .essayDetails(essayDetails.isEmpty() ? null : essayDetails)
                 .build();
     }
 

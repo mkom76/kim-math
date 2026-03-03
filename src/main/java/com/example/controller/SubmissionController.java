@@ -1,6 +1,8 @@
 package com.example.controller;
 
+import com.example.dto.EssayGradeRequest;
 import com.example.dto.StudentSubmissionDto;
+import com.example.dto.SubmissionDetailDto;
 import com.example.service.SubmissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -45,5 +47,12 @@ public class SubmissionController {
     @GetMapping("/test/{testId}")
     public ResponseEntity<List<StudentSubmissionDto>> getTestSubmissions(@PathVariable Long testId) {
         return ResponseEntity.ok(submissionService.getTestSubmissions(testId));
+    }
+
+    @PutMapping("/details/{detailId}/grade")
+    public ResponseEntity<SubmissionDetailDto> gradeEssay(
+            @PathVariable Long detailId,
+            @RequestBody EssayGradeRequest request) {
+        return ResponseEntity.ok(submissionService.gradeEssay(detailId, request));
     }
 }

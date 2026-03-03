@@ -19,6 +19,7 @@ public class StudentSubmissionDto {
     private Long testId;
     private String testTitle;
     private Integer totalScore;
+    private Integer pendingEssayCount;
     private Double classAverage;
     private Integer rank;
     private LocalDateTime submittedAt;
