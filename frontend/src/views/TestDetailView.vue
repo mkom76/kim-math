@@ -430,9 +430,15 @@ onMounted(() => {
               >
                 채점 ({{ row.pendingEssayCount }}문제)
               </el-button>
-              <el-tag v-else-if="row.pendingEssayCount === 0" type="success" size="small">
-                채점 완료
-              </el-tag>
+              <el-button
+                v-else-if="row.pendingEssayCount === 0"
+                size="small"
+                type="success"
+                plain
+                @click="openEssayGrade(row)"
+              >
+                채점 완료 (수정)
+              </el-button>
               <span v-else style="color: #c0c4cc">-</span>
             </template>
           </el-table-column>
@@ -445,7 +451,7 @@ onMounted(() => {
     <!-- 서술형 채점 다이얼로그 -->
     <el-dialog
       v-model="essayGradeVisible"
-      :title="`서술형 채점 - ${gradingSubmission?.student?.name}`"
+      :title="`서술형 채점${gradingSubmission?.pendingEssayCount === 0 ? ' 수정' : ''} - ${gradingSubmission?.student?.name}`"
       width="600px"
     >
       <div v-for="detail in gradingDetails" :key="detail.id" style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #eee">
