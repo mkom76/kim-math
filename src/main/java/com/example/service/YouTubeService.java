@@ -52,6 +52,15 @@ public class YouTubeService {
             }
         }
 
+        // Pattern 4: youtube.com/live/VIDEO_ID
+        if (videoId == null) {
+            Pattern pattern4 = Pattern.compile("(?:youtube\\.com/live/)([\\w-]+)");
+            Matcher matcher4 = pattern4.matcher(youtubeUrl);
+            if (matcher4.find()) {
+                videoId = matcher4.group(1);
+            }
+        }
+
         if (videoId == null) {
             throw new IllegalArgumentException("유효하지 않은 YouTube URL입니다");
         }
