@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import {type Question, testAPI} from '../api/client'
@@ -115,6 +115,10 @@ const handleSaveAll = async () => {
     loading.value = false
   }
 }
+
+const totalPoints = computed(() => {
+  return Math.round(questions.value.reduce((sum, q) => sum + (q.points || 0), 0) * 10) / 10
+})
 
 const handleAnswerChange = () => {
   hasChanges.value = true
@@ -295,6 +299,12 @@ onMounted(() => {
           </el-icon>
         </template>
       </el-empty>
+
+      <div v-if="questions.length > 0" style="display: flex; justify-content: flex-end; align-items: center; margin-top: 16px; padding: 12px 16px; background: #f5f7fa; border-radius: 8px;">
+        <span style="font-size: 16px; font-weight: 600; color: #303133;">
+          배점 합계: {{ totalPoints }}점
+        </span>
+      </div>
     </el-card>
 
     <!-- Save Button -->
