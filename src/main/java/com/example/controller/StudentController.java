@@ -9,6 +9,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,7 +17,8 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class StudentController {
     private final StudentService studentService;
-    
+
+    @PreAuthorize("hasRole('TEACHER')")
     @GetMapping
     public ResponseEntity<Page<StudentDto>> getStudents(
             @RequestParam(required = false) String name,
@@ -29,12 +31,14 @@ public class StudentController {
         return ResponseEntity.ok(studentService.getStudent(id));
     }
     
+    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping
     public ResponseEntity<StudentDto> createStudent(@RequestBody StudentDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(studentService.createStudent(dto));
     }
     
+    @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/{id}")
     public ResponseEntity<StudentDto> updateStudent(
             @PathVariable Long id, 
@@ -42,12 +46,14 @@ public class StudentController {
         return ResponseEntity.ok(studentService.updateStudent(id, dto));
     }
     
+    @PreAuthorize("hasRole('TEACHER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteStudent(@PathVariable Long id) {
         studentService.deleteStudent(id);
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/{id}/reset-pin")
     public ResponseEntity<StudentDto> resetStudentPin(
             @PathVariable Long id,

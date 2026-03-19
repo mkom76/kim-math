@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -38,32 +39,38 @@ public class LessonController {
         return ResponseEntity.ok(lessonService.getLessonsByClass(classId));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteLesson(@PathVariable Long id) {
         lessonService.deleteLesson(id);
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping
     public ResponseEntity<LessonDto> createLesson(@RequestBody LessonDto dto) {
         return ResponseEntity.ok(lessonService.createLesson(dto.getAcademyId(), dto.getClassId(), dto.getLessonDate()));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/{lessonId}/test/{testId}")
     public ResponseEntity<LessonDto> attachTest(@PathVariable Long lessonId, @PathVariable Long testId) {
         return ResponseEntity.ok(lessonService.attachTest(lessonId, testId));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/{lessonId}/homework/{homeworkId}")
     public ResponseEntity<LessonDto> attachHomework(@PathVariable Long lessonId, @PathVariable Long homeworkId) {
         return ResponseEntity.ok(lessonService.attachHomework(lessonId, homeworkId));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @DeleteMapping("/{lessonId}/test")
     public ResponseEntity<LessonDto> detachTest(@PathVariable Long lessonId) {
         return ResponseEntity.ok(lessonService.detachTest(lessonId));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @DeleteMapping("/{lessonId}/homeworks/{homeworkId}")
     public ResponseEntity<LessonDto> removeHomework(
             @PathVariable Long lessonId,
@@ -76,6 +83,7 @@ public class LessonController {
         return ResponseEntity.ok(lessonService.getLessonHomeworks(lessonId));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/{lessonId}/assign-homeworks")
     public ResponseEntity<Void> assignHomeworksToStudents(
             @PathVariable Long lessonId,
@@ -99,6 +107,7 @@ public class LessonController {
         return ResponseEntity.ok(lessonService.getLessonStudentStats(lessonId));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/{lessonId}/content")
     public ResponseEntity<LessonDto> updateLessonContent(
             @PathVariable Long lessonId,
@@ -107,6 +116,7 @@ public class LessonController {
                 lessonId, request.getCommonFeedback(), request.getAnnouncement()));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/{lessonId}/date")
     public ResponseEntity<LessonDto> updateLessonDate(
             @PathVariable Long lessonId,

@@ -6,6 +6,7 @@ import com.example.service.LessonVideoService;
 import com.example.service.StudentVideoProgressService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class LessonVideoController {
         return ResponseEntity.ok(lessonVideoService.getVideos(lessonId));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping
     public ResponseEntity<LessonVideoDto> addVideo(
             @PathVariable Long lessonId,
@@ -35,6 +37,7 @@ public class LessonVideoController {
         return ResponseEntity.ok(lessonVideoService.addVideo(lessonId, youtubeUrl));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/{videoId}/order")
     public ResponseEntity<LessonVideoDto> updateOrder(
             @PathVariable Long lessonId,
@@ -48,6 +51,7 @@ public class LessonVideoController {
         return ResponseEntity.ok(lessonVideoService.updateOrder(lessonId, videoId, orderIndex));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @DeleteMapping("/{videoId}")
     public ResponseEntity<Void> deleteVideo(
             @PathVariable Long lessonId,

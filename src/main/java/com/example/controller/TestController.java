@@ -12,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,12 +34,14 @@ public class TestController {
         return ResponseEntity.ok(testService.getTest(id));
     }
     
+    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping
     public ResponseEntity<TestDto> createTest(@RequestBody TestDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(testService.createTest(dto));
     }
     
+    @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/{id}")
     public ResponseEntity<TestDto> updateTest(
             @PathVariable Long id, 
@@ -46,6 +49,7 @@ public class TestController {
         return ResponseEntity.ok(testService.updateTest(id, dto));
     }
     
+    @PreAuthorize("hasRole('TEACHER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTest(@PathVariable Long id) {
         testService.deleteTest(id);
@@ -62,6 +66,7 @@ public class TestController {
         return ResponseEntity.ok(testService.getTestQuestions(id));
     }
     
+    @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/{id}/answers")
     public ResponseEntity<Void> saveTestAnswers(
             @PathVariable Long id,
@@ -71,6 +76,7 @@ public class TestController {
         return ResponseEntity.ok().build();
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/{id}/questions")
     public ResponseEntity<TestQuestionDto> addQuestion(
             @PathVariable Long id,
@@ -86,6 +92,7 @@ public class TestController {
         return ResponseEntity.ok(testService.getUnattachedTests(academyId, classId));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/{id}/recalculate")
     public ResponseEntity<Void> recalculateTestScores(@PathVariable Long id) {
         testService.recalculateScores(id);

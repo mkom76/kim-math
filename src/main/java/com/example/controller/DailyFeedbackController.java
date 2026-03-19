@@ -6,6 +6,7 @@ import com.example.service.DailyFeedbackService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,6 +27,7 @@ public class DailyFeedbackController {
         return ResponseEntity.ok(dailyFeedbackService.getDailyFeedback(studentId, lessonId));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/student/{studentId}/lesson/{lessonId}")
     public ResponseEntity<StudentLessonDto> updateInstructorFeedback(
             @PathVariable Long studentId,

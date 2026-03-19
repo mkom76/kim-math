@@ -4,6 +4,7 @@ import com.example.dto.StudentHomeworkDto;
 import com.example.service.StudentHomeworkService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -35,6 +36,7 @@ public class StudentHomeworkController {
         return ResponseEntity.ok(studentHomeworkService.updateIncorrectCount(studentId, homeworkId, incorrectCount, unsolvedCount));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @DeleteMapping("/student/{studentId}/homework/{homeworkId}")
     public ResponseEntity<Void> delete(
             @PathVariable Long studentId,

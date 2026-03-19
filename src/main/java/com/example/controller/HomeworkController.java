@@ -9,6 +9,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,12 +31,14 @@ public class HomeworkController {
         return ResponseEntity.ok(homeworkService.getHomework(id));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping
     public ResponseEntity<HomeworkDto> createHomework(@RequestBody HomeworkDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(homeworkService.createHomework(dto));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/{id}")
     public ResponseEntity<HomeworkDto> updateHomework(
             @PathVariable Long id,
@@ -43,6 +46,7 @@ public class HomeworkController {
         return ResponseEntity.ok(homeworkService.updateHomework(id, dto));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteHomework(@PathVariable Long id) {
         homeworkService.deleteHomework(id);

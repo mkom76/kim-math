@@ -9,11 +9,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/academies")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('TEACHER')")
 public class AcademyController {
     private final AcademyService academyService;
 

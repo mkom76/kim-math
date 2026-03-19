@@ -5,6 +5,7 @@ import com.example.entity.ClinicRegistrationStatus;
 import com.example.service.ClinicService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -18,11 +19,13 @@ import java.util.Optional;
 public class ClinicController {
     private final ClinicService clinicService;
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/class/{classId}/create-for-this-week")
     public ResponseEntity<ClinicDto> createClinicForThisWeek(@PathVariable Long classId) {
         return ResponseEntity.ok(clinicService.createClinicForThisWeek(classId));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/class/{classId}")
     public ResponseEntity<ClinicDto> createClinic(
             @PathVariable Long classId,
@@ -63,6 +66,7 @@ public class ClinicController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/registrations/{registrationId}/attendance")
     public ResponseEntity<ClinicRegistrationDto> updateAttendance(
             @PathVariable Long registrationId,
@@ -75,23 +79,27 @@ public class ClinicController {
         return ResponseEntity.ok(clinicService.getStudentClinicInfo(studentId));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/{clinicId}/close")
     public ResponseEntity<ClinicDto> closeClinic(@PathVariable Long clinicId) {
         return ResponseEntity.ok(clinicService.closeClinic(clinicId));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @DeleteMapping("/{clinicId}")
     public ResponseEntity<Void> deleteClinic(@PathVariable Long clinicId) {
         clinicService.deleteClinic(clinicId);
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/{clinicId}/start")
     public ResponseEntity<Void> startClinic(@PathVariable Long clinicId) {
         clinicService.startClinic(clinicId);
         return ResponseEntity.ok().build();
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/{clinicId}/end")
     public ResponseEntity<Void> endClinic(@PathVariable Long clinicId) {
         clinicService.endClinic(clinicId);
