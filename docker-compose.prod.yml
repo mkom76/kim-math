@@ -38,6 +38,7 @@ services:
       - DB_PASSWORD=${MYSQL_PASSWORD}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     networks:
       - suhui-network
     depends_on:
