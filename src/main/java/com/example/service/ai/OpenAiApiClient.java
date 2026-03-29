@@ -51,7 +51,7 @@ public class OpenAiApiClient {
                     .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
                     .block();
         } catch (WebClientResponseException e) {
-            log.error("OpenAI API error - status: {}, body: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            log.error("OpenAI API error! - status: {}, body: {}", e.getStatusCode(), e.getResponseBodyAsString());
             throw new RuntimeException("OpenAI API error: " + e.getResponseBodyAsString(), e);
         }
 

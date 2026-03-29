@@ -596,16 +596,25 @@ onMounted(() => {
               <el-input v-model="editedAuthorName" placeholder="선생님 이름" />
             </el-form-item>
             <el-form-item label="피드백">
-              <el-button
-                v-if="feedback?.todayTest"
-                type="primary"
-                plain
-                :loading="isGeneratingAiFeedback"
-                @click="generateAiFeedback"
-                style="margin-bottom: 8px"
-              >
-                AI 피드백 생성
-              </el-button>
+              <div v-if="feedback?.todayTest" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px">
+                <el-button
+                  type="primary"
+                  plain
+                  :loading="isGeneratingAiFeedback"
+                  @click="generateAiFeedback"
+                >
+                  AI 피드백 생성
+                </el-button>
+                <el-button
+                  text
+                  size="small"
+                  @click="router.push('/settings/feedback-prompt')"
+                  style="color: #909399"
+                >
+                  <el-icon style="margin-right: 4px"><Setting /></el-icon>
+                  프롬프트 설정
+                </el-button>
+              </div>
               <el-input
                 v-model="editedFeedback"
                 type="textarea"

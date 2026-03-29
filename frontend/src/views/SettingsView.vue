@@ -2,6 +2,9 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { authAPI } from '@/api/client'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const loading = ref(false)
 const pinForm = ref({
@@ -58,6 +61,20 @@ const handleChangePIN = async () => {
           설정
         </h1>
         <p style="margin: 8px 0 0; color: #909399">계정 설정을 관리합니다</p>
+      </div>
+    </el-card>
+
+    <!-- AI Feedback Prompt Settings -->
+    <el-card shadow="never" style="margin-bottom: 24px; cursor: pointer" @click="router.push('/settings/feedback-prompt')">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <el-icon size="24" color="#409eff"><MagicStick /></el-icon>
+          <div>
+            <div style="font-size: 16px; font-weight: 600; color: #303133">AI 피드백 프롬프트 설정</div>
+            <div style="font-size: 13px; color: #909399; margin-top: 4px">AI 피드백 생성에 사용되는 프롬프트와 예시 개수를 설정합니다</div>
+          </div>
+        </div>
+        <el-icon size="20" color="#c0c4cc"><ArrowRight /></el-icon>
       </div>
     </el-card>
 
