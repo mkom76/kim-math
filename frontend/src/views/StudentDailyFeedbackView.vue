@@ -25,6 +25,11 @@ const editedAuthorName = ref('')
 // AI 피드백 생성 상태
 const isGeneratingAiFeedback = ref(false)
 const usedAiFeedback = ref(false)
+const selectedModel = ref('gpt-5-mini')
+const modelOptions = [
+  { label: 'GPT-5 Mini (추천)', value: 'gpt-5-mini' },
+  { label: 'GPT-5 Nano (빠름)', value: 'gpt-5-nano' },
+]
 
 const generateAiFeedback = async () => {
   if (!feedback.value?.todayTest || !studentId.value || !selectedLessonId.value) return
@@ -33,7 +38,8 @@ const generateAiFeedback = async () => {
     const response = await aiFeedbackAPI.generate({
       studentId: studentId.value,
       lessonId: selectedLessonId.value,
-      teacherId: currentUser.value.userId
+      teacherId: currentUser.value.userId,
+      model: selectedModel.value
     })
     editedFeedback.value = response.generatedFeedback
     usedAiFeedback.value = true
@@ -596,7 +602,15 @@ onMounted(() => {
               <el-input v-model="editedAuthorName" placeholder="선생님 이름" />
             </el-form-item>
             <el-form-item label="피드백">
-              <div v-if="feedback?.todayTest" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px">
+              <div v-if="feedback?.todayTest" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap">
+                <el-select v-model="selectedModel" style="width: 180px" size="default">
+                  <el-option
+                    v-for="opt in modelOptions"
+                    :key="opt.value"
+                    :label="opt.label"
+                    :value="opt.value"
+                  />
+                </el-select>
                 <el-button
                   type="primary"
                   plain

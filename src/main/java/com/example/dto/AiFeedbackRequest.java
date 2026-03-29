@@ -7,4 +7,5 @@ public class AiFeedbackRequest {
     private Long studentId;
     private Long lessonId;
     private Long teacherId;
+    private String model;
 }

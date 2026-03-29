@@ -56,7 +56,7 @@ public class AiFeedbackService {
                 feedbackData, student, request.getTeacherId(), fewShotCount);
 
         // 4. OpenAI API 호출
-        String generated = openAiApiClient.sendMessage(systemPrompt, messages);
+        String generated = openAiApiClient.sendMessage(systemPrompt, messages, request.getModel());
 
         return AiFeedbackResponse.builder()
                 .generatedFeedback(generated)

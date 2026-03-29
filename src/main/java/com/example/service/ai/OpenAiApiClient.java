@@ -31,13 +31,19 @@ public class OpenAiApiClient {
      * @return 생성된 텍스트
      */
     public String sendMessage(String systemPrompt, List<Map<String, String>> messages) {
+        return sendMessage(systemPrompt, messages, null);
+    }
+
+    public String sendMessage(String systemPrompt, List<Map<String, String>> messages, String requestModel) {
         // system 메시지를 맨 앞에 추가
         List<Map<String, String>> allMessages = new java.util.ArrayList<>();
         allMessages.add(Map.of("role", "system", "content", systemPrompt));
         allMessages.addAll(messages);
 
+        String useModel = (requestModel != null && !requestModel.isBlank()) ? requestModel : model;
+
         Map<String, Object> requestBody = Map.of(
-                "model", model,
+                "model", useModel,
                 "max_completion_tokens", maxTokens,
                 "messages", allMessages
         );
@@ -64,7 +70,16 @@ public class OpenAiApiClient {
             throw new RuntimeException("No choices in OpenAI API response");
         }
 
-        Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-        return (String) message.get("content");
+        Map<String, Object> firstChoice = (Map<String, Object>) choices.get(0);
+        Map<String, Object> message = (Map<String, Object>) firstChoice.get("message");
+        String content = (String) message.get("content");
+
+        if (content == null || content.isBlank()) {
+            log.warn("OpenAI returned empty content - finish_reason: {}, message: {}",
+                    firstChoice.get("finish_reason"), message);
+            throw new RuntimeException("AI 피드백 생성에 실패했습니다. 다시 시도해주세요.");
+        }
+
+        return content;
     }
 }

@@ -582,6 +582,7 @@ export interface AiFeedbackRequest {
   studentId: number
   lessonId: number
   teacherId: number
+  model?: string
 }
 
 export interface AiFeedbackResponse {

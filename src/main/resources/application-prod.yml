@@ -38,6 +38,8 @@ logging:
   level:
     root: INFO
     com.example: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
   file:
     name: /var/log/suhui-secretary/application.log
     max-size: 10MB
