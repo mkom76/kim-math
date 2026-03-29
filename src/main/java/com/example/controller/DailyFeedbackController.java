@@ -34,12 +34,14 @@ public class DailyFeedbackController {
             @PathVariable Long lessonId,
             @RequestBody UpdateFeedbackRequest request) {
         return ResponseEntity.ok(dailyFeedbackService.updateInstructorFeedback(
-            studentId, lessonId, request.getFeedback(), request.getAuthorName()));
+            studentId, lessonId, request.getFeedback(), request.getAuthorName(),
+            Boolean.TRUE.equals(request.getIsAiFeedback())));
     }
 
     @Data
     public static class UpdateFeedbackRequest {
         private String feedback;
         private String authorName;
+        private Boolean isAiFeedback;
     }
 }

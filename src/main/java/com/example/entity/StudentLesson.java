@@ -38,6 +38,10 @@ public class StudentLesson {
     @Column(name = "feedback_author")
     private String feedbackAuthor;
 
+    @Column(name = "is_ai_feedback")
+    @Builder.Default
+    private Boolean isAiFeedback = false;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

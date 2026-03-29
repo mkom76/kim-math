@@ -87,6 +87,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/settings/feedback-prompt',
+      name: 'feedback-prompt-settings',
+      component: () => import('../views/FeedbackPromptSettingsView.vue'),
+      meta: { requiresAuth: true, requiresRole: 'TEACHER' }
+    },
+    {
       path: '/clinics',
       name: 'clinics',
       component: () => import('../views/ClinicsView.vue'),

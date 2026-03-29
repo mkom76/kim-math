@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { dailyFeedbackAPI, type DailyFeedback, type EssayDetail, authAPI, lessonAPI, type Lesson, studentAPI } from '../api/client'
+import { dailyFeedbackAPI, aiFeedbackAPI, type DailyFeedback, type EssayDetail, authAPI, lessonAPI, type Lesson, studentAPI } from '../api/client'
 import { useRouter, useRoute } from 'vue-router'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 
@@ -21,6 +21,28 @@ const isTeacherView = computed(() => route.params.id !== undefined)
 const isEditingFeedback = ref(false)
 const editedFeedback = ref('')
 const editedAuthorName = ref('')
+
+// AI 피드백 생성 상태
+const isGeneratingAiFeedback = ref(false)
+const usedAiFeedback = ref(false)
+
+const generateAiFeedback = async () => {
+  if (!feedback.value?.todayTest || !studentId.value || !selectedLessonId.value) return
+  isGeneratingAiFeedback.value = true
+  try {
+    const response = await aiFeedbackAPI.generate({
+      studentId: studentId.value,
+      lessonId: selectedLessonId.value,
+      teacherId: currentUser.value.userId
+    })
+    editedFeedback.value = response.generatedFeedback
+    usedAiFeedback.value = true
+  } catch (error) {
+    ElMessage.error('AI 피드백 생성에 실패했습니다')
+  } finally {
+    isGeneratingAiFeedback.value = false
+  }
+}
 
 const { isMobile } = useBreakpoint()
 
@@ -172,6 +194,7 @@ const cancelEditingFeedback = () => {
   isEditingFeedback.value = false
   editedFeedback.value = ''
   editedAuthorName.value = ''
+  usedAiFeedback.value = false
 }
 
 const saveFeedback = async () => {
@@ -190,11 +213,13 @@ const saveFeedback = async () => {
       studentId.value,
       selectedLessonId.value,
       editedFeedback.value,
-      editedAuthorName.value
+      editedAuthorName.value,
+      usedAiFeedback.value
     )
 
     ElMessage.success('피드백이 저장되었습니다')
     isEditingFeedback.value = false
+    usedAiFeedback.value = false
 
     // 피드백 다시 불러오기
     await fetchFeedback()
@@ -571,6 +596,16 @@ onMounted(() => {
               <el-input v-model="editedAuthorName" placeholder="선생님 이름" />
             </el-form-item>
             <el-form-item label="피드백">
+              <el-button
+                v-if="feedback?.todayTest"
+                type="primary"
+                plain
+                :loading="isGeneratingAiFeedback"
+                @click="generateAiFeedback"
+                style="margin-bottom: 8px"
+              >
+                AI 피드백 생성
+              </el-button>
               <el-input
                 v-model="editedFeedback"
                 type="textarea"

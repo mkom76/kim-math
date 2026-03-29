@@ -1,6 +1,7 @@
 package com.example.dto;
 
 import com.example.entity.Student;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,7 +22,8 @@ public class StudentDto {
     private String academyName;
     private Long classId;
     private String className;
-    private String pin; // Only used for create/update operations
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String pin;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

@@ -83,6 +83,13 @@ public class DailyFeedbackService {
     @Transactional
     public StudentLessonDto updateInstructorFeedback(Long studentId, Long lessonId,
                                                       String feedback, String authorName) {
+        return updateInstructorFeedback(studentId, lessonId, feedback, authorName, false);
+    }
+
+    @Transactional
+    public StudentLessonDto updateInstructorFeedback(Long studentId, Long lessonId,
+                                                      String feedback, String authorName,
+                                                      boolean isAiFeedback) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         Lesson lesson = lessonRepository.findById(lessonId)
@@ -97,6 +104,7 @@ public class DailyFeedbackService {
 
         studentLesson.setInstructorFeedback(feedback);
         studentLesson.setFeedbackAuthor(authorName);
+        studentLesson.setIsAiFeedback(isAiFeedback);
         return StudentLessonDto.from(studentLessonRepository.save(studentLesson));
     }
 

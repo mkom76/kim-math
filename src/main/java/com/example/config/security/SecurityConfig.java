@@ -36,6 +36,7 @@ public class SecurityConfig {
                     "/api/auth/teacher/login"
                 ).permitAll()
                 .requestMatchers("/api/**").authenticated()
+                .requestMatchers("/actuator/**").hasRole("TEACHER")
                 .anyRequest().permitAll()
             )
             .addFilterBefore(new SessionAuthenticationFilter(),

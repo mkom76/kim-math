@@ -360,8 +360,8 @@ export const dailyFeedbackAPI = {
     client.get<DailyFeedback>(`/daily-feedback/student/${studentId}/today`),
   getDailyFeedback: (studentId: number, lessonId: number) =>
     client.get<DailyFeedback>(`/daily-feedback/student/${studentId}/lesson/${lessonId}`),
-  updateInstructorFeedback: (studentId: number, lessonId: number, feedback: string, authorName: string) =>
-    client.put(`/daily-feedback/student/${studentId}/lesson/${lessonId}`, { feedback, authorName }),
+  updateInstructorFeedback: (studentId: number, lessonId: number, feedback: string, authorName: string, isAiFeedback?: boolean) =>
+    client.put(`/daily-feedback/student/${studentId}/lesson/${lessonId}`, { feedback, authorName, isAiFeedback }),
 };
 
 // Clinic API
@@ -575,6 +575,39 @@ export const videoProgressAPI = {
 
   getStudentProgress: (studentId: number) =>
     client.get<VideoProgress[]>(`/students/${studentId}/videos/progress`)
+}
+
+// AI Feedback API
+export interface AiFeedbackRequest {
+  studentId: number
+  lessonId: number
+  teacherId: number
+}
+
+export interface AiFeedbackResponse {
+  generatedFeedback: string
+  studentId: number
+  lessonId: number
+}
+
+export interface FeedbackPromptTemplate {
+  id?: number
+  teacherId: number
+  systemPrompt: string
+  fewShotCount: number
+  isActive: boolean
+}
+
+export const aiFeedbackAPI = {
+  generate: (request: AiFeedbackRequest) =>
+    client.post<AiFeedbackResponse>('/ai-feedback/generate', request).then(res => res.data),
+}
+
+export const feedbackPromptTemplateAPI = {
+  getByTeacher: (teacherId: number) =>
+    client.get<FeedbackPromptTemplate>(`/feedback-prompt-templates/teacher/${teacherId}`).then(res => res.data),
+  save: (teacherId: number, template: FeedbackPromptTemplate) =>
+    client.put<FeedbackPromptTemplate>(`/feedback-prompt-templates/teacher/${teacherId}`, template).then(res => res.data),
 }
 
 export default client;

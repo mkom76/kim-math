@@ -22,4 +22,23 @@ public interface StudentLessonRepository extends JpaRepository<StudentLesson, Lo
            "AND sl.lesson.lessonDate = :lessonDate")
     Optional<StudentLesson> findByStudentIdAndDate(@Param("studentId") Long studentId,
                                                      @Param("lessonDate") LocalDate lessonDate);
+
+    @Query("SELECT sl FROM StudentLesson sl " +
+           "WHERE sl.feedbackAuthor = (SELECT t.name FROM Teacher t WHERE t.id = :teacherId) " +
+           "AND sl.instructorFeedback IS NOT NULL " +
+           "AND sl.instructorFeedback <> '' " +
+           "AND (sl.isAiFeedback = false OR sl.isAiFeedback IS NULL) " +
+           "AND sl.id IN (" +
+           "  SELECT MAX(sl2.id) FROM StudentLesson sl2 " +
+           "  WHERE sl2.feedbackAuthor = (SELECT t2.name FROM Teacher t2 WHERE t2.id = :teacherId) " +
+           "  AND sl2.instructorFeedback IS NOT NULL " +
+           "  AND sl2.instructorFeedback <> '' " +
+           "  AND (sl2.isAiFeedback = false OR sl2.isAiFeedback IS NULL) " +
+           "  GROUP BY sl2.lesson.id" +
+           ") " +
+           "ORDER BY sl.updatedAt DESC " +
+           "LIMIT :limit")
+    List<StudentLesson> findRecentByFeedbackAuthorTeacherId(
+            @Param("teacherId") Long teacherId,
+            @Param("limit") int limit);
 }

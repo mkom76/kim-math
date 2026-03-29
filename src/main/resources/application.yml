@@ -38,6 +38,14 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
+# OpenAI API
+openai:
+  api:
+    key: ${OPENAI_API_KEY:}
+    model: gpt-5-mini
+    max-tokens: 1024
+    base-url: https://api.openai.com
+
 # YouTube Data API v3
 youtube:
   api:
