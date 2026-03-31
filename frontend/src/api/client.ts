@@ -639,9 +639,29 @@ export interface FeedbackPromptTemplate {
   isActive: boolean
 }
 
+export interface BulkAiFeedbackRequest {
+  lessonId: number
+  teacherId: number
+  model?: string
+}
+
+export interface BulkAiFeedbackResponse {
+  status: 'PROCESSING' | 'COMPLETED'
+  totalCount: number
+  processedCount: number
+  successCount: number
+  failCount: number
+  skippedCount: number
+  skippedStudents: string[]
+}
+
 export const aiFeedbackAPI = {
   generate: (request: AiFeedbackRequest) =>
     client.post<AiFeedbackResponse>('/ai-feedback/generate', request).then(res => res.data),
+  generateBulk: (request: BulkAiFeedbackRequest) =>
+    client.post<BulkAiFeedbackResponse>('/ai-feedback/generate-bulk', request).then(res => res.data),
+  getBulkStatus: (lessonId: number) =>
+    client.get<BulkAiFeedbackResponse>(`/ai-feedback/generate-bulk/status/${lessonId}`).then(res => res.data),
 }
 
 export const feedbackPromptTemplateAPI = {

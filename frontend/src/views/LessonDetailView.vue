@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ChatLineSquare, BellFilled, VideoPlay, Plus, Top, Bottom, Delete, DocumentCopy } from '@element-plus/icons-vue'
-import { lessonAPI, testAPI, homeworkAPI, studentHomeworkAPI, lessonVideoAPI, type Lesson, type Test, type Homework, type LessonStudentStats, type StudentHomeworkAssignment, type LessonVideo, type VideoStats, type AttendanceRecord, type AttendanceRequest } from '../api/client'
+import { lessonAPI, testAPI, homeworkAPI, studentHomeworkAPI, lessonVideoAPI, aiFeedbackAPI, authAPI, type Lesson, type Test, type Homework, type LessonStudentStats, type StudentHomeworkAssignment, type LessonVideo, type VideoStats, type AttendanceRecord, type AttendanceRequest } from '../api/client'
 
 const route = useRoute()
 const router = useRouter()
@@ -444,6 +444,84 @@ const calculateAverageCompletion = () => {
   return Math.round(total / completedStudents.length)
 }
 
+// AI 일괄 피드백 state
+const bulkAiLoading = ref(false)
+const bulkAiProgress = ref('')
+const bulkAiModel = ref('gpt-5-mini')
+const bulkAiPollTimer = ref<ReturnType<typeof setInterval> | null>(null)
+const aiModelOptions = [
+  { label: 'GPT-5 Mini (추천)', value: 'gpt-5-mini' },
+  { label: 'GPT-5 Nano (빠름)', value: 'gpt-5-nano' },
+]
+
+const stopBulkPolling = () => {
+  if (bulkAiPollTimer.value) {
+    clearInterval(bulkAiPollTimer.value)
+    bulkAiPollTimer.value = null
+  }
+}
+
+const pollBulkStatus = () => {
+  bulkAiPollTimer.value = setInterval(async () => {
+    try {
+      const status = await aiFeedbackAPI.getBulkStatus(lessonId.value)
+      bulkAiProgress.value = `${status.processedCount} / ${status.totalCount}명 처리 중...`
+
+      if (status.status === 'COMPLETED') {
+        stopBulkPolling()
+        bulkAiLoading.value = false
+        bulkAiProgress.value = ''
+
+        let message = `성공 ${status.successCount}명`
+        if (status.failCount > 0) message += `, 실패 ${status.failCount}명`
+        if (status.skippedCount > 0) message += `, 스킵 ${status.skippedCount}명`
+        ElMessage.success(message)
+
+        if (status.skippedStudents.length > 0) {
+          ElMessage.info(`스킵: ${status.skippedStudents.join(', ')}`)
+        }
+
+        fetchLesson()
+      }
+    } catch {
+      stopBulkPolling()
+      bulkAiLoading.value = false
+      bulkAiProgress.value = ''
+    }
+  }, 3000)
+}
+
+const generateBulkAiFeedback = async () => {
+  try {
+    const currentUser = await authAPI.getCurrentUser()
+    const teacherId = currentUser.data.userId
+    if (!teacherId) return
+
+    await ElMessageBox.confirm(
+      '피드백이 없는 학생들에게 AI 피드백을 일괄 생성합니다.\n(결석/인강/기작성 학생은 스킵됩니다)',
+      'AI 피드백 일괄 생성',
+      { confirmButtonText: '생성', cancelButtonText: '취소', type: 'info' }
+    )
+
+    bulkAiLoading.value = true
+    bulkAiProgress.value = '시작 중...'
+
+    await aiFeedbackAPI.generateBulk({
+      lessonId: lessonId.value,
+      teacherId,
+      model: bulkAiModel.value
+    })
+
+    pollBulkStatus()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error('AI 피드백 일괄 생성에 실패했습니다.')
+    }
+    bulkAiLoading.value = false
+    bulkAiProgress.value = ''
+  }
+}
+
 // Video management state
 const videos = ref<LessonVideo[]>([])
 const videoStats = ref<VideoStats[]>([])
@@ -602,6 +680,10 @@ onMounted(() => {
   fetchLesson()
   fetchVideos()
 })
+
+onBeforeUnmount(() => {
+  stopBulkPolling()
+})
 </script>
 
 <template>
@@ -714,6 +796,32 @@ onMounted(() => {
           </el-form>
         </div>
       </div>
+    </el-card>
+
+    <!-- AI 피드백 일괄 생성 -->
+    <el-card shadow="never" style="margin-top: 24px">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <h3 style="margin: 0; font-size: 18px; font-weight: 600">AI 개별 피드백 일괄 생성</h3>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <el-select v-model="bulkAiModel" size="small" style="width: 170px">
+            <el-option
+              v-for="opt in aiModelOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
+          </el-select>
+          <el-button type="primary" size="small" :loading="bulkAiLoading" @click="generateBulkAiFeedback">
+            일괄 생성
+          </el-button>
+        </div>
+      </div>
+      <p v-if="bulkAiProgress" style="margin: 8px 0 0; color: #409eff; font-size: 13px; font-weight: 600">
+        {{ bulkAiProgress }}
+      </p>
+      <p v-else style="margin: 8px 0 0; color: #909399; font-size: 13px">
+        결석/인강/피드백 기작성 학생은 자동으로 스킵됩니다.
+      </p>
     </el-card>
 
     <el-row :gutter="24">

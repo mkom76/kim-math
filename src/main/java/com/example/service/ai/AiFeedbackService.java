@@ -2,6 +2,8 @@ package com.example.service.ai;
 
 import com.example.dto.AiFeedbackRequest;
 import com.example.dto.AiFeedbackResponse;
+import com.example.dto.BulkAiFeedbackRequest;
+import com.example.dto.BulkAiFeedbackResponse;
 import com.example.dto.DailyFeedbackDto;
 import com.example.entity.FeedbackPromptTemplate;
 import com.example.entity.Student;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +31,52 @@ public class AiFeedbackService {
     private final StudentLessonRepository studentLessonRepository;
     private final StudentRepository studentRepository;
     private final OpenAiApiClient openAiApiClient;
+    private final BulkAiFeedbackProcessor bulkProcessor;
+
+    // lessonId -> 진행 상태
+    private final ConcurrentHashMap<Long, BulkAiFeedbackResponse> bulkStatusMap = new ConcurrentHashMap<>();
+
+    public BulkAiFeedbackResponse getBulkStatus(Long lessonId) {
+        return bulkStatusMap.get(lessonId);
+    }
+
+    public BulkAiFeedbackResponse startBulkFeedback(BulkAiFeedbackRequest request) {
+        Long lessonId = request.getLessonId();
+
+        // 이미 진행 중이면 현재 상태 반환
+        BulkAiFeedbackResponse existing = bulkStatusMap.get(lessonId);
+        if (existing != null && "PROCESSING".equals(existing.getStatus())) {
+            return existing;
+        }
+
+        List<StudentLesson> studentLessons = studentLessonRepository.findByLessonId(lessonId);
+
+        // 엔티티 → 스냅샷 변환 (비동기 스레드에서 Lazy 프록시 접근 방지)
+        List<BulkAiFeedbackProcessor.StudentSnapshot> snapshots = studentLessons.stream()
+                .map(sl -> new BulkAiFeedbackProcessor.StudentSnapshot(
+                        sl.getStudent().getId(),
+                        sl.getStudent().getName(),
+                        sl.getAttendanceStatus(),
+                        sl.getInstructorFeedback()))
+                .toList();
+
+        // 초기 상태 등록
+        BulkAiFeedbackResponse initial = BulkAiFeedbackResponse.builder()
+                .status("PROCESSING")
+                .totalCount(snapshots.size())
+                .processedCount(0)
+                .successCount(0)
+                .failCount(0)
+                .skippedCount(0)
+                .skippedStudents(new ArrayList<>())
+                .build();
+        bulkStatusMap.put(lessonId, initial);
+
+        // 별도 빈을 통한 비동기 실행 (프록시 경유)
+        bulkProcessor.processAsync(request, snapshots, initial);
+
+        return initial;
+    }
 
     public AiFeedbackResponse generateFeedback(AiFeedbackRequest request) {
         // 1. 학생 시험 데이터 수집
