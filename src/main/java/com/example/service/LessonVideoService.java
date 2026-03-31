@@ -8,12 +8,15 @@ import com.example.entity.LessonVideo;
 import com.example.entity.Student;
 import com.example.repository.LessonRepository;
 import com.example.repository.LessonVideoRepository;
+import com.example.repository.StudentLessonRepository;
 import com.example.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,6 +26,7 @@ public class LessonVideoService {
     private final LessonVideoRepository lessonVideoRepository;
     private final LessonRepository lessonRepository;
     private final StudentRepository studentRepository;
+    private final StudentLessonRepository studentLessonRepository;
     private final YouTubeService youtubeService;
 
     /**
@@ -146,10 +150,15 @@ public class LessonVideoService {
 
         Long classId = student.getAcademyClass().getId();
 
-        // 해당 반의 모든 수업 조회 (최신순)
+        // 결석한 수업 ID 조회
+        Set<Long> absentLessonIds = new HashSet<>(
+                studentLessonRepository.findAbsentLessonIdsByStudentId(studentId));
+
+        // 해당 반의 모든 수업 조회 (최신순), 결석 수업 제외
         List<Lesson> lessons = lessonRepository.findAll().stream()
                 .filter(lesson -> lesson.getAcademyClass() != null &&
                         lesson.getAcademyClass().getId().equals(classId))
+                .filter(lesson -> !absentLessonIds.contains(lesson.getId()))
                 .sorted((a, b) -> b.getLessonDate().compareTo(a.getLessonDate()))
                 .collect(Collectors.toList());
 

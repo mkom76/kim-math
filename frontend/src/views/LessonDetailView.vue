@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ChatLineSquare, BellFilled, VideoPlay, Plus, Top, Bottom, Delete } from '@element-plus/icons-vue'
-import { lessonAPI, testAPI, homeworkAPI, studentHomeworkAPI, lessonVideoAPI, type Lesson, type Test, type Homework, type LessonStudentStats, type StudentHomeworkAssignment, type LessonVideo, type VideoStats } from '../api/client'
+import { lessonAPI, testAPI, homeworkAPI, studentHomeworkAPI, lessonVideoAPI, type Lesson, type Test, type Homework, type LessonStudentStats, type StudentHomeworkAssignment, type LessonVideo, type VideoStats, type AttendanceRecord, type AttendanceRequest } from '../api/client'
 
 const route = useRoute()
 const router = useRouter()
@@ -50,6 +50,9 @@ const fetchLesson = async () => {
 
     // Fetch student assignments
     await fetchAssignments()
+
+    // Fetch attendance
+    await loadAttendance()
   } catch (error) {
     ElMessage.error('수업 정보를 불러오는데 실패했습니다.')
   } finally {
@@ -485,6 +488,60 @@ const formatDuration = (duration: string) => {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
+// 출석 체크
+const attendanceList = ref<AttendanceRecord[]>([])
+const attendanceLoading = ref(false)
+const attendanceSaving = ref(false)
+
+const attendanceLabels: Record<string, string> = {
+  PRESENT: '출석',
+  ABSENT: '결석',
+  LATE: '지각',
+  EARLY_LEAVE: '조퇴',
+  VIDEO: '인강',
+}
+
+const attendanceColors: Record<string, string> = {
+  PRESENT: '#67C23A',
+  ABSENT: '#F56C6C',
+  LATE: '#E6A23C',
+  EARLY_LEAVE: '#909399',
+  VIDEO: '#409EFF',
+}
+
+const loadAttendance = async () => {
+  if (!lesson.value) return
+  attendanceLoading.value = true
+  try {
+    attendanceList.value = await lessonAPI.getAttendance(lesson.value.id!)
+  } finally {
+    attendanceLoading.value = false
+  }
+}
+
+const saveAttendance = async () => {
+  if (!lesson.value) return
+  attendanceSaving.value = true
+  try {
+    const requests: AttendanceRequest[] = attendanceList.value.map(a => ({
+      studentId: a.studentId,
+      status: a.attendanceStatus,
+    }))
+    await lessonAPI.saveAttendance(lesson.value.id!, requests)
+    ElMessage.success('출석이 저장되었습니다')
+  } catch {
+    ElMessage.error('출석 저장에 실패했습니다')
+  } finally {
+    attendanceSaving.value = false
+  }
+}
+
+const setAllAttendance = (status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EARLY_LEAVE' | 'VIDEO') => {
+  attendanceList.value.forEach(a => {
+    a.attendanceStatus = status
+  })
+}
+
 onMounted(() => {
   fetchLesson()
   fetchVideos()
@@ -676,6 +733,62 @@ onMounted(() => {
         </el-card>
       </el-col>
     </el-row>
+
+    <!-- 출석 체크 섹션 -->
+    <el-card shadow="never" style="margin-bottom: 20px">
+      <template #header>
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <span>출석 체크</span>
+          <div>
+            <el-button size="small" type="success" plain @click="setAllAttendance('PRESENT')">
+              전체 출석
+            </el-button>
+            <el-button
+              size="small"
+              type="primary"
+              :loading="attendanceSaving"
+              @click="saveAttendance"
+            >
+              저장
+            </el-button>
+          </div>
+        </div>
+      </template>
+
+      <el-table :data="attendanceList" stripe v-loading="attendanceLoading">
+        <el-table-column prop="studentName" label="학생 이름" />
+        <el-table-column label="출석 상태" width="180">
+          <template #default="{ row }">
+            <el-select
+              v-model="row.attendanceStatus"
+              placeholder="선택"
+              clearable
+              size="small"
+            >
+              <el-option
+                v-for="(label, key) in attendanceLabels"
+                :key="key"
+                :label="label"
+                :value="key"
+              />
+            </el-select>
+          </template>
+        </el-table-column>
+        <el-table-column label="상태" width="80" align="center">
+          <template #default="{ row }">
+            <el-tag
+              v-if="row.attendanceStatus"
+              :color="attendanceColors[row.attendanceStatus]"
+              effect="dark"
+              size="small"
+            >
+              {{ attendanceLabels[row.attendanceStatus] }}
+            </el-tag>
+            <span v-else style="color: #999">-</span>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
 
     <!-- Student Test Scores Section -->
     <el-card v-if="lesson?.testTitle && stats?.testScores" shadow="never" style="margin-top: 24px">

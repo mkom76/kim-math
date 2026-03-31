@@ -41,4 +41,14 @@ public interface StudentLessonRepository extends JpaRepository<StudentLesson, Lo
     List<StudentLesson> findRecentByFeedbackAuthorTeacherId(
             @Param("teacherId") Long teacherId,
             @Param("limit") int limit);
+
+    @Query("SELECT sl.lesson.id FROM StudentLesson sl " +
+           "WHERE sl.student.id = :studentId " +
+           "AND sl.attendanceStatus = com.example.entity.AttendanceStatus.ABSENT")
+    List<Long> findAbsentLessonIdsByStudentId(@Param("studentId") Long studentId);
+
+    @Query("SELECT sl.attendanceStatus, COUNT(sl) FROM StudentLesson sl " +
+           "WHERE sl.student.id = :studentId " +
+           "GROUP BY sl.attendanceStatus")
+    List<Object[]> countByStudentIdGroupByAttendanceStatus(@Param("studentId") Long studentId);
 }

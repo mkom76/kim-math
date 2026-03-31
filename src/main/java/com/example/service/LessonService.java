@@ -1,9 +1,12 @@
 package com.example.service;
 
+import com.example.controller.LessonController;
+import com.example.dto.AttendanceStatsDto;
 import com.example.dto.HomeworkDto;
 import com.example.dto.LessonDto;
 import com.example.dto.LessonStudentStatsDto;
 import com.example.dto.StudentHomeworkAssignmentDto;
+import com.example.dto.StudentLessonDto;
 import com.example.entity.*;
 import com.example.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +31,7 @@ public class LessonService {
     private final StudentRepository studentRepository;
     private final StudentSubmissionRepository studentSubmissionRepository;
     private final StudentHomeworkRepository studentHomeworkRepository;
+    private final StudentLessonRepository studentLessonRepository;
 
     /**
      * Get or create lesson for a specific date/class
@@ -486,5 +490,113 @@ public class LessonService {
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 수업의 출석 현황 조회
+     */
+    @Transactional(readOnly = true)
+    public List<StudentLessonDto> getAttendance(Long lessonId) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("Lesson not found"));
+
+        List<Student> students = studentRepository.findByAcademyClassId(
+                lesson.getAcademyClass().getId());
+
+        List<StudentLesson> existing = studentLessonRepository.findByLessonId(lessonId);
+        Map<Long, StudentLesson> existingMap = existing.stream()
+                .collect(Collectors.toMap(sl -> sl.getStudent().getId(), sl -> sl));
+
+        return students.stream()
+                .map(student -> {
+                    StudentLesson sl = existingMap.get(student.getId());
+                    return StudentLessonDto.builder()
+                            .id(sl != null ? sl.getId() : null)
+                            .studentId(student.getId())
+                            .studentName(student.getName())
+                            .lessonId(lessonId)
+                            .lessonDate(lesson.getLessonDate())
+                            .attendanceStatus(sl != null && sl.getAttendanceStatus() != null
+                                    ? sl.getAttendanceStatus().name() : null)
+                            .instructorFeedback(sl != null ? sl.getInstructorFeedback() : null)
+                            .feedbackAuthor(sl != null ? sl.getFeedbackAuthor() : null)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 출석 일괄 저장
+     */
+    public void saveAttendance(Long lessonId, List<LessonController.AttendanceRequest> attendanceList) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("Lesson not found"));
+
+        for (LessonController.AttendanceRequest req : attendanceList) {
+            StudentLesson sl = studentLessonRepository
+                    .findByStudentIdAndLessonId(req.getStudentId(), lessonId)
+                    .orElseGet(() -> {
+                        Student student = studentRepository.findById(req.getStudentId())
+                                .orElseThrow(() -> new RuntimeException("Student not found"));
+                        return StudentLesson.builder()
+                                .student(student)
+                                .lesson(lesson)
+                                .build();
+                    });
+
+            sl.setAttendanceStatus(req.getStatus() != null
+                    ? AttendanceStatus.valueOf(req.getStatus()) : null);
+            studentLessonRepository.save(sl);
+        }
+    }
+
+    /**
+     * 학생별 출석 통계 조회
+     */
+    @Transactional(readOnly = true)
+    public AttendanceStatsDto getAttendanceStats(Long studentId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        long totalLessons = lessonRepository.findByAcademyClassIdOrderByLessonDateDesc(
+                student.getAcademyClass().getId()).size();
+
+        List<Object[]> counts = studentLessonRepository
+                .countByStudentIdGroupByAttendanceStatus(studentId);
+
+        int presentCount = 0, absentCount = 0, lateCount = 0, earlyLeaveCount = 0, videoCount = 0, uncheckedCount = 0;
+
+        for (Object[] row : counts) {
+            AttendanceStatus status = (AttendanceStatus) row[0];
+            long count = (Long) row[1];
+            if (status == null) {
+                uncheckedCount = (int) count;
+            } else {
+                switch (status) {
+                    case PRESENT -> presentCount = (int) count;
+                    case ABSENT -> absentCount = (int) count;
+                    case LATE -> lateCount = (int) count;
+                    case EARLY_LEAVE -> earlyLeaveCount = (int) count;
+                    case VIDEO -> videoCount = (int) count;
+                }
+            }
+        }
+
+        int checkedCount = presentCount + absentCount + lateCount + earlyLeaveCount + videoCount;
+        double attendanceRate = checkedCount > 0
+                ? (double) (presentCount + videoCount) / checkedCount * 100 : 0;
+
+        return AttendanceStatsDto.builder()
+                .studentId(studentId)
+                .studentName(student.getName())
+                .totalLessons((int) totalLessons)
+                .presentCount(presentCount)
+                .absentCount(absentCount)
+                .lateCount(lateCount)
+                .earlyLeaveCount(earlyLeaveCount)
+                .videoCount(videoCount)
+                .uncheckedCount(uncheckedCount)
+                .attendanceRate(Math.round(attendanceRate * 10) / 10.0)
+                .build();
     }
 }

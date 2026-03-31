@@ -12,7 +12,9 @@ import {
   testAPI,
   authAPI,
   videoProgressAPI,
-  type VideoProgress
+  type VideoProgress,
+  type AttendanceStats,
+  lessonAPI
 } from '../api/client'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useTouchGestures } from '@/composables/useTouchGestures'
@@ -28,6 +30,7 @@ const submissions = ref<Submission[]>([])
 const testStats = ref<Record<number, any>>({})
 const studentHomeworks = ref<StudentHomework[]>([])
 const videoProgress = ref<VideoProgress[]>([])
+const attendanceStats = ref<AttendanceStats | null>(null)
 const activeTab = ref('test')
 
 // 선생님인지 확인
@@ -252,6 +255,15 @@ const handleMouseUp = () => {
   isDragging.value = false
 }
 
+const loadAttendanceStats = async () => {
+  if (!student.value) return
+  try {
+    attendanceStats.value = await lessonAPI.getAttendanceStats(student.value.id)
+  } catch {
+    // 통계 로드 실패 시 무시
+  }
+}
+
 const fetchStudentDetail = async () => {
   loading.value = true
   try {
@@ -274,6 +286,7 @@ const fetchStudentDetail = async () => {
     ])
 
     student.value = studentRes.data
+    loadAttendanceStats()
     submissions.value = (submissionsRes.data.content || submissionsRes.data)
       .sort((a: Submission, b: Submission) => {
         const dateA = a.submittedAt ? new Date(a.submittedAt).getTime() : 0
@@ -382,6 +395,51 @@ onMounted(() => {
                 <div style="margin-top: 4px; font-weight: 500">{{ student?.className }}</div>
               </div>
             </div>
+          </div>
+        </el-card>
+
+        <!-- 출석 통계 -->
+        <el-card v-if="attendanceStats" shadow="never" style="margin-top: 20px">
+          <template #header>
+            <span>출석 통계</span>
+          </template>
+          <el-row :gutter="16">
+            <el-col :span="6">
+              <div class="stat-box">
+                <div class="stat-value" style="color: #67C23A">{{ attendanceStats.presentCount }}</div>
+                <div class="stat-label">출석</div>
+              </div>
+            </el-col>
+            <el-col :span="6">
+              <div class="stat-box">
+                <div class="stat-value" style="color: #F56C6C">{{ attendanceStats.absentCount }}</div>
+                <div class="stat-label">결석</div>
+              </div>
+            </el-col>
+            <el-col :span="6">
+              <div class="stat-box">
+                <div class="stat-value" style="color: #E6A23C">{{ attendanceStats.lateCount }}</div>
+                <div class="stat-label">지각</div>
+              </div>
+            </el-col>
+            <el-col :span="6">
+              <div class="stat-box">
+                <div class="stat-value" style="color: #909399">{{ attendanceStats.earlyLeaveCount }}</div>
+                <div class="stat-label">조퇴</div>
+              </div>
+            </el-col>
+          </el-row>
+          <el-row :gutter="16" style="margin-top: 12px">
+            <el-col :span="6">
+              <div class="stat-box">
+                <div class="stat-value" style="color: #409EFF">{{ attendanceStats.videoCount }}</div>
+                <div class="stat-label">인강</div>
+              </div>
+            </el-col>
+          </el-row>
+          <div style="margin-top: 12px; text-align: center; font-size: 14px; color: #606266">
+            출석률: <strong>{{ attendanceStats.attendanceRate }}%</strong>
+            (전체 {{ attendanceStats.totalLessons }}회 수업)
           </div>
         </el-card>
       </el-col>

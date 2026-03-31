@@ -42,6 +42,10 @@ public class StudentLesson {
     @Builder.Default
     private Boolean isAiFeedback = false;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "attendance_status")
+    private AttendanceStatus attendanceStatus;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

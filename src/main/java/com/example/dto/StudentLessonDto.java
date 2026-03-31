@@ -22,6 +22,7 @@ public class StudentLessonDto {
     private String instructorFeedback;
     private String feedbackAuthor;
     private LocalDateTime createdAt;
+    private String attendanceStatus; // "PRESENT", "ABSENT", "LATE", "EARLY_LEAVE" or null
     private LocalDateTime updatedAt;
 
     public static StudentLessonDto from(StudentLesson studentLesson) {
@@ -33,6 +34,8 @@ public class StudentLessonDto {
                 .lessonDate(studentLesson.getLesson() != null ? studentLesson.getLesson().getLessonDate() : null)
                 .instructorFeedback(studentLesson.getInstructorFeedback())
                 .feedbackAuthor(studentLesson.getFeedbackAuthor())
+                .attendanceStatus(studentLesson.getAttendanceStatus() != null
+                        ? studentLesson.getAttendanceStatus().name() : null)
                 .createdAt(studentLesson.getCreatedAt())
                 .updatedAt(studentLesson.getUpdatedAt())
                 .build();

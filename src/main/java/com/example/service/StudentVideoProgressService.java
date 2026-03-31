@@ -3,10 +3,13 @@ package com.example.service;
 import com.example.dto.StudentProgressDto;
 import com.example.dto.StudentVideoProgressDto;
 import com.example.dto.VideoStatsDto;
+import com.example.entity.AttendanceStatus;
 import com.example.entity.LessonVideo;
 import com.example.entity.Student;
+import com.example.entity.StudentLesson;
 import com.example.entity.StudentVideoProgress;
 import com.example.repository.LessonVideoRepository;
+import com.example.repository.StudentLessonRepository;
 import com.example.repository.StudentRepository;
 import com.example.repository.StudentVideoProgressRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +27,7 @@ public class StudentVideoProgressService {
     private final StudentVideoProgressRepository progressRepository;
     private final StudentRepository studentRepository;
     private final LessonVideoRepository lessonVideoRepository;
+    private final StudentLessonRepository studentLessonRepository;
 
     private static final int COMPLETION_THRESHOLD = 90; // 90% to mark as completed
 
@@ -39,6 +43,15 @@ public class StudentVideoProgressService {
 
         LessonVideo video = lessonVideoRepository.findById(videoId)
                 .orElseThrow(() -> new RuntimeException("Video not found"));
+
+        // 결석한 수업의 영상은 시청 불가
+        Long lessonId = video.getLesson().getId();
+        studentLessonRepository.findByStudentIdAndLessonId(studentId, lessonId)
+                .ifPresent(sl -> {
+                    if (sl.getAttendanceStatus() == AttendanceStatus.ABSENT) {
+                        throw new RuntimeException("결석한 수업의 영상은 시청할 수 없습니다.");
+                    }
+                });
 
         StudentVideoProgress progress = progressRepository
                 .findByStudentIdAndLessonVideoId(studentId, videoId)

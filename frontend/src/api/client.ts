@@ -271,6 +271,31 @@ export interface StudentHomeworkAssignment {
   completion?: number;
 }
 
+// Attendance types
+export interface AttendanceRecord {
+  studentId: number
+  studentName: string
+  attendanceStatus: 'PRESENT' | 'ABSENT' | 'LATE' | 'EARLY_LEAVE' | 'VIDEO' | null
+}
+
+export interface AttendanceRequest {
+  studentId: number
+  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EARLY_LEAVE' | 'VIDEO' | null
+}
+
+export interface AttendanceStats {
+  studentId: number
+  studentName: string
+  totalLessons: number
+  presentCount: number
+  absentCount: number
+  lateCount: number
+  earlyLeaveCount: number
+  videoCount: number
+  uncheckedCount: number
+  attendanceRate: number
+}
+
 // Lessons API
 export const lessonAPI = {
   getLessons: (params?: any) => client.get<{ content: Lesson[] }>('/lessons', { params }),
@@ -296,6 +321,14 @@ export const lessonAPI = {
   assignHomeworks: (lessonId: number, assignments: Record<number, number>) =>
     client.post(`/lessons/${lessonId}/assign-homeworks`, assignments),
   getAssignments: (lessonId: number) => client.get<StudentHomeworkAssignment[]>(`/lessons/${lessonId}/assignments`),
+
+  // 출석 API
+  getAttendance: (lessonId: number) =>
+    client.get<AttendanceRecord[]>(`/lessons/${lessonId}/attendance`).then(res => res.data),
+  saveAttendance: (lessonId: number, attendanceList: AttendanceRequest[]) =>
+    client.put(`/lessons/${lessonId}/attendance`, attendanceList),
+  getAttendanceStats: (studentId: number) =>
+    client.get<AttendanceStats>(`/lessons/attendance/student/${studentId}`).then(res => res.data),
 };
 
 // Auth API

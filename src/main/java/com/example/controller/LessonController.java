@@ -1,9 +1,11 @@
 package com.example.controller;
 
+import com.example.dto.AttendanceStatsDto;
 import com.example.dto.HomeworkDto;
 import com.example.dto.LessonDto;
 import com.example.dto.LessonStudentStatsDto;
 import com.example.dto.StudentHomeworkAssignmentDto;
+import com.example.dto.StudentLessonDto;
 import com.example.service.LessonService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -122,6 +124,36 @@ public class LessonController {
             @PathVariable Long lessonId,
             @RequestBody UpdateLessonDateRequest request) {
         return ResponseEntity.ok(lessonService.updateLessonDate(lessonId, request.getLessonDate()));
+    }
+
+    @GetMapping("/{lessonId}/attendance")
+    public ResponseEntity<List<StudentLessonDto>> getAttendance(@PathVariable Long lessonId) {
+        return ResponseEntity.ok(lessonService.getAttendance(lessonId));
+    }
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @PutMapping("/{lessonId}/attendance")
+    public ResponseEntity<Void> saveAttendance(
+            @PathVariable Long lessonId,
+            @RequestBody List<AttendanceRequest> attendanceList) {
+        lessonService.saveAttendance(lessonId, attendanceList);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/attendance/student/{studentId}")
+    public ResponseEntity<AttendanceStatsDto> getAttendanceStats(@PathVariable Long studentId) {
+        return ResponseEntity.ok(lessonService.getAttendanceStats(studentId));
+    }
+
+    // Request DTO for attendance
+    public static class AttendanceRequest {
+        private Long studentId;
+        private String status;
+
+        public Long getStudentId() { return studentId; }
+        public void setStudentId(Long studentId) { this.studentId = studentId; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
     }
 
     // Request DTO for updating lesson content

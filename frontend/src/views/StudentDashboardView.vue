@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { authAPI, lessonAPI, submissionAPI, studentAPI } from '@/api/client'
-import type { AuthResponse, Test, Submission, Student, Lesson } from '@/api/client'
+import type { AuthResponse, Test, Submission, Student, Lesson, AttendanceStats } from '@/api/client'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 
 const router = useRouter()
@@ -13,6 +13,7 @@ const studentInfo = ref<Student | null>(null)
 const availableTests = ref<Test[]>([])
 const mySubmissions = ref<Submission[]>([])
 const pastTestsDialogVisible = ref(false)
+const attendanceStats = ref<AttendanceStats | null>(null)
 
 const { isMobile } = useBreakpoint()
 const containerPadding = computed(() => isMobile.value ? '10px' : '24px')
@@ -55,6 +56,13 @@ const fetchCurrentUser = async () => {
       // Fetch student's submissions
       const submissionsResponse = await submissionAPI.getStudentSubmissions(currentUser.value.userId)
       mySubmissions.value = submissionsResponse.data
+
+      // Fetch attendance stats
+      try {
+        attendanceStats.value = await lessonAPI.getAttendanceStats(currentUser.value.userId)
+      } catch {
+        // 실패 시 무시
+      }
     }
   } catch (error) {
     console.error('Failed to fetch user data:', error)
@@ -146,7 +154,7 @@ onMounted(() => {
 
     <!-- Student Info Card -->
     <el-row :gutter="isMobile ? 12 : 24" :style="{ marginBottom: isMobile ? '12px' : '24px' }">
-      <el-col :xs="8" :sm="8" :md="8">
+      <el-col :xs="12" :sm="6" :md="6">
         <el-card shadow="hover" :body-style="{ padding: isMobile ? '10px' : '20px' }">
           <div style="text-align: center">
             <h3 :style="{ margin: 0, fontSize: h3FontSize, color: '#409eff', marginBottom: isMobile ? '4px' : '8px' }">내 정보</h3>
@@ -156,7 +164,7 @@ onMounted(() => {
         </el-card>
       </el-col>
 
-      <el-col :xs="8" :sm="8" :md="8">
+      <el-col :xs="12" :sm="6" :md="6">
         <el-card shadow="hover" :body-style="{ padding: isMobile ? '10px' : '20px' }">
           <div style="text-align: center">
             <h3 :style="{ margin: 0, fontSize: h3FontSize, color: '#67c23a', marginBottom: isMobile ? '4px' : '8px' }">미응시</h3>
@@ -167,12 +175,26 @@ onMounted(() => {
         </el-card>
       </el-col>
 
-      <el-col :xs="8" :sm="8" :md="8">
+      <el-col :xs="12" :sm="6" :md="6">
         <el-card shadow="hover" style="cursor: pointer" :body-style="{ padding: isMobile ? '10px' : '20px' }" @click="showPastTestsDialog">
           <div style="text-align: center">
             <h3 :style="{ margin: 0, fontSize: h3FontSize, color: '#e6a23c', marginBottom: isMobile ? '4px' : '8px' }">지난 시험</h3>
             <p :style="{ margin: 0, color: '#606266', fontSize: statFontSize, fontWeight: 700 }">
               {{ mySubmissions.length }}
+            </p>
+          </div>
+        </el-card>
+      </el-col>
+
+      <el-col :xs="12" :sm="6" :md="6">
+        <el-card shadow="hover" :body-style="{ padding: isMobile ? '10px' : '20px' }">
+          <div style="text-align: center">
+            <h3 :style="{ margin: 0, fontSize: h3FontSize, marginBottom: isMobile ? '4px' : '8px', color: attendanceStats && attendanceStats.attendanceRate >= 80 ? '#67C23A' : '#F56C6C' }">출석률</h3>
+            <p :style="{ margin: 0, color: attendanceStats && attendanceStats.attendanceRate >= 80 ? '#67C23A' : '#F56C6C', fontSize: statFontSize, fontWeight: 700 }">
+              {{ attendanceStats ? attendanceStats.attendanceRate + '%' : '-' }}
+            </p>
+            <p v-if="attendanceStats" :style="{ margin: isMobile ? '2px 0 0' : '4px 0 0', color: '#909399', fontSize: isMobile ? '10px' : '12px' }">
+              출석 {{ attendanceStats.presentCount }} / 결석 {{ attendanceStats.absentCount }} / 지각 {{ attendanceStats.lateCount }} / 인강 {{ attendanceStats.videoCount }}
             </p>
           </div>
         </el-card>
