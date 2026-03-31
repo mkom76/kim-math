@@ -13,6 +13,7 @@ const studentInfo = ref<Student | null>(null)
 const availableTests = ref<Test[]>([])
 const mySubmissions = ref<Submission[]>([])
 const pastTestsDialogVisible = ref(false)
+const attendanceDialogVisible = ref(false)
 const attendanceStats = ref<AttendanceStats | null>(null)
 
 const { isMobile } = useBreakpoint()
@@ -131,20 +132,20 @@ onMounted(() => {
             {{ studentInfo.academyName }} · {{ studentInfo.className }}
           </p>
         </div>
-        <div :style="{ display: 'flex', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap', alignContent: 'flex-start', justifyContent: 'flex-start', margin: 0, width: '100%' }">
-          <el-button type="success" @click="$router.push(`/student/stats`)" :size="isMobile ? 'small' : 'default'" style="margin: 0">
+        <div :style="{ display: 'flex', flexWrap: 'wrap', gap: isMobile ? '8px' : '12px', width: '100%' }">
+          <el-button type="success" @click="$router.push(`/student/stats`)" :size="isMobile ? 'small' : 'default'" :style="{ margin: 0, flex: '1 1 calc(25% - 12px)', minWidth: isMobile ? 'calc(50% - 4px)' : '120px' }">
             <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><TrendCharts /></el-icon>
             내 학습 통계
           </el-button>
-          <el-button type="primary" @click="$router.push('/student/daily-feedback')" :size="isMobile ? 'small' : 'default'" style="margin: 0">
+          <el-button type="primary" @click="$router.push('/student/daily-feedback')" :size="isMobile ? 'small' : 'default'" :style="{ margin: 0, flex: '1 1 calc(25% - 12px)', minWidth: isMobile ? 'calc(50% - 4px)' : '120px' }">
             <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><Document /></el-icon>
             수업 피드백
           </el-button>
-          <el-button type="warning" @click="$router.push('/student/clinic')" :size="isMobile ? 'small' : 'default'" style="margin: 0">
+          <el-button type="warning" @click="$router.push('/student/clinic')" :size="isMobile ? 'small' : 'default'" :style="{ margin: 0, flex: '1 1 calc(25% - 12px)', minWidth: isMobile ? 'calc(50% - 4px)' : '120px' }">
             <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><MagicStick /></el-icon>
             클리닉 관리
           </el-button>
-          <el-button type="info" @click="$router.push('/student/videos')" :size="isMobile ? 'small' : 'default'" style="margin: 0">
+          <el-button type="info" @click="$router.push('/student/videos')" :size="isMobile ? 'small' : 'default'" :style="{ margin: 0, flex: '1 1 calc(25% - 12px)', minWidth: isMobile ? 'calc(50% - 4px)' : '120px' }">
             <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><VideoPlay /></el-icon>
             수업 다시보기
           </el-button>
@@ -155,7 +156,7 @@ onMounted(() => {
     <!-- Student Info Card -->
     <el-row :gutter="isMobile ? 12 : 24" :style="{ marginBottom: isMobile ? '12px' : '24px' }">
       <el-col :xs="12" :sm="6" :md="6">
-        <el-card shadow="hover" :body-style="{ padding: isMobile ? '10px' : '20px' }">
+        <el-card shadow="hover" :body-style="{ padding: isMobile ? '10px' : '20px', height: isMobile ? '100px' : '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }">
           <div style="text-align: center">
             <h3 :style="{ margin: 0, fontSize: h3FontSize, color: '#409eff', marginBottom: isMobile ? '4px' : '8px' }">내 정보</h3>
             <p :style="{ margin: isMobile ? '2px 0' : '4px 0', color: '#606266', fontSize: bodyFontSize }">{{ studentInfo?.school || '-' }}</p>
@@ -165,7 +166,7 @@ onMounted(() => {
       </el-col>
 
       <el-col :xs="12" :sm="6" :md="6">
-        <el-card shadow="hover" :body-style="{ padding: isMobile ? '10px' : '20px' }">
+        <el-card shadow="hover" :body-style="{ padding: isMobile ? '10px' : '20px', height: isMobile ? '100px' : '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }">
           <div style="text-align: center">
             <h3 :style="{ margin: 0, fontSize: h3FontSize, color: '#67c23a', marginBottom: isMobile ? '4px' : '8px' }">미응시</h3>
             <p :style="{ margin: 0, color: '#606266', fontSize: statFontSize, fontWeight: 700 }">
@@ -176,7 +177,7 @@ onMounted(() => {
       </el-col>
 
       <el-col :xs="12" :sm="6" :md="6">
-        <el-card shadow="hover" style="cursor: pointer" :body-style="{ padding: isMobile ? '10px' : '20px' }" @click="showPastTestsDialog">
+        <el-card shadow="hover" style="cursor: pointer" :body-style="{ padding: isMobile ? '10px' : '20px', height: isMobile ? '100px' : '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }" @click="showPastTestsDialog">
           <div style="text-align: center">
             <h3 :style="{ margin: 0, fontSize: h3FontSize, color: '#e6a23c', marginBottom: isMobile ? '4px' : '8px' }">지난 시험</h3>
             <p :style="{ margin: 0, color: '#606266', fontSize: statFontSize, fontWeight: 700 }">
@@ -187,14 +188,11 @@ onMounted(() => {
       </el-col>
 
       <el-col :xs="12" :sm="6" :md="6">
-        <el-card shadow="hover" :body-style="{ padding: isMobile ? '10px' : '20px' }">
+        <el-card shadow="hover" style="cursor: pointer" :body-style="{ padding: isMobile ? '10px' : '20px', height: isMobile ? '100px' : '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }" @click="attendanceDialogVisible = true">
           <div style="text-align: center">
             <h3 :style="{ margin: 0, fontSize: h3FontSize, marginBottom: isMobile ? '4px' : '8px', color: attendanceStats && attendanceStats.attendanceRate >= 80 ? '#67C23A' : '#F56C6C' }">출석률</h3>
             <p :style="{ margin: 0, color: attendanceStats && attendanceStats.attendanceRate >= 80 ? '#67C23A' : '#F56C6C', fontSize: statFontSize, fontWeight: 700 }">
               {{ attendanceStats ? attendanceStats.attendanceRate + '%' : '-' }}
-            </p>
-            <p v-if="attendanceStats" :style="{ margin: isMobile ? '2px 0 0' : '4px 0 0', color: '#909399', fontSize: isMobile ? '10px' : '12px' }">
-              출석 {{ attendanceStats.presentCount }} / 결석 {{ attendanceStats.absentCount }} / 지각 {{ attendanceStats.lateCount }} / 인강 {{ attendanceStats.videoCount }}
             </p>
           </div>
         </el-card>
@@ -433,6 +431,39 @@ onMounted(() => {
 
       <template #footer>
         <el-button @click="pastTestsDialogVisible = false">닫기</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- Attendance Detail Dialog -->
+    <el-dialog v-model="attendanceDialogVisible" title="출석 현황" :width="isMobile ? '85%' : '400px'">
+      <div v-if="attendanceStats" style="display: flex; flex-direction: column; gap: 16px">
+        <div style="text-align: center; margin-bottom: 8px">
+          <span :style="{ fontSize: '36px', fontWeight: 700, color: attendanceStats.attendanceRate >= 80 ? '#67C23A' : '#F56C6C' }">
+            {{ attendanceStats.attendanceRate }}%
+          </span>
+          <p style="margin: 4px 0 0; color: #909399; font-size: 13px">전체 {{ attendanceStats.totalLessons }}회 수업</p>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+          <div style="text-align: center; padding: 12px; background: #f0f9eb; border-radius: 8px">
+            <div style="font-size: 24px; font-weight: 700; color: #67C23A">{{ attendanceStats.presentCount }}</div>
+            <div style="font-size: 13px; color: #67C23A; margin-top: 4px">출석</div>
+          </div>
+          <div style="text-align: center; padding: 12px; background: #fef0f0; border-radius: 8px">
+            <div style="font-size: 24px; font-weight: 700; color: #F56C6C">{{ attendanceStats.absentCount }}</div>
+            <div style="font-size: 13px; color: #F56C6C; margin-top: 4px">결석</div>
+          </div>
+          <div style="text-align: center; padding: 12px; background: #fdf6ec; border-radius: 8px">
+            <div style="font-size: 24px; font-weight: 700; color: #E6A23C">{{ attendanceStats.lateCount }}</div>
+            <div style="font-size: 13px; color: #E6A23C; margin-top: 4px">지각</div>
+          </div>
+          <div style="text-align: center; padding: 12px; background: #ecf5ff; border-radius: 8px">
+            <div style="font-size: 24px; font-weight: 700; color: #409EFF">{{ attendanceStats.videoCount }}</div>
+            <div style="font-size: 13px; color: #409EFF; margin-top: 4px">인강</div>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="attendanceDialogVisible = false">닫기</el-button>
       </template>
     </el-dialog>
   </div>
