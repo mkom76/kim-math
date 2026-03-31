@@ -35,6 +35,7 @@ public class DailyFeedbackDto {
         private String unsolvedQuestions; // 안 푼 문항번호
         private Integer completion; // 0-100
         private LocalDate dueDate;
+        private String memo; // 숙제 메모 (유형 정보 등)
     }
 
     @Data

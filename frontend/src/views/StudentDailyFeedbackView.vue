@@ -32,7 +32,7 @@ const modelOptions = [
 ]
 
 const generateAiFeedback = async () => {
-  if (!feedback.value?.todayTest || !studentId.value || !selectedLessonId.value) return
+  if ((!feedback.value?.todayTest && !feedback.value?.todayHomework) || !studentId.value || !selectedLessonId.value) return
   isGeneratingAiFeedback.value = true
   try {
     const response = await aiFeedbackAPI.generate({
@@ -602,7 +602,7 @@ onMounted(() => {
               <el-input v-model="editedAuthorName" placeholder="선생님 이름" />
             </el-form-item>
             <el-form-item label="피드백">
-              <div v-if="feedback?.todayTest" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap">
+              <div v-if="feedback?.todayTest || feedback?.todayHomework" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap">
                 <el-select v-model="selectedModel" style="width: 180px" size="default">
                   <el-option
                     v-for="opt in modelOptions"

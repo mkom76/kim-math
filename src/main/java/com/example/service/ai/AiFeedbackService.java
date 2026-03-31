@@ -34,8 +34,8 @@ public class AiFeedbackService {
         DailyFeedbackDto feedbackData = dailyFeedbackService.getDailyFeedback(
                 request.getStudentId(), request.getLessonId());
 
-        if (feedbackData.getTodayTest() == null) {
-            throw new RuntimeException("No test data available for this lesson");
+        if (feedbackData.getTodayTest() == null && feedbackData.getTodayHomework() == null) {
+            throw new RuntimeException("No test or homework data available for this lesson");
         }
 
         Student student = studentRepository.findById(request.getStudentId())
@@ -91,39 +91,66 @@ public class AiFeedbackService {
     }
 
     private String buildCurrentStudentData(DailyFeedbackDto feedbackData, Student student) {
-        DailyFeedbackDto.TestFeedback test = feedbackData.getTodayTest();
         StringBuilder sb = new StringBuilder();
 
-        sb.append("## 학생 시험 결과\n");
-        sb.append("- 학생: ").append(student.getName()).append("\n");
-        sb.append("- 시험: ").append(test.getTestTitle()).append("\n");
-        sb.append("- 점수: ").append(test.getStudentScore()).append("점\n");
-        sb.append("- 반 평균: ").append(String.format("%.1f", test.getClassAverage())).append("점\n");
-        sb.append("- 순위: ").append(test.getRank()).append("등\n\n");
+        // 시험 데이터
+        DailyFeedbackDto.TestFeedback test = feedbackData.getTodayTest();
+        if (test != null) {
+            sb.append("## 학생 시험 결과\n");
+            sb.append("- 학생: ").append(student.getName()).append("\n");
+            sb.append("- 시험: ").append(test.getTestTitle()).append("\n");
+            sb.append("- 점수: ").append(test.getStudentScore()).append("점\n");
+            sb.append("- 반 평균: ").append(String.format("%.1f", test.getClassAverage())).append("점\n");
+            sb.append("- 순위: ").append(test.getRank()).append("등\n\n");
 
-        if (!test.getIncorrectQuestions().isEmpty()) {
-            sb.append("## 오답 문제 (서술형 제외)\n");
-            for (Integer qNum : test.getIncorrectQuestions()) {
-                test.getQuestionAccuracyRates().stream()
-                        .filter(q -> q.getQuestionNumber().equals(qNum))
-                        .findFirst()
-                        .ifPresent(q -> sb.append("- ").append(qNum).append("번: 반 정답률 ")
-                                .append(String.format("%.0f", q.getCorrectRate())).append("%\n"));
+            if (!test.getIncorrectQuestions().isEmpty()) {
+                sb.append("## 오답 문제 (서술형 제외)\n");
+                for (Integer qNum : test.getIncorrectQuestions()) {
+                    test.getQuestionAccuracyRates().stream()
+                            .filter(q -> q.getQuestionNumber().equals(qNum))
+                            .findFirst()
+                            .ifPresent(q -> sb.append("- ").append(qNum).append("번: 반 정답률 ")
+                                    .append(String.format("%.0f", q.getCorrectRate())).append("%\n"));
+                }
+            } else {
+                sb.append("## 객관식/주관식 전문항 정답\n");
             }
-        } else {
-            sb.append("## 객관식/주관식 전문항 정답\n");
+
+            if (test.getEssayDetails() != null && !test.getEssayDetails().isEmpty()) {
+                sb.append("\n## 서술형\n");
+                for (DailyFeedbackDto.EssayDetail essay : test.getEssayDetails()) {
+                    sb.append("- ").append(essay.getQuestionNumber()).append("번: ");
+                    sb.append(essay.getEarnedPoints() != null ? essay.getEarnedPoints() : "미채점");
+                    sb.append("/").append(essay.getMaxPoints()).append("점");
+                    if (essay.getTeacherComment() != null) {
+                        sb.append(" (코멘트: ").append(essay.getTeacherComment()).append(")");
+                    }
+                    sb.append("\n");
+                }
+            }
         }
 
-        if (test.getEssayDetails() != null && !test.getEssayDetails().isEmpty()) {
-            sb.append("\n## 서술형\n");
-            for (DailyFeedbackDto.EssayDetail essay : test.getEssayDetails()) {
-                sb.append("- ").append(essay.getQuestionNumber()).append("번: ");
-                sb.append(essay.getEarnedPoints() != null ? essay.getEarnedPoints() : "미채점");
-                sb.append("/").append(essay.getMaxPoints()).append("점");
-                if (essay.getTeacherComment() != null) {
-                    sb.append(" (코멘트: ").append(essay.getTeacherComment()).append(")");
+        // 숙제 데이터
+        DailyFeedbackDto.HomeworkSummary homework = feedbackData.getTodayHomework();
+        if (homework != null) {
+            sb.append("\n## 숙제 결과\n");
+            sb.append("- 숙제: ").append(homework.getHomeworkTitle()).append("\n");
+            sb.append("- 전체 문제 수: ").append(homework.getQuestionCount()).append("문항\n");
+            if (homework.getCompletion() != null) {
+                sb.append("- 완성도: ").append(homework.getCompletion()).append("%\n");
+                sb.append("- 오답 개수: ").append(homework.getIncorrectCount() != null ? homework.getIncorrectCount() : 0).append("개\n");
+                sb.append("- 안 푼 문제 수: ").append(homework.getUnsolvedCount() != null ? homework.getUnsolvedCount() : 0).append("개\n");
+                if (homework.getIncorrectQuestions() != null && !homework.getIncorrectQuestions().isEmpty()) {
+                    sb.append("- 오답 문항번호: ").append(homework.getIncorrectQuestions()).append("\n");
                 }
-                sb.append("\n");
+                if (homework.getUnsolvedQuestions() != null && !homework.getUnsolvedQuestions().isEmpty()) {
+                    sb.append("- 안 푼 문항번호: ").append(homework.getUnsolvedQuestions()).append("\n");
+                }
+            } else {
+                sb.append("- 미제출\n");
+            }
+            if (homework.getMemo() != null && !homework.getMemo().isEmpty()) {
+                sb.append("- 숙제 메모 (문항별 유형 정보): ").append(homework.getMemo()).append("\n");
             }
         }
 

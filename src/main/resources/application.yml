@@ -43,7 +43,7 @@ openai:
   api:
     key: ${OPENAI_API_KEY:}
     model: gpt-5-mini
-    max-tokens: 4096
+    max-tokens: 8192
     base-url: https://api.openai.com
 
 # YouTube Data API v3

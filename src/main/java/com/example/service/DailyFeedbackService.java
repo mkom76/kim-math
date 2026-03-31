@@ -122,6 +122,7 @@ public class DailyFeedbackService {
                 .unsolvedQuestions(sh.map(StudentHomework::getUnsolvedQuestions).orElse(null))
                 .completion(sh.map(StudentHomework::getCompletion).orElse(null))
                 .dueDate(homework.getDueDate())
+                .memo(homework.getMemo())
                 .build();
     }
 
