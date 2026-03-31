@@ -340,6 +340,8 @@ public class LessonService {
                         .studentName(student.getName())
                         .incorrectCount(studentHomework != null ? studentHomework.getIncorrectCount() : null)
                         .unsolvedCount(studentHomework != null ? studentHomework.getUnsolvedCount() : null)
+                        .incorrectQuestions(studentHomework != null ? studentHomework.getIncorrectQuestions() : null)
+                        .unsolvedQuestions(studentHomework != null ? studentHomework.getUnsolvedQuestions() : null)
                         .completion(studentHomework != null ? studentHomework.getCompletion() : null)
                         .completed(studentHomework != null)
                         .totalQuestions(studentHomework != null ? studentHomework.getHomework().getQuestionCount() : 0)
@@ -486,6 +488,8 @@ public class LessonService {
                             .assignedHomeworkTitle(sh != null ? sh.getHomework().getTitle() : null)
                             .incorrectCount(sh != null ? sh.getIncorrectCount() : null)
                             .unsolvedCount(sh != null ? sh.getUnsolvedCount() : null)
+                            .incorrectQuestions(sh != null ? sh.getIncorrectQuestions() : null)
+                            .unsolvedQuestions(sh != null ? sh.getUnsolvedQuestions() : null)
                             .completion(sh != null ? sh.getCompletion() : null)
                             .build();
                 })

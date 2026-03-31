@@ -37,6 +37,12 @@ public class StudentHomework {
     @Column(name = "unsolved_count")
     private Integer unsolvedCount; // 미제출(풀지 않은) 문제 개수
 
+    @Column(name = "incorrect_questions", length = 500)
+    private String incorrectQuestions; // 오답 문항번호 (예: "1,3,5")
+
+    @Column(name = "unsolved_questions", length = 500)
+    private String unsolvedQuestions; // 안 푼 문항번호 (예: "2,7")
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

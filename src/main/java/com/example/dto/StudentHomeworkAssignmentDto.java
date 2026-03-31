@@ -17,6 +17,8 @@ public class StudentHomeworkAssignmentDto {
     private String assignedHomeworkTitle;
     private Integer incorrectCount;
     private Integer unsolvedCount;
+    private String incorrectQuestions;
+    private String unsolvedQuestions;
     private Integer completion;
 
     public static StudentHomeworkAssignmentDto from(StudentHomework sh) {
@@ -27,6 +29,8 @@ public class StudentHomeworkAssignmentDto {
                 .assignedHomeworkTitle(sh.getHomework().getTitle())
                 .incorrectCount(sh.getIncorrectCount())
                 .unsolvedCount(sh.getUnsolvedCount())
+                .incorrectQuestions(sh.getIncorrectQuestions())
+                .unsolvedQuestions(sh.getUnsolvedQuestions())
                 .completion(sh.getCompletion())
                 .build();
     }

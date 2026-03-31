@@ -38,6 +38,8 @@ public class LessonStudentStatsDto {
         private String studentName;
         private Integer incorrectCount;
         private Integer unsolvedCount;
+        private String incorrectQuestions;
+        private String unsolvedQuestions;
         private Integer completion;
         private Boolean completed;
         private Integer totalQuestions;

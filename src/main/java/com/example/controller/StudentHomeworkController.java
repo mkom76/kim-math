@@ -30,10 +30,12 @@ public class StudentHomeworkController {
     public ResponseEntity<StudentHomeworkDto> updateIncorrectCount(
             @PathVariable Long studentId,
             @PathVariable Long homeworkId,
-            @RequestBody Map<String, Integer> request) {
-        Integer incorrectCount = request.get("incorrectCount");
-        Integer unsolvedCount = request.get("unsolvedCount");
-        return ResponseEntity.ok(studentHomeworkService.updateIncorrectCount(studentId, homeworkId, incorrectCount, unsolvedCount));
+            @RequestBody Map<String, Object> request) {
+        Integer incorrectCount = request.get("incorrectCount") != null ? ((Number) request.get("incorrectCount")).intValue() : null;
+        Integer unsolvedCount = request.get("unsolvedCount") != null ? ((Number) request.get("unsolvedCount")).intValue() : null;
+        String incorrectQuestions = (String) request.get("incorrectQuestions");
+        String unsolvedQuestions = (String) request.get("unsolvedQuestions");
+        return ResponseEntity.ok(studentHomeworkService.updateIncorrectCount(studentId, homeworkId, incorrectCount, unsolvedCount, incorrectQuestions, unsolvedQuestions));
     }
 
     @PreAuthorize("hasRole('TEACHER')")

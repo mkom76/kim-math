@@ -118,6 +118,8 @@ public class DailyFeedbackService {
                 .questionCount(homework.getQuestionCount())
                 .incorrectCount(sh.map(StudentHomework::getIncorrectCount).orElse(null))
                 .unsolvedCount(sh.map(StudentHomework::getUnsolvedCount).orElse(null))
+                .incorrectQuestions(sh.map(StudentHomework::getIncorrectQuestions).orElse(null))
+                .unsolvedQuestions(sh.map(StudentHomework::getUnsolvedQuestions).orElse(null))
                 .completion(sh.map(StudentHomework::getCompletion).orElse(null))
                 .dueDate(homework.getDueDate())
                 .build();

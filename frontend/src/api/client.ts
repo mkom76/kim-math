@@ -115,6 +115,9 @@ interface StudentHomework {
   questionCount?: number; // 전체 문제 수
   dueDate?: string; // 제출 기한
   incorrectCount?: number; // 오답 개수
+  unsolvedCount?: number; // 안 푼 문제 개수
+  incorrectQuestions?: string; // 오답 문항번호
+  unsolvedQuestions?: string; // 안 푼 문항번호
   completion?: number; // 완성도 (계산된 값, 0-100)
   createdAt?: string;
   updatedAt?: string;
@@ -229,8 +232,8 @@ export const homeworkAPI = {
 export const studentHomeworkAPI = {
   getByStudentId: (studentId: number) => client.get(`/student-homeworks/student/${studentId}`),
   getByHomeworkId: (homeworkId: number) => client.get(`/student-homeworks/homework/${homeworkId}`),
-  updateIncorrectCount: (studentId: number, homeworkId: number, incorrectCount: number, unsolvedCount: number) =>
-    client.put(`/student-homeworks/student/${studentId}/homework/${homeworkId}`, { incorrectCount, unsolvedCount }),
+  updateIncorrectCount: (studentId: number, homeworkId: number, incorrectCount: number, unsolvedCount: number, incorrectQuestions?: string, unsolvedQuestions?: string) =>
+    client.put(`/student-homeworks/student/${studentId}/homework/${homeworkId}`, { incorrectCount, unsolvedCount, incorrectQuestions, unsolvedQuestions }),
   delete: (studentId: number, homeworkId: number) =>
     client.delete(`/student-homeworks/student/${studentId}/homework/${homeworkId}`),
 };
@@ -256,6 +259,8 @@ export interface StudentHomeworkCompletion {
   studentName: string;
   incorrectCount?: number;
   unsolvedCount?: number;
+  incorrectQuestions?: string;
+  unsolvedQuestions?: string;
   completion?: number;
   completed: boolean;
   totalQuestions: number;
@@ -268,6 +273,8 @@ export interface StudentHomeworkAssignment {
   assignedHomeworkTitle?: string;
   incorrectCount?: number;
   unsolvedCount?: number;
+  incorrectQuestions?: string;
+  unsolvedQuestions?: string;
   completion?: number;
 }
 
