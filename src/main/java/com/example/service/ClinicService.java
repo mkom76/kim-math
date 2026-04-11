@@ -171,6 +171,8 @@ public class ClinicService {
                                     .questionCount(sh.getHomework().getQuestionCount())
                                     .incorrectCount(sh.getIncorrectCount())
                                     .unsolvedCount(sh.getUnsolvedCount())
+                                    .incorrectQuestions(sh.getIncorrectQuestions())
+                                    .unsolvedQuestions(sh.getUnsolvedQuestions())
                                     .completion(sh.getCompletion())
                                     .lessonId(sh.getHomework().getLesson() != null ?
                                              sh.getHomework().getLesson().getId() : null)

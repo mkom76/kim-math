@@ -36,6 +36,8 @@ public class ClinicDetailDto {
         private Integer questionCount;
         private Integer incorrectCount;
         private Integer unsolvedCount;
+        private String incorrectQuestions; // 오답 문항번호 (CSV)
+        private String unsolvedQuestions;  // 안 푼 문항번호 (CSV)
         private Integer completion;
         private Long lessonId;
         private String lessonDate;

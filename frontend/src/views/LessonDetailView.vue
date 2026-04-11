@@ -1295,7 +1295,7 @@ onBeforeUnmount(() => {
       <template #header>
         <div style="display: flex; align-items: center; gap: 8px">
           <el-tag type="danger" effect="dark">RED</el-tag>
-          <h3 style="margin: 0; font-size: 18px; font-weight: 600">이어서 풀 숙제 (지난 수업 미완)</h3>
+          <h3 style="margin: 0; font-size: 18px; font-weight: 600">미완성 숙제</h3>
         </div>
       </template>
       <el-table :data="followUpRows" stripe style="width: 100%">

@@ -489,6 +489,8 @@ export interface HomeworkProgress {
   questionCount: number;
   incorrectCount?: number;
   unsolvedCount?: number;
+  incorrectQuestions?: string;
+  unsolvedQuestions?: string;
   completion?: number;
   followUpFlag?: boolean;
   lessonId?: number;

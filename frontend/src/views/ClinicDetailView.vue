@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { DocumentCopy } from '@element-plus/icons-vue'
 import { clinicAPI, studentHomeworkAPI, type ClinicDetail, type StudentClinicHomework, type HomeworkProgress, type ClinicHomeworkProgress } from '../api/client'
 
 const route = useRoute()
@@ -10,8 +11,10 @@ const loading = ref(false)
 const clinicDetail = ref<ClinicDetail | null>(null)
 const progressData = ref<ClinicHomeworkProgress[]>([])
 const editingHomeworkMap = ref<Record<string, boolean>>({})
-const editIncorrectCountMap = ref<Record<string, number>>({})
-const editUnsolvedCountMap = ref<Record<string, number>>({})
+const editIncorrectQuestionsMap = ref<Record<string, string[]>>({})
+const editUnsolvedQuestionsMap = ref<Record<string, string[]>>({})
+const incorrectTagInput = ref<Record<string, string>>({})
+const unsolvedTagInput = ref<Record<string, string>>({})
 
 const clinicId = computed(() => Number(route.params.id))
 
@@ -123,36 +126,107 @@ const getHomeworkKey = (studentId: number, homeworkId: number) => {
   return `${studentId}-${homeworkId}`
 }
 
+const parseQuestions = (str?: string): string[] => {
+  if (!str) return []
+  return str.split(',').map(s => s.trim()).filter(s => s !== '')
+}
+
+const expandRange = (input: string): string[] => {
+  const results: string[] = []
+  const parts = input.split(',').map(s => s.trim()).filter(s => s !== '')
+  for (const part of parts) {
+    const rangeMatch = part.match(/^(\d+)\s*[~\-]\s*(\d+)$/)
+    if (rangeMatch) {
+      const start = parseInt(rangeMatch[1]!)
+      const end = parseInt(rangeMatch[2]!)
+      const [lo, hi] = start <= end ? [start, end] : [end, start]
+      for (let i = lo; i <= hi; i++) results.push(String(i))
+    } else if (/^\d+$/.test(part)) {
+      results.push(part)
+    }
+  }
+  return results
+}
+
+const addTag = (map: Record<string, string[]>, key: string, inputMap: Record<string, string>) => {
+  const raw = inputMap[key] || ''
+  const nums = expandRange(raw)
+  if (nums.length === 0) return
+  const existing = map[key] || []
+  const merged = [...new Set([...existing, ...nums])]
+  merged.sort((a, b) => Number(a) - Number(b))
+  map[key] = merged
+  inputMap[key] = ''
+}
+
+const removeTag = (map: Record<string, string[]>, key: string, index: number) => {
+  const tags = [...(map[key] || [])]
+  tags.splice(index, 1)
+  map[key] = tags
+}
+
+const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('복사되었습니다')
+  } catch {
+    ElMessage.error('복사에 실패했습니다')
+  }
+}
+
 const startEditingHomework = (studentId: number, homework: HomeworkProgress) => {
   const key = getHomeworkKey(studentId, homework.homeworkId)
   editingHomeworkMap.value[key] = true
-  editIncorrectCountMap.value[key] = homework.incorrectCount || 0
-  editUnsolvedCountMap.value[key] = homework.unsolvedCount || 0
+  editIncorrectQuestionsMap.value[key] = parseQuestions(homework.incorrectQuestions)
+  editUnsolvedQuestionsMap.value[key] = parseQuestions(homework.unsolvedQuestions)
+  incorrectTagInput.value[key] = ''
+  unsolvedTagInput.value[key] = ''
 }
 
 const cancelEditingHomework = (studentId: number, homeworkId: number) => {
   const key = getHomeworkKey(studentId, homeworkId)
   delete editingHomeworkMap.value[key]
-  delete editIncorrectCountMap.value[key]
-  delete editUnsolvedCountMap.value[key]
+  delete editIncorrectQuestionsMap.value[key]
+  delete editUnsolvedQuestionsMap.value[key]
+  delete incorrectTagInput.value[key]
+  delete unsolvedTagInput.value[key]
 }
 
 const saveHomework = async (studentId: number, homework: HomeworkProgress) => {
   const key = getHomeworkKey(studentId, homework.homeworkId)
-  const incorrectCount = editIncorrectCountMap.value[key] || 0
-  const unsolvedCount = editUnsolvedCountMap.value[key] || 0
+  const incorrectTags = editIncorrectQuestionsMap.value[key] || []
+  const unsolvedTags = editUnsolvedQuestionsMap.value[key] || []
+  const incorrectCount = incorrectTags.length
+  const unsolvedCount = unsolvedTags.length
+  const totalQuestions = homework.questionCount
+
+  // Validation: 합 초과
+  if (incorrectCount + unsolvedCount > totalQuestions) {
+    ElMessage.error(`오답과 안 푼 문제의 합(${incorrectCount + unsolvedCount})이 전체 문제 수(${totalQuestions})를 초과할 수 없습니다.`)
+    return
+  }
+
+  // Validation: 중복 문항
+  const overlap = incorrectTags.filter(t => unsolvedTags.includes(t))
+  if (overlap.length > 0) {
+    ElMessage.error(`${overlap.join(', ')}번 문항이 오답과 안 푼 문제에 중복됩니다.`)
+    return
+  }
+
+  const incorrectQuestions = incorrectTags.join(',') || undefined
+  const unsolvedQuestions = unsolvedTags.join(',') || undefined
 
   try {
     await studentHomeworkAPI.updateIncorrectCount(
       studentId,
       homework.homeworkId,
       incorrectCount,
-      unsolvedCount
+      unsolvedCount,
+      incorrectQuestions,
+      unsolvedQuestions
     )
     ElMessage.success('숙제 정보가 업데이트되었습니다.')
-    delete editingHomeworkMap.value[key]
-    delete editIncorrectCountMap.value[key]
-    delete editUnsolvedCountMap.value[key]
+    cancelEditingHomework(studentId, homework.homeworkId)
     fetchClinicDetail()
   } catch (error) {
     ElMessage.error('업데이트에 실패했습니다.')
@@ -274,34 +348,73 @@ onMounted(() => {
           <el-table :data="student.homeworks" style="width: 100%">
             <el-table-column prop="homeworkTitle" label="숙제" width="250" />
             <el-table-column prop="lessonDate" label="수업 날짜" width="150" />
-            <el-table-column prop="incorrectCount" label="오답 개수" width="120" align="center">
+            <el-table-column label="오답 문항" min-width="200">
               <template #default="{ row }">
-                <div v-if="!editingHomeworkMap[getHomeworkKey(student.studentId, row.homeworkId)]">
-                  {{ row.incorrectCount || 0 }}개
+                <div v-if="editingHomeworkMap[getHomeworkKey(student.studentId, row.homeworkId)]">
+                  <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center">
+                    <el-tag
+                      v-for="(tag, idx) in editIncorrectQuestionsMap[getHomeworkKey(student.studentId, row.homeworkId)] || []"
+                      :key="tag"
+                      closable
+                      type="danger"
+                      size="small"
+                      @close="removeTag(editIncorrectQuestionsMap, getHomeworkKey(student.studentId, row.homeworkId), idx)"
+                    >
+                      {{ tag }}번
+                    </el-tag>
+                    <el-input
+                      :model-value="incorrectTagInput[getHomeworkKey(student.studentId, row.homeworkId)] || ''"
+                      @update:model-value="(val: string) => incorrectTagInput[getHomeworkKey(student.studentId, row.homeworkId)] = val"
+                      @keyup.enter="addTag(editIncorrectQuestionsMap, getHomeworkKey(student.studentId, row.homeworkId), incorrectTagInput)"
+                      @keyup.space.prevent="addTag(editIncorrectQuestionsMap, getHomeworkKey(student.studentId, row.homeworkId), incorrectTagInput)"
+                      placeholder="번호 입력"
+                      size="small"
+                      style="width: 80px"
+                    />
+                  </div>
                 </div>
-                <el-input-number
-                  v-else
-                  v-model="editIncorrectCountMap[getHomeworkKey(student.studentId, row.homeworkId)]"
-                  :min="0"
-                  :max="row.questionCount"
-                  size="small"
-                  style="width: 100px"
-                />
+                <div v-else style="display: flex; align-items: center; gap: 6px">
+                  <span v-if="row.incorrectCount !== null && row.incorrectCount !== undefined" style="font-weight: 600; color: #f56c6c">
+                    {{ row.incorrectCount }}개
+                  </span>
+                  <el-tag v-else type="info" size="small">미입력</el-tag>
+                  <el-button v-if="row.incorrectQuestions" :icon="DocumentCopy" size="small" link @click="copyToClipboard(row.incorrectQuestions)" />
+                </div>
               </template>
             </el-table-column>
-            <el-table-column prop="unsolvedCount" label="안 푼 문제" width="120" align="center">
+            <el-table-column label="안 푼 문항" min-width="200">
               <template #default="{ row }">
-                <div v-if="!editingHomeworkMap[getHomeworkKey(student.studentId, row.homeworkId)]">
-                  {{ row.unsolvedCount || 0 }}개
+                <div v-if="editingHomeworkMap[getHomeworkKey(student.studentId, row.homeworkId)]">
+                  <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center">
+                    <el-tag
+                      v-for="(tag, idx) in editUnsolvedQuestionsMap[getHomeworkKey(student.studentId, row.homeworkId)] || []"
+                      :key="tag"
+                      closable
+                      type="warning"
+                      size="small"
+                      @close="removeTag(editUnsolvedQuestionsMap, getHomeworkKey(student.studentId, row.homeworkId), idx)"
+                    >
+                      {{ tag }}번
+                    </el-tag>
+                    <el-input
+                      :model-value="unsolvedTagInput[getHomeworkKey(student.studentId, row.homeworkId)] || ''"
+                      @update:model-value="(val: string) => unsolvedTagInput[getHomeworkKey(student.studentId, row.homeworkId)] = val"
+                      @keyup.enter="addTag(editUnsolvedQuestionsMap, getHomeworkKey(student.studentId, row.homeworkId), unsolvedTagInput)"
+                      @keyup.space.prevent="addTag(editUnsolvedQuestionsMap, getHomeworkKey(student.studentId, row.homeworkId), unsolvedTagInput)"
+                      placeholder="번호 입력"
+                      size="small"
+                      style="width: 80px"
+                    />
+                  </div>
                 </div>
-                <el-input-number
-                  v-else
-                  v-model="editUnsolvedCountMap[getHomeworkKey(student.studentId, row.homeworkId)]"
-                  :min="0"
-                  :max="row.questionCount"
-                  size="small"
-                  style="width: 100px"
-                />
+                <div v-else style="display: flex; align-items: center; gap: 6px">
+                  <span v-if="row.unsolvedCount !== null && row.unsolvedCount !== undefined" style="font-weight: 600; color: #e6a23c">
+                    {{ row.unsolvedCount }}개
+                  </span>
+                  <span v-else-if="row.incorrectCount !== null && row.incorrectCount !== undefined" style="color: #909399">0개</span>
+                  <el-tag v-else type="info" size="small">미입력</el-tag>
+                  <el-button v-if="row.unsolvedQuestions" :icon="DocumentCopy" size="small" link @click="copyToClipboard(row.unsolvedQuestions)" />
+                </div>
               </template>
             </el-table-column>
             <el-table-column prop="completion" label="완성도" width="100" align="center">

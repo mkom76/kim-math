@@ -406,7 +406,7 @@ onMounted(() => {
         <template #header>
           <div style="display: flex; align-items: center; gap: 8px">
             <el-icon size="20" color="#f56c6c"><Warning /></el-icon>
-            <span :style="{ fontWeight: 600, fontSize: labelFontSize }">이어서 풀 숙제</span>
+            <span :style="{ fontWeight: 600, fontSize: labelFontSize }">미완성 숙제</span>
             <el-badge :value="followUps.length" type="danger" />
           </div>
         </template>
