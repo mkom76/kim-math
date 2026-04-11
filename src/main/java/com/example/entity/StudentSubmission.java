@@ -6,8 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
-import org.hibernate.annotations.ParamDef;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -16,10 +14,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@FilterDef(name = "academyFilter", parameters = @ParamDef(name = "academyId", type = Long.class))
-@FilterDef(name = "ownerFilter",   parameters = @ParamDef(name = "teacherId", type = Long.class))
-@Filter(name = "academyFilter", condition = "student_id IN (SELECT id FROM students WHERE academy_id = :academyId)")
-@Filter(name = "ownerFilter",   condition = "student_id IN (SELECT id FROM students WHERE class_id IN (SELECT id FROM academy_classes WHERE owner_teacher_id = :teacherId))")
+@Filter(name = "academyFilter", condition = "student_id IN (SELECT s2.id FROM students s2 WHERE s2.academy_id = :academyId)")
+@Filter(name = "ownerFilter",   condition = "student_id IN (SELECT s2.id FROM students s2 WHERE s2.class_id IN (SELECT ac.id FROM academy_classes ac WHERE ac.owner_teacher_id = :teacherId))")
 @Entity
 @Table(name = "student_submissions")
 @EntityListeners(AuditingEntityListener.class)
