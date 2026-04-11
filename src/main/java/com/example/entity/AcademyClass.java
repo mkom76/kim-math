@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Filter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -18,6 +19,8 @@ import java.util.List;
 @Entity
 @Table(name = "academy_classes")
 @EntityListeners(AuditingEntityListener.class)
+@Filter(name = "academyFilter", condition = "academy_id = :academyId")
+@Filter(name = "ownerFilter",   condition = "owner_teacher_id = :teacherId")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -33,6 +36,9 @@ public class AcademyClass {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "academy_id", nullable = false)
     private Academy academy;
+
+    @Column(name = "owner_teacher_id")
+    private Long ownerTeacherId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "clinic_day_of_week")

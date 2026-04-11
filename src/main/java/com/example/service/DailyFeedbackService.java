@@ -23,10 +23,12 @@ public class DailyFeedbackService {
     private final StudentSubmissionRepository studentSubmissionRepository;
     private final StudentSubmissionDetailRepository studentSubmissionDetailRepository;
     private final StudentRepository studentRepository;
+    private final AuthorizationService authorizationService;
 
     public DailyFeedbackDto getTodayFeedback(Long studentId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
+        authorizationService.assertCanAccessStudent(student);
         LocalDate today = LocalDate.now();
 
         Optional<Lesson> todayLesson = lessonRepository.findByAcademyIdAndClassIdAndLessonDate(
@@ -40,8 +42,12 @@ public class DailyFeedbackService {
     }
 
     public DailyFeedbackDto getDailyFeedback(Long studentId, Long lessonId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        authorizationService.assertCanAccessStudent(student);
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
         StudentLesson studentLesson = studentLessonRepository
                 .findByStudentIdAndLessonId(studentId, lessonId)
                 .orElse(null);
@@ -92,8 +98,10 @@ public class DailyFeedbackService {
                                                       boolean isAiFeedback) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
+        authorizationService.assertCanAccessStudent(student);
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
 
         StudentLesson studentLesson = studentLessonRepository
                 .findByStudentIdAndLessonId(studentId, lessonId)

@@ -19,6 +19,7 @@ public class AcademyClassDto {
     private String name;
     private Long academyId;
     private String academyName;
+    private Long ownerTeacherId;
     private DayOfWeek clinicDayOfWeek;
     private LocalTime clinicTime;
     private LocalDateTime createdAt;
@@ -30,6 +31,7 @@ public class AcademyClassDto {
                 .name(academyClass.getName())
                 .academyId(academyClass.getAcademy() != null ? academyClass.getAcademy().getId() : null)
                 .academyName(academyClass.getAcademy() != null ? academyClass.getAcademy().getName() : null)
+                .ownerTeacherId(academyClass.getOwnerTeacherId())
                 .clinicDayOfWeek(academyClass.getClinicDayOfWeek())
                 .clinicTime(academyClass.getClinicTime())
                 .createdAt(academyClass.getCreatedAt())

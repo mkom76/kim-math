@@ -1,10 +1,12 @@
 package com.example.service;
 
+import com.example.config.security.TenantContext;
 import com.example.dto.HomeworkDto;
 import com.example.entity.Academy;
 import com.example.entity.Homework;
 import com.example.entity.AcademyClass;
 import com.example.entity.Lesson;
+import com.example.exception.ForbiddenException;
 import com.example.repository.AcademyRepository;
 import com.example.repository.HomeworkRepository;
 import com.example.repository.AcademyClassRepository;
@@ -22,6 +24,7 @@ public class HomeworkService {
     private final AcademyRepository academyRepository;
     private final AcademyClassRepository academyClassRepository;
     private final LessonService lessonService;
+    private final AuthorizationService authorizationService;
 
     public Page<HomeworkDto> getHomeworks(Pageable pageable) {
         return homeworkRepository.findAll(pageable).map(HomeworkDto::from);
@@ -30,14 +33,24 @@ public class HomeworkService {
     public HomeworkDto getHomework(Long id) {
         Homework homework = homeworkRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Homework not found"));
+        authorizationService.assertCanAccessHomework(homework);
         return HomeworkDto.from(homework);
     }
 
     public HomeworkDto createHomework(HomeworkDto dto) {
-        Academy academy = academyRepository.findById(dto.getAcademyId())
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null) {
+            throw new ForbiddenException("인증 컨텍스트가 없습니다");
+        }
+        if (dto.getAcademyId() != null && !dto.getAcademyId().equals(ctx.academyId())) {
+            throw new ForbiddenException("활성 학원과 다른 학원에 숙제를 생성할 수 없습니다");
+        }
+
+        Academy academy = academyRepository.findById(ctx.academyId())
                 .orElseThrow(() -> new RuntimeException("Academy not found"));
         AcademyClass academyClass = academyClassRepository.findById(dto.getClassId())
                 .orElseThrow(() -> new RuntimeException("Class not found"));
+        authorizationService.assertCanModifyClass(academyClass);
 
         Homework homework = Homework.builder()
                 .title(dto.getTitle())
@@ -56,6 +69,7 @@ public class HomeworkService {
     public HomeworkDto updateHomework(Long id, HomeworkDto dto) {
         Homework homework = homeworkRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Homework not found"));
+        authorizationService.assertCanAccessHomework(homework);
 
         homework.setTitle(dto.getTitle());
         homework.setQuestionCount(dto.getQuestionCount());
@@ -71,6 +85,7 @@ public class HomeworkService {
         if (dto.getClassId() != null && !dto.getClassId().equals(homework.getAcademyClass().getId())) {
             AcademyClass academyClass = academyClassRepository.findById(dto.getClassId())
                     .orElseThrow(() -> new RuntimeException("Class not found"));
+            authorizationService.assertCanModifyClass(academyClass);
             homework.setAcademyClass(academyClass);
         }
 
@@ -79,7 +94,10 @@ public class HomeworkService {
     }
 
     public void deleteHomework(Long id) {
-        homeworkRepository.deleteById(id);
+        Homework homework = homeworkRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Homework not found"));
+        authorizationService.assertCanAccessHomework(homework);
+        homeworkRepository.delete(homework);
     }
 
     public java.util.List<HomeworkDto> getUnattachedHomeworks(Long academyId, Long classId) {

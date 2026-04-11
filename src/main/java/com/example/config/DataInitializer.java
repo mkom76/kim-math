@@ -39,19 +39,56 @@ public class DataInitializer {
             ClinicRegistrationRepository clinicRegistrationRepository,
             ClinicHomeworkProgressRepository clinicHomeworkProgressRepository,
             LessonVideoRepository lessonVideoRepository,
-            StudentVideoProgressRepository studentVideoProgressRepository
+            StudentVideoProgressRepository studentVideoProgressRepository,
+            TeacherAcademyRepository teacherAcademyRepository
     ) {
         return args -> {
             log.info("Initializing sample data...");
 
             // 0. 선생님 데이터 생성
+            // - suhui: 양쪽 학원 어드민 (개발자용 슈퍼 계정)
+            // - kim:   강남 어드민
+            // - lee:   강남 일반 선생님
+            // - park:  대치 어드민
+            // - choi:  대치 일반 선생님
+            // - jung:  강남 + 대치 양쪽에 일반 선생님 (멀티 학원 전환 테스트)
             Teacher teacher1 = new Teacher();
             teacher1.setName("수희");
             teacher1.setUsername("suhui");
             teacher1.setPin("123456");
             teacher1 = teacherRepository.save(teacher1);
 
-            log.info("Created {} teachers", 1);
+            Teacher teacherKim = new Teacher();
+            teacherKim.setName("김원장");
+            teacherKim.setUsername("kim");
+            teacherKim.setPin("111111");
+            teacherKim = teacherRepository.save(teacherKim);
+
+            Teacher teacherLee = new Teacher();
+            teacherLee.setName("이선생");
+            teacherLee.setUsername("lee");
+            teacherLee.setPin("222222");
+            teacherLee = teacherRepository.save(teacherLee);
+
+            Teacher teacherPark = new Teacher();
+            teacherPark.setName("박원장");
+            teacherPark.setUsername("park");
+            teacherPark.setPin("333333");
+            teacherPark = teacherRepository.save(teacherPark);
+
+            Teacher teacherChoi = new Teacher();
+            teacherChoi.setName("최선생");
+            teacherChoi.setUsername("choi");
+            teacherChoi.setPin("444444");
+            teacherChoi = teacherRepository.save(teacherChoi);
+
+            Teacher teacherJung = new Teacher();
+            teacherJung.setName("정선생");
+            teacherJung.setUsername("jung");
+            teacherJung.setPin("555555");
+            teacherJung = teacherRepository.save(teacherJung);
+
+            log.info("Created {} teachers", 6);
 
             // 1. 학원 데이터 생성
             Academy academy1 = new Academy();
@@ -64,10 +101,57 @@ public class DataInitializer {
 
             log.info("Created {} academies", 2);
 
+            // 1.5 선생님 ↔ 학원 멤버십 (teacher_academies)
+            // suhui:  양쪽 어드민
+            // kim:    강남 어드민
+            // lee:    강남 일반 선생님
+            // park:   대치 어드민
+            // choi:   대치 일반 선생님
+            // jung:   강남 + 대치 양쪽 일반 선생님
+            teacherAcademyRepository.save(TeacherAcademy.builder()
+                    .teacherId(teacher1.getId()).academyId(academy1.getId())
+                    .role(TeacherAcademyRole.ACADEMY_ADMIN).build());
+            teacherAcademyRepository.save(TeacherAcademy.builder()
+                    .teacherId(teacher1.getId()).academyId(academy2.getId())
+                    .role(TeacherAcademyRole.ACADEMY_ADMIN).build());
+
+            teacherAcademyRepository.save(TeacherAcademy.builder()
+                    .teacherId(teacherKim.getId()).academyId(academy1.getId())
+                    .role(TeacherAcademyRole.ACADEMY_ADMIN).build());
+
+            teacherAcademyRepository.save(TeacherAcademy.builder()
+                    .teacherId(teacherLee.getId()).academyId(academy1.getId())
+                    .role(TeacherAcademyRole.TEACHER).build());
+
+            teacherAcademyRepository.save(TeacherAcademy.builder()
+                    .teacherId(teacherPark.getId()).academyId(academy2.getId())
+                    .role(TeacherAcademyRole.ACADEMY_ADMIN).build());
+
+            teacherAcademyRepository.save(TeacherAcademy.builder()
+                    .teacherId(teacherChoi.getId()).academyId(academy2.getId())
+                    .role(TeacherAcademyRole.TEACHER).build());
+
+            teacherAcademyRepository.save(TeacherAcademy.builder()
+                    .teacherId(teacherJung.getId()).academyId(academy1.getId())
+                    .role(TeacherAcademyRole.TEACHER).build());
+            teacherAcademyRepository.save(TeacherAcademy.builder()
+                    .teacherId(teacherJung.getId()).academyId(academy2.getId())
+                    .role(TeacherAcademyRole.TEACHER).build());
+
+            log.info("Created {} teacher-academy memberships", 8);
+
             // 2. 반 데이터 생성 (모두 수학반, 클리닉 설정 포함)
+            // Owner 매핑 (격리 테스트용):
+            //  class1 → 이선생   (강남 일반 선생님)
+            //  class2 → 정선생   (강남+대치 멀티 학원)
+            //  class3 → 김원장   (어드민 본인 담당)
+            //  class4 → 최선생   (대치 일반 선생님)
+            //  class5 → 정선생   (대치 컨텍스트로 보면 본인 반)
+            //  class6 → 박원장   (어드민 본인 담당)
             AcademyClass class1 = new AcademyClass();
             class1.setName("고1 수학 기본반");
             class1.setAcademy(academy1);
+            class1.setOwnerTeacherId(teacherLee.getId());
             class1.setClinicDayOfWeek(DayOfWeek.SATURDAY);
             class1.setClinicTime(LocalTime.of(10, 0));
             class1 = academyClassRepository.save(class1);
@@ -75,6 +159,7 @@ public class DataInitializer {
             AcademyClass class2 = new AcademyClass();
             class2.setName("고1 수학 심화반");
             class2.setAcademy(academy1);
+            class2.setOwnerTeacherId(teacherJung.getId());
             class2.setClinicDayOfWeek(DayOfWeek.SATURDAY);
             class2.setClinicTime(LocalTime.of(14, 0));
             class2 = academyClassRepository.save(class2);
@@ -82,6 +167,7 @@ public class DataInitializer {
             AcademyClass class3 = new AcademyClass();
             class3.setName("고2 수학 기본반");
             class3.setAcademy(academy1);
+            class3.setOwnerTeacherId(teacherKim.getId());
             class3.setClinicDayOfWeek(DayOfWeek.SATURDAY);
             class3.setClinicTime(LocalTime.of(16, 0));
             class3 = academyClassRepository.save(class3);
@@ -89,6 +175,7 @@ public class DataInitializer {
             AcademyClass class4 = new AcademyClass();
             class4.setName("고2 수학 심화반");
             class4.setAcademy(academy2);
+            class4.setOwnerTeacherId(teacherChoi.getId());
             class4.setClinicDayOfWeek(DayOfWeek.SUNDAY);
             class4.setClinicTime(LocalTime.of(10, 0));
             class4 = academyClassRepository.save(class4);
@@ -96,6 +183,7 @@ public class DataInitializer {
             AcademyClass class5 = new AcademyClass();
             class5.setName("고3 수학 정규반");
             class5.setAcademy(academy2);
+            class5.setOwnerTeacherId(teacherJung.getId());
             class5.setClinicDayOfWeek(DayOfWeek.SUNDAY);
             class5.setClinicTime(LocalTime.of(14, 0));
             class5 = academyClassRepository.save(class5);
@@ -103,6 +191,7 @@ public class DataInitializer {
             AcademyClass class6 = new AcademyClass();
             class6.setName("고3 수학 특강반");
             class6.setAcademy(academy2);
+            class6.setOwnerTeacherId(teacherPark.getId());
             class6.setClinicDayOfWeek(DayOfWeek.SUNDAY);
             class6.setClinicTime(LocalTime.of(16, 0));
             class6 = academyClassRepository.save(class6);

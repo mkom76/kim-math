@@ -1,5 +1,6 @@
 package com.example.service.ai;
 
+import com.example.config.security.TenantContext;
 import com.example.dto.AiFeedbackRequest;
 import com.example.dto.AiFeedbackResponse;
 import com.example.dto.BulkAiFeedbackRequest;
@@ -43,15 +44,21 @@ public class BulkAiFeedbackProcessor {
     }
 
     @Async
-    public void processAsync(BulkAiFeedbackRequest request, List<StudentSnapshot> students, BulkAiFeedbackResponse status) {
-        Long lessonId = request.getLessonId();
+    public void processAsync(BulkAiFeedbackRequest request, List<StudentSnapshot> students, BulkAiFeedbackResponse status, TenantContext.Context tenantContext) {
+        // Propagate tenant context into the async thread so Hibernate filters
+        // and downstream authorization checks see the caller's identity.
+        if (tenantContext != null) {
+            TenantContext.set(tenantContext.teacherId(), tenantContext.academyId(), tenantContext.role());
+        }
+        try {
+            Long lessonId = request.getLessonId();
 
-        List<String> skippedStudents = new ArrayList<>();
-        int successCount = 0;
-        int failCount = 0;
-        int processedCount = 0;
+            List<String> skippedStudents = new ArrayList<>();
+            int successCount = 0;
+            int failCount = 0;
+            int processedCount = 0;
 
-        for (StudentSnapshot student : students) {
+            for (StudentSnapshot student : students) {
             String studentName = student.getStudentName();
             Long studentId = student.getStudentId();
 
@@ -109,6 +116,9 @@ public class BulkAiFeedbackProcessor {
         }
 
         status.setStatus("COMPLETED");
+        } finally {
+            TenantContext.clear();
+        }
     }
 
     private void updateStatus(BulkAiFeedbackResponse status, int processed, int success, int fail, List<String> skipped) {

@@ -5,12 +5,15 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Filter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
+@Filter(name = "academyFilter", condition = "lesson_id IN (SELECT l.id FROM lessons l WHERE l.academy_id = :academyId)")
+@Filter(name = "ownerFilter",   condition = "lesson_id IN (SELECT l.id FROM lessons l WHERE l.class_id IN (SELECT ac.id FROM academy_classes ac WHERE ac.owner_teacher_id = :teacherId))")
 @Entity
 @Table(name = "lesson_videos")
 @EntityListeners(AuditingEntityListener.class)

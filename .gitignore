@@ -48,3 +48,6 @@ certbot/
 ### Documentation and Database Migrations ###
 docs/
 src/main/resources/db/migration/
+
+### Git Worktrees ###
+.worktrees/

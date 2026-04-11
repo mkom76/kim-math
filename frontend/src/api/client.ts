@@ -146,10 +146,19 @@ interface LoginDto {
   pin: string;
 }
 
+interface Membership {
+  academyId: number;
+  academyName: string;
+  role: 'TEACHER' | 'ACADEMY_ADMIN';
+}
+
 interface AuthResponse {
   userId?: number;
   name?: string;
   role?: 'STUDENT' | 'TEACHER';
+  memberships?: Membership[];
+  activeAcademyId?: number;
+  activeRole?: 'TEACHER' | 'ACADEMY_ADMIN';
   message?: string;
 }
 
@@ -338,6 +347,37 @@ export const lessonAPI = {
     client.get<AttendanceStats>(`/lessons/attendance/student/${studentId}`).then(res => res.data),
 };
 
+// Admin API
+interface AdminTeacherDto {
+  teacherId: number
+  name: string
+  username: string
+  role: 'TEACHER' | 'ACADEMY_ADMIN'
+  ownedClassCount: number
+}
+
+interface InviteTeacherRequest {
+  username: string
+  name?: string
+  tempPin?: string
+  role?: 'TEACHER' | 'ACADEMY_ADMIN'
+}
+
+export const adminTeacherAPI = {
+  list: () => client.get<AdminTeacherDto[]>('/admin/teachers'),
+  invite: (data: InviteTeacherRequest) =>
+    client.post<{ teacherId: number; username: string; role: string }>('/admin/teachers', data),
+  updateRole: (teacherId: number, role: 'TEACHER' | 'ACADEMY_ADMIN') =>
+    client.patch(`/admin/teachers/${teacherId}/role`, { role }),
+  remove: (teacherId: number) =>
+    client.delete(`/admin/teachers/${teacherId}`),
+}
+
+export const adminClassAPI = {
+  updateOwner: (classId: number, teacherId: number) =>
+    client.patch(`/admin/classes/${classId}/owner`, { teacherId }),
+}
+
 // Auth API
 export const authAPI = {
   studentLogin: (studentId: number, pin: string) =>
@@ -346,6 +386,8 @@ export const authAPI = {
     client.post<AuthResponse>('/auth/teacher/login', { username, pin }),
   logout: () => client.post('/auth/logout'),
   getCurrentUser: () => client.get<AuthResponse>('/auth/me'),
+  switchAcademy: (academyId: number) =>
+    client.post<AuthResponse>('/auth/switch-academy', { academyId }),
   changePin: (currentPin: string, newPin: string) =>
     client.put<AuthResponse>('/auth/change-pin', { currentPin, newPin }),
 };
@@ -685,5 +727,8 @@ export type {
   StudentHomework,
   Lesson,
   LoginDto,
-  AuthResponse
+  AuthResponse,
+  Membership
 };
+
+export type { AdminTeacherDto, InviteTeacherRequest };

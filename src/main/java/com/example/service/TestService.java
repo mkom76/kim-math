@@ -1,7 +1,9 @@
 package com.example.service;
 
+import com.example.config.security.TenantContext;
 import com.example.dto.*;
 import com.example.entity.*;
+import com.example.exception.ForbiddenException;
 import com.example.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +29,7 @@ public class TestService {
     private final AcademyRepository academyRepository;
     private final AcademyClassRepository academyClassRepository;
     private final LessonService lessonService;
+    private final AuthorizationService authorizationService;
     
     public Page<TestDto> getTests(Pageable pageable) {
         return testRepository.findAll(pageable).map(TestDto::from);
@@ -35,14 +38,24 @@ public class TestService {
     public TestDto getTest(Long id) {
         Test test = testRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
+        authorizationService.assertCanAccessTest(test);
         return TestDto.from(test);
     }
-    
+
     public TestDto createTest(TestDto dto) {
-        Academy academy = academyRepository.findById(dto.getAcademyId())
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null) {
+            throw new ForbiddenException("인증 컨텍스트가 없습니다");
+        }
+        if (dto.getAcademyId() != null && !dto.getAcademyId().equals(ctx.academyId())) {
+            throw new ForbiddenException("활성 학원과 다른 학원에 시험을 생성할 수 없습니다");
+        }
+
+        Academy academy = academyRepository.findById(ctx.academyId())
                 .orElseThrow(() -> new RuntimeException("Academy not found"));
         AcademyClass academyClass = academyClassRepository.findById(dto.getClassId())
                 .orElseThrow(() -> new RuntimeException("Class not found"));
+        authorizationService.assertCanModifyClass(academyClass);
 
         Test test = Test.builder()
                 .title(dto.getTitle())
@@ -58,6 +71,7 @@ public class TestService {
     public TestDto updateTest(Long id, TestDto dto) {
         Test test = testRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
+        authorizationService.assertCanAccessTest(test);
 
         test.setTitle(dto.getTitle());
 
@@ -70,20 +84,25 @@ public class TestService {
         if (dto.getClassId() != null && !dto.getClassId().equals(test.getAcademyClass().getId())) {
             AcademyClass academyClass = academyClassRepository.findById(dto.getClassId())
                     .orElseThrow(() -> new RuntimeException("Class not found"));
+            authorizationService.assertCanModifyClass(academyClass);
             test.setAcademyClass(academyClass);
         }
 
         test = testRepository.save(test);
         return TestDto.from(test);
     }
-    
+
     public void deleteTest(Long id) {
-        testRepository.deleteById(id);
+        Test test = testRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Test not found"));
+        authorizationService.assertCanAccessTest(test);
+        testRepository.delete(test);
     }
-    
+
     public void saveTestAnswers(TestAnswersDto dto) {
         Test test = testRepository.findById(dto.getTestId())
                 .orElseThrow(() -> new RuntimeException("Test not found"));
+        authorizationService.assertCanAccessTest(test);
 
         // 기존 문제 조회
         List<TestQuestion> existingQuestions = testQuestionRepository.findByTestIdOrderByNumber(dto.getTestId());
@@ -140,6 +159,10 @@ public class TestService {
     }
     
     public void recalculateScores(Long testId) {
+        Test testForAuth = testRepository.findById(testId)
+                .orElseThrow(() -> new RuntimeException("Test not found"));
+        authorizationService.assertCanAccessTest(testForAuth);
+
         List<StudentSubmission> submissions = studentSubmissionRepository.findByTestId(testId);
         List<TestQuestion> questions = testQuestionRepository.findByTestIdOrderByNumber(testId);
 
@@ -178,6 +201,7 @@ public class TestService {
     public TestStatsDto getTestStats(Long testId) {
         Test test = testRepository.findById(testId)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
+        authorizationService.assertCanAccessTest(test);
 
         // 평균 점수
         Double averageScore = studentSubmissionRepository.getAverageScoreByTestId(testId);
@@ -258,6 +282,10 @@ public class TestService {
     }
     
     public List<TestQuestionDto> getTestQuestions(Long testId) {
+        Test testForAuth = testRepository.findById(testId)
+                .orElseThrow(() -> new RuntimeException("Test not found"));
+        authorizationService.assertCanAccessTest(testForAuth);
+
         List<TestQuestion> questions = testQuestionRepository.findByTestIdOrderByNumber(testId);
         return questions.stream()
                 .map(TestQuestionDto::from)
@@ -267,6 +295,7 @@ public class TestService {
     public TestQuestionDto addQuestion(Long testId, TestQuestionDto dto) {
         Test test = testRepository.findById(testId)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
+        authorizationService.assertCanAccessTest(test);
 
         QuestionType questionType = dto.getQuestionType() != null ? dto.getQuestionType() : QuestionType.SUBJECTIVE;
 
@@ -283,7 +312,10 @@ public class TestService {
     }
 
     public void deleteQuestion(Long questionId) {
-        testQuestionRepository.deleteById(questionId);
+        TestQuestion question = testQuestionRepository.findById(questionId)
+                .orElseThrow(() -> new RuntimeException("Question not found"));
+        authorizationService.assertCanAccessTest(question.getTest());
+        testQuestionRepository.delete(question);
     }
 
     public List<TestDto> getUnattachedTests(Long academyId, Long classId) {

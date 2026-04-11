@@ -24,12 +24,15 @@ public class SubmissionService {
     private final TestQuestionRepository questionRepository;
     private final StudentRepository studentRepository;
     private final TestRepository testRepository;
-    
+    private final AuthorizationService authorizationService;
+
     public StudentSubmissionDto submitAnswers(Long studentId, Long testId, Map<Integer, String> answers) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
+        authorizationService.assertCanAccessStudent(student);
         Test test = testRepository.findById(testId)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
+        authorizationService.assertCanAccessTest(test);
         
         // 기존 제출 확인
         StudentSubmission submission = submissionRepository.findByStudentIdAndTestId(studentId, testId)
@@ -92,7 +95,8 @@ public class SubmissionService {
     public StudentSubmissionDto getSubmission(Long submissionId) {
         StudentSubmission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new RuntimeException("Submission not found"));
-        
+        authorizationService.assertCanAccessSubmission(submission);
+
         StudentSubmissionDto dto = StudentSubmissionDto.from(submission);
         List<SubmissionDetailDto> details = submission.getDetails().stream()
                 .map(SubmissionDetailDto::from)
@@ -105,7 +109,8 @@ public class SubmissionService {
     public StudentSubmissionDto getSubmissionByStudentAndTest(Long studentId, Long testId) {
         StudentSubmission submission = submissionRepository.findByStudentIdAndTestId(studentId, testId)
                 .orElseThrow(() -> new RuntimeException("Submission not found"));
-        
+        authorizationService.assertCanAccessSubmission(submission);
+
         StudentSubmissionDto dto = StudentSubmissionDto.from(submission);
         List<SubmissionDetailDto> details = submission.getDetails().stream()
                 .map(SubmissionDetailDto::from)
@@ -116,6 +121,10 @@ public class SubmissionService {
     }
     
     public List<StudentSubmissionDto> getStudentSubmissions(Long studentId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        authorizationService.assertCanAccessStudent(student);
+
         List<StudentSubmission> submissions = submissionRepository.findByStudentId(studentId);
 
         return submissions.stream()
@@ -155,6 +164,10 @@ public class SubmissionService {
     }
 
     public List<StudentSubmissionDto> getTestSubmissions(Long testId) {
+        Test test = testRepository.findById(testId)
+                .orElseThrow(() -> new RuntimeException("Test not found"));
+        authorizationService.assertCanAccessTest(test);
+
         List<StudentSubmission> submissions = submissionRepository.findByTestId(testId);
         return submissions.stream()
                 .map(submission -> {
@@ -168,6 +181,7 @@ public class SubmissionService {
     public SubmissionDetailDto gradeEssay(Long detailId, EssayGradeRequest request) {
         StudentSubmissionDetail detail = detailRepository.findById(detailId)
                 .orElseThrow(() -> new RuntimeException("Detail not found"));
+        authorizationService.assertCanAccessSubmission(detail.getSubmission());
 
         if (detail.getQuestion().getQuestionType() != QuestionType.ESSAY) {
             throw new RuntimeException("Only ESSAY type questions can be manually graded");

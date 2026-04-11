@@ -3,8 +3,10 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { authAPI } from '@/api/client'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const activeTab = ref('student')
 const loading = ref(false)
 
@@ -36,6 +38,7 @@ const handleStudentLogin = async () => {
     const { data } = response
 
     if (data.userId) {
+      await authStore.loadCurrentUser()
       ElMessage.success(data.message || '로그인 성공')
       // Redirect to student dashboard
       router.push('/student/dashboard')
@@ -64,6 +67,9 @@ const handleTeacherLogin = async () => {
     const { data } = response
 
     if (data.userId) {
+      // Hydrate store from server (gives us memberships + active context)
+      await authStore.loadCurrentUser()
+      await authStore.ensureActiveAcademy()
       ElMessage.success(data.message || '로그인 성공')
       // Redirect to teacher home
       router.push('/')
