@@ -7,9 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -26,40 +24,6 @@ public class ClinicService {
     private final StudentHomeworkRepository studentHomeworkRepository;
     private final ClinicHomeworkProgressRepository clinicHomeworkProgressRepository;
     private final AuthorizationService authorizationService;
-
-    /**
-     * 이번주 클리닉 생성 (반의 기본 설정 기반)
-     */
-    public ClinicDto createClinicForThisWeek(Long classId) {
-        AcademyClass academyClass = academyClassRepository.findById(classId)
-                .orElseThrow(() -> new RuntimeException("Class not found"));
-        authorizationService.assertCanModifyClass(academyClass);
-
-        if (academyClass.getClinicDayOfWeek() == null || academyClass.getClinicTime() == null) {
-            throw new RuntimeException("클리닉 요일/시간이 설정되지 않았습니다");
-        }
-
-        // Calculate next clinic date based on day of week setting
-        LocalDate today = LocalDate.now();
-        DayOfWeek targetDay = academyClass.getClinicDayOfWeek();
-        LocalDate clinicDate = today.with(TemporalAdjusters.nextOrSame(targetDay));
-
-        // Check if clinic already exists for this date
-        Optional<Clinic> existing = clinicRepository.findByClassIdAndDate(classId, clinicDate);
-        if (existing.isPresent()) {
-            throw new RuntimeException("해당 날짜의 클리닉이 이미 존재합니다");
-        }
-
-        Clinic clinic = Clinic.builder()
-                .academyClass(academyClass)
-                .clinicDate(clinicDate)
-                .clinicTime(academyClass.getClinicTime())
-                .status(ClinicStatus.OPEN)
-                .build();
-
-        clinic = clinicRepository.save(clinic);
-        return ClinicDto.from(clinic);
-    }
 
     /**
      * 특정 날짜로 클리닉 생성
@@ -313,19 +277,6 @@ public class ClinicService {
                 .shouldAttend(!incompleteHomeworks.isEmpty())
                 .incompleteHomeworks(homeworkDtos)
                 .build();
-    }
-
-    /**
-     * 클리닉 종료
-     */
-    public ClinicDto closeClinic(Long clinicId) {
-        Clinic clinic = clinicRepository.findById(clinicId)
-                .orElseThrow(() -> new RuntimeException("Clinic not found"));
-        authorizationService.assertCanAccessClinic(clinic);
-
-        clinic.setStatus(ClinicStatus.CLOSED);
-        clinic = clinicRepository.save(clinic);
-        return ClinicDto.from(clinic);
     }
 
     /**

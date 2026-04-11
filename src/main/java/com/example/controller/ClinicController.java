@@ -20,12 +20,6 @@ public class ClinicController {
     private final ClinicService clinicService;
 
     @PreAuthorize("hasRole('TEACHER')")
-    @PostMapping("/class/{classId}/create-for-this-week")
-    public ResponseEntity<ClinicDto> createClinicForThisWeek(@PathVariable Long classId) {
-        return ResponseEntity.ok(clinicService.createClinicForThisWeek(classId));
-    }
-
-    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/class/{classId}")
     public ResponseEntity<ClinicDto> createClinic(
             @PathVariable Long classId,
@@ -37,13 +31,6 @@ public class ClinicController {
     @GetMapping("/class/{classId}")
     public ResponseEntity<List<ClinicDto>> getClinicsByClass(@PathVariable Long classId) {
         return ResponseEntity.ok(clinicService.getClinicsByClass(classId));
-    }
-
-    @GetMapping("/class/{classId}/upcoming")
-    public ResponseEntity<ClinicDto> getUpcomingClinic(@PathVariable Long classId) {
-        Optional<ClinicDto> clinic = clinicService.getUpcomingClinic(classId);
-        return clinic.map(ResponseEntity::ok)
-                    .orElse(ResponseEntity.noContent().build());
     }
 
     @GetMapping("/{clinicId}/detail")
@@ -77,12 +64,6 @@ public class ClinicController {
     @GetMapping("/student/{studentId}/info")
     public ResponseEntity<StudentClinicInfoDto> getStudentClinicInfo(@PathVariable Long studentId) {
         return ResponseEntity.ok(clinicService.getStudentClinicInfo(studentId));
-    }
-
-    @PreAuthorize("hasRole('TEACHER')")
-    @PutMapping("/{clinicId}/close")
-    public ResponseEntity<ClinicDto> closeClinic(@PathVariable Long clinicId) {
-        return ResponseEntity.ok(clinicService.closeClinic(clinicId));
     }
 
     @PreAuthorize("hasRole('TEACHER')")

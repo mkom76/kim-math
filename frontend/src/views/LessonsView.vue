@@ -4,9 +4,11 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { lessonAPI, academyAPI, academyClassAPI, type Lesson, type Academy, type AcademyClass } from '../api/client'
 import { usePagination } from '../composables/usePagination'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const route = useRoute()
+const authStore = useAuthStore()
 const loading = ref(false)
 const lessons = ref<Lesson[]>([])
 const academies = ref<Academy[]>([])
@@ -110,7 +112,7 @@ const openAddDialog = () => {
   const now = new Date()
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   currentLesson.value = {
-    academyId: undefined,
+    academyId: authStore.activeAcademyId ?? undefined,
     classId: undefined,
     lessonDate: today
   }
@@ -303,7 +305,7 @@ onMounted(async () => {
     >
       <el-form label-width="80px">
         <el-form-item label="학원">
-          <el-select v-model="currentLesson.academyId" placeholder="학원 선택" style="width: 100%">
+          <el-select v-model="currentLesson.academyId" placeholder="학원 선택" style="width: 100%" disabled>
             <el-option
               v-for="academy in academies"
               :key="academy.id"

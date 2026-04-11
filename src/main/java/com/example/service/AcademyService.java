@@ -35,13 +35,6 @@ public class AcademyService {
         return academyRepository.findByIdIn(academyIds, pageable).map(AcademyDto::from);
     }
 
-    public AcademyDto getAcademy(Long id) {
-        requireMembership(id);
-        Academy academy = academyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Academy not found"));
-        return AcademyDto.from(academy);
-    }
-
     public AcademyDto updateAcademy(Long id, AcademyDto dto) {
         TeacherAcademy membership = requireMembership(id);
         if (membership.getRole() != TeacherAcademyRole.ACADEMY_ADMIN) {

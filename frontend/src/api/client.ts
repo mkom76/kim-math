@@ -166,15 +166,12 @@ interface AuthResponse {
 // Academies API
 export const academyAPI = {
   getAcademies: (params?: any) => client.get('/academies', { params }),
-  getAcademy: (id: number) => client.get(`/academies/${id}`),
   updateAcademy: (id: number, data: Academy) => client.put(`/academies/${id}`, data),
 };
 
 // Academy Classes API
 export const academyClassAPI = {
   getAcademyClasses: (params?: any) => client.get('/classes', { params }),
-  getClassesByAcademy: (academyId: number) => client.get(`/classes/academy/${academyId}`),
-  getAcademyClass: (id: number) => client.get(`/classes/${id}`),
   createAcademyClass: (data: AcademyClass) => client.post('/classes', data),
   updateAcademyClass: (id: number, data: AcademyClass) => client.put(`/classes/${id}`, data),
   deleteAcademyClass: (id: number) => client.delete(`/classes/${id}`),
@@ -201,7 +198,6 @@ export const testAPI = {
   getTestQuestions: (id: number) => client.get(`/tests/${id}/questions`),
   addQuestion: (testId: number, data: Omit<Question, 'id'>) =>
     client.post(`/tests/${testId}/questions`, data),
-  deleteQuestion: (id: number) => client.delete(`/questions/${id}`),
   getUnattachedTests: (academyId: number, classId: number) =>
     client.get('/tests/unattached', { params: { academyId, classId } }),
   recalculateScores: (id: number) => client.post(`/tests/${id}/recalculate`),
@@ -213,7 +209,6 @@ export const testAPI = {
 export const submissionAPI = {
   submitAnswers: (studentId: number, testId: number, answers: any) =>
     client.post('/submissions', answers, { params: { studentId, testId } }),
-  getSubmission: (id: number) => client.get(`/submissions/${id}`),
   getByTestId: (testId: number) => client.get(`/submissions/test/${testId}`),
   getStudentSubmissions: (studentId: number) => client.get(`/submissions/student/${studentId}`),
   gradeEssay: (detailId: number, earnedPoints: number, teacherComment?: string) =>
@@ -228,7 +223,6 @@ export const submissionAPI = {
 // Homeworks API
 export const homeworkAPI = {
   getHomeworks: (params?: any) => client.get('/homeworks', { params }),
-  getHomework: (id: number) => client.get(`/homeworks/${id}`),
   createHomework: (data: Homework) => client.post('/homeworks', data),
   updateHomework: (id: number, data: Homework) => client.put(`/homeworks/${id}`, data),
   deleteHomework: (id: number) => client.delete(`/homeworks/${id}`),
@@ -245,8 +239,6 @@ export const studentHomeworkAPI = {
     client.put<StudentHomework>(`/student-homeworks/student/${studentId}/homework/${homeworkId}/follow-up`, { followUp }),
   getFollowUps: (studentId: number) =>
     client.get<StudentHomework[]>(`/student-homeworks/student/${studentId}/follow-ups`),
-  delete: (studentId: number, homeworkId: number) =>
-    client.delete(`/student-homeworks/student/${studentId}/homework/${homeworkId}`),
 };
 
 // Lesson Student Stats Types
@@ -441,8 +433,6 @@ export interface QuestionAccuracy {
 }
 
 export const dailyFeedbackAPI = {
-  getTodayFeedback: (studentId: number) =>
-    client.get<DailyFeedback>(`/daily-feedback/student/${studentId}/today`),
   getDailyFeedback: (studentId: number, lessonId: number) =>
     client.get<DailyFeedback>(`/daily-feedback/student/${studentId}/lesson/${lessonId}`),
   updateInstructorFeedback: (studentId: number, lessonId: number, feedback: string, authorName: string, isAiFeedback?: boolean) =>
@@ -554,14 +544,10 @@ export interface RecentClinicHomework {
 }
 
 export const clinicAPI = {
-  createClinicForThisWeek: (classId: number) =>
-    client.post<Clinic>(`/clinics/class/${classId}/create-for-this-week`),
   createClinic: (classId: number, clinicDate: string, clinicTime: string) =>
     client.post<Clinic>(`/clinics/class/${classId}`, { clinicDate, clinicTime }),
   getClinicsByClass: (classId: number) =>
     client.get<Clinic[]>(`/clinics/class/${classId}`),
-  getUpcomingClinic: (classId: number) =>
-    client.get<Clinic>(`/clinics/class/${classId}/upcoming`),
   getClinicDetail: (clinicId: number) =>
     client.get<ClinicDetail>(`/clinics/${clinicId}/detail`),
   registerForClinic: (clinicId: number, studentId: number) =>
@@ -572,8 +558,6 @@ export const clinicAPI = {
     client.put<ClinicRegistration>(`/clinics/registrations/${registrationId}/attendance`, { status }),
   getStudentClinicInfo: (studentId: number) =>
     client.get<StudentClinicInfo>(`/clinics/student/${studentId}/info`),
-  closeClinic: (clinicId: number) =>
-    client.put<Clinic>(`/clinics/${clinicId}/close`),
   deleteClinic: (clinicId: number) =>
     client.delete(`/clinics/${clinicId}`),
   startClinic: (clinicId: number) =>

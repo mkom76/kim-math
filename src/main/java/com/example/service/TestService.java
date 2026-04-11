@@ -311,13 +311,6 @@ public class TestService {
         return TestQuestionDto.from(question);
     }
 
-    public void deleteQuestion(Long questionId) {
-        TestQuestion question = testQuestionRepository.findById(questionId)
-                .orElseThrow(() -> new RuntimeException("Question not found"));
-        authorizationService.assertCanAccessTest(question.getTest());
-        testQuestionRepository.delete(question);
-    }
-
     public List<TestDto> getUnattachedTests(Long academyId, Long classId) {
         return testRepository.findUnattachedByAcademyIdAndClassId(academyId, classId)
                 .stream()

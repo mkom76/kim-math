@@ -12,8 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/classes")
 @RequiredArgsConstructor
@@ -25,16 +23,6 @@ public class AcademyClassController {
     public ResponseEntity<Page<AcademyClassDto>> getClasses(
             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(academyClassService.getClasses(pageable));
-    }
-
-    @GetMapping("/academy/{academyId}")
-    public ResponseEntity<List<AcademyClassDto>> getClassesByAcademy(@PathVariable Long academyId) {
-        return ResponseEntity.ok(academyClassService.getClassesByAcademy(academyId));
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<AcademyClassDto> getClass(@PathVariable Long id) {
-        return ResponseEntity.ok(academyClassService.getClass(id));
     }
 
     @PostMapping

@@ -3,7 +3,9 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { homeworkAPI, academyAPI, academyClassAPI, type Homework, type Academy, type AcademyClass } from '../api/client'
 import { usePagination } from '../composables/usePagination'
+import { useAuthStore } from '@/stores/auth'
 
+const authStore = useAuthStore()
 const loading = ref(false)
 const homeworks = ref<Homework[]>([])
 const academies = ref<Academy[]>([])
@@ -94,7 +96,12 @@ const fetchClasses = async () => {
 
 const openAddDialog = () => {
   editMode.value = false
-  currentHomework.value = { title: '', questionCount: 10, academyId: undefined, classId: undefined }
+  currentHomework.value = {
+    title: '',
+    questionCount: 10,
+    academyId: authStore.activeAcademyId ?? undefined,
+    classId: undefined
+  }
   dialogVisible.value = true
 }
 
@@ -339,6 +346,7 @@ onMounted(() => {
             v-model="currentHomework.academyId"
             placeholder="학원을 선택하세요"
             style="width: 100%"
+            disabled
           >
             <el-option
               v-for="academy in academies"

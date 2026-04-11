@@ -4,7 +4,6 @@ import com.example.config.security.TenantContext;
 import com.example.dto.AcademyClassDto;
 import com.example.entity.Academy;
 import com.example.entity.AcademyClass;
-import com.example.entity.TeacherAcademyRole;
 import com.example.exception.ForbiddenException;
 import com.example.repository.AcademyRepository;
 import com.example.repository.AcademyClassRepository;
@@ -13,9 +12,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,33 +24,6 @@ public class AcademyClassService {
 
     public Page<AcademyClassDto> getClasses(Pageable pageable) {
         return academyClassRepository.findAll(pageable).map(AcademyClassDto::from);
-    }
-
-    public List<AcademyClassDto> getClassesByAcademy(Long academyId) {
-        return academyClassRepository.findByAcademyId(academyId).stream()
-                .map(AcademyClassDto::from)
-                .collect(Collectors.toList());
-    }
-
-    public AcademyClassDto getClass(Long id) {
-        AcademyClass academyClass = academyClassRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Class not found"));
-
-        // Filter bypass guard: verify caller can see this class
-        TenantContext.Context ctx = TenantContext.current();
-        if (ctx == null) {
-            throw new ForbiddenException("인증 컨텍스트가 없습니다");
-        }
-        Long classAcademyId = academyClass.getAcademy() != null ? academyClass.getAcademy().getId() : null;
-        if (classAcademyId == null || !classAcademyId.equals(ctx.academyId())) {
-            throw new RuntimeException("Class not found");  // 404 — don't leak existence
-        }
-        if (ctx.role() == TeacherAcademyRole.TEACHER &&
-            (academyClass.getOwnerTeacherId() == null || !ctx.teacherId().equals(academyClass.getOwnerTeacherId()))) {
-            throw new RuntimeException("Class not found");  // 404 — don't leak existence
-        }
-
-        return AcademyClassDto.from(academyClass);
     }
 
     public AcademyClassDto createClass(AcademyClassDto dto) {

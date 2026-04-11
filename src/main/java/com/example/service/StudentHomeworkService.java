@@ -86,15 +86,4 @@ public class StudentHomeworkService {
         return StudentHomeworkDto.from(studentHomework);
     }
 
-    public void deleteByStudentIdAndHomeworkId(Long studentId, Long homeworkId) {
-        Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-        authorizationService.assertCanAccessStudent(student);
-        Homework homework = homeworkRepository.findById(homeworkId)
-                .orElseThrow(() -> new RuntimeException("Homework not found"));
-        authorizationService.assertCanAccessHomework(homework);
-
-        studentHomeworkRepository.findByStudentIdAndHomeworkId(studentId, homeworkId)
-                .ifPresent(studentHomeworkRepository::delete);
-    }
 }

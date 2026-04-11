@@ -4,8 +4,10 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { studentAPI, academyAPI, academyClassAPI, type Student, type Academy, type AcademyClass } from '../api/client'
 import { usePagination } from '../composables/usePagination'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const loading = ref(false)
 const students = ref<Student[]>([])
@@ -77,7 +79,13 @@ const fetchClasses = async () => {
 
 const openAddDialog = () => {
   editMode.value = false
-  currentStudent.value = { name: '', grade: '', school: '', academyId: undefined, classId: undefined }
+  currentStudent.value = {
+    name: '',
+    grade: '',
+    school: '',
+    academyId: authStore.activeAcademyId ?? undefined,
+    classId: undefined
+  }
   dialogVisible.value = true
 }
 
@@ -335,6 +343,7 @@ onMounted(() => {
             v-model="currentStudent.academyId"
             placeholder="학원을 선택하세요"
             style="width: 100%"
+            disabled
           >
             <el-option
               v-for="academy in academies"

@@ -27,12 +27,12 @@ public class SubmissionController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(submissionService.submitAnswers(studentId, testId, answers));
     }
-    
+
     @GetMapping("/{id}")
     public ResponseEntity<StudentSubmissionDto> getSubmission(@PathVariable Long id) {
         return ResponseEntity.ok(submissionService.getSubmission(id));
     }
-    
+
     @GetMapping
     public ResponseEntity<StudentSubmissionDto> getSubmissionByStudentAndTest(
             @RequestParam Long studentId,

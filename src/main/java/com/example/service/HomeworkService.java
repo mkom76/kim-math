@@ -5,7 +5,6 @@ import com.example.dto.HomeworkDto;
 import com.example.entity.Academy;
 import com.example.entity.Homework;
 import com.example.entity.AcademyClass;
-import com.example.entity.Lesson;
 import com.example.exception.ForbiddenException;
 import com.example.repository.AcademyRepository;
 import com.example.repository.HomeworkRepository;
@@ -23,18 +22,10 @@ public class HomeworkService {
     private final HomeworkRepository homeworkRepository;
     private final AcademyRepository academyRepository;
     private final AcademyClassRepository academyClassRepository;
-    private final LessonService lessonService;
     private final AuthorizationService authorizationService;
 
     public Page<HomeworkDto> getHomeworks(Pageable pageable) {
         return homeworkRepository.findAll(pageable).map(HomeworkDto::from);
-    }
-
-    public HomeworkDto getHomework(Long id) {
-        Homework homework = homeworkRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Homework not found"));
-        authorizationService.assertCanAccessHomework(homework);
-        return HomeworkDto.from(homework);
     }
 
     public HomeworkDto createHomework(HomeworkDto dto) {

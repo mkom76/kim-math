@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -24,22 +23,6 @@ public class DailyFeedbackService {
     private final StudentSubmissionDetailRepository studentSubmissionDetailRepository;
     private final StudentRepository studentRepository;
     private final AuthorizationService authorizationService;
-
-    public DailyFeedbackDto getTodayFeedback(Long studentId) {
-        Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-        authorizationService.assertCanAccessStudent(student);
-        LocalDate today = LocalDate.now();
-
-        Optional<Lesson> todayLesson = lessonRepository.findByAcademyIdAndClassIdAndLessonDate(
-            student.getAcademy().getId(), student.getAcademyClass().getId(), today);
-
-        if (todayLesson.isEmpty()) {
-            throw new RuntimeException("No lesson scheduled for today");
-        }
-
-        return getDailyFeedback(studentId, todayLesson.get().getId());
-    }
 
     public DailyFeedbackDto getDailyFeedback(Long studentId, Long lessonId) {
         Student student = studentRepository.findById(studentId)

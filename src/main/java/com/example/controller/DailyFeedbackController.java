@@ -15,11 +15,6 @@ import org.springframework.web.bind.annotation.*;
 public class DailyFeedbackController {
     private final DailyFeedbackService dailyFeedbackService;
 
-    @GetMapping("/student/{studentId}/today")
-    public ResponseEntity<DailyFeedbackDto> getTodayFeedback(@PathVariable Long studentId) {
-        return ResponseEntity.ok(dailyFeedbackService.getTodayFeedback(studentId));
-    }
-
     @GetMapping("/student/{studentId}/lesson/{lessonId}")
     public ResponseEntity<DailyFeedbackDto> getDailyFeedback(
             @PathVariable Long studentId,

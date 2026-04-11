@@ -28,11 +28,6 @@ public class AcademyController {
         return ResponseEntity.ok(academyService.getAcademies(pageable));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<AcademyDto> getAcademy(@PathVariable Long id) {
-        return ResponseEntity.ok(academyService.getAcademy(id));
-    }
-
     @PutMapping("/{id}")
     public ResponseEntity<AcademyDto> updateAcademy(
             @PathVariable Long id,

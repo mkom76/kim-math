@@ -26,11 +26,6 @@ public class HomeworkController {
         return ResponseEntity.ok(homeworkService.getHomeworks(pageable));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<HomeworkDto> getHomework(@PathVariable Long id) {
-        return ResponseEntity.ok(homeworkService.getHomework(id));
-    }
-
     @PreAuthorize("hasRole('TEACHER')")
     @PostMapping
     public ResponseEntity<HomeworkDto> createHomework(@RequestBody HomeworkDto dto) {

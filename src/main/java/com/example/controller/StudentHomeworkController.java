@@ -47,13 +47,4 @@ public class StudentHomeworkController {
     public ResponseEntity<List<StudentHomeworkDto>> getFollowUps(@PathVariable Long studentId) {
         return ResponseEntity.ok(studentHomeworkService.getFollowUpsByStudent(studentId));
     }
-
-    @PreAuthorize("hasRole('TEACHER')")
-    @DeleteMapping("/student/{studentId}/homework/{homeworkId}")
-    public ResponseEntity<Void> delete(
-            @PathVariable Long studentId,
-            @PathVariable Long homeworkId) {
-        studentHomeworkService.deleteByStudentIdAndHomeworkId(studentId, homeworkId);
-        return ResponseEntity.noContent().build();
-    }
 }
