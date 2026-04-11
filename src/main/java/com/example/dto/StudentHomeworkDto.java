@@ -26,6 +26,7 @@ public class StudentHomeworkDto {
     private String incorrectQuestions; // 오답 문항번호
     private String unsolvedQuestions; // 안 푼 문항번호
     private Integer completion; // 완성도 (계산된 값, 0-100)
+    private Boolean followUpFlag;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -43,6 +44,7 @@ public class StudentHomeworkDto {
                 .incorrectQuestions(entity.getIncorrectQuestions())
                 .unsolvedQuestions(entity.getUnsolvedQuestions())
                 .completion(entity.getCompletion())
+                .followUpFlag(entity.getFollowUpFlag() != null ? entity.getFollowUpFlag() : false)
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

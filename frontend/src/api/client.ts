@@ -119,6 +119,7 @@ interface StudentHomework {
   incorrectQuestions?: string; // 오답 문항번호
   unsolvedQuestions?: string; // 안 푼 문항번호
   completion?: number; // 완성도 (계산된 값, 0-100)
+  followUpFlag?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -166,9 +167,7 @@ interface AuthResponse {
 export const academyAPI = {
   getAcademies: (params?: any) => client.get('/academies', { params }),
   getAcademy: (id: number) => client.get(`/academies/${id}`),
-  createAcademy: (data: Academy) => client.post('/academies', data),
   updateAcademy: (id: number, data: Academy) => client.put(`/academies/${id}`, data),
-  deleteAcademy: (id: number) => client.delete(`/academies/${id}`),
 };
 
 // Academy Classes API
@@ -240,9 +239,12 @@ export const homeworkAPI = {
 // Student Homeworks API
 export const studentHomeworkAPI = {
   getByStudentId: (studentId: number) => client.get(`/student-homeworks/student/${studentId}`),
-  getByHomeworkId: (homeworkId: number) => client.get(`/student-homeworks/homework/${homeworkId}`),
   updateIncorrectCount: (studentId: number, homeworkId: number, incorrectCount: number, unsolvedCount: number, incorrectQuestions?: string, unsolvedQuestions?: string) =>
     client.put(`/student-homeworks/student/${studentId}/homework/${homeworkId}`, { incorrectCount, unsolvedCount, incorrectQuestions, unsolvedQuestions }),
+  setFollowUp: (studentId: number, homeworkId: number, followUp: boolean) =>
+    client.put<StudentHomework>(`/student-homeworks/student/${studentId}/homework/${homeworkId}/follow-up`, { followUp }),
+  getFollowUps: (studentId: number) =>
+    client.get<StudentHomework[]>(`/student-homeworks/student/${studentId}/follow-ups`),
   delete: (studentId: number, homeworkId: number) =>
     client.delete(`/student-homeworks/student/${studentId}/homework/${homeworkId}`),
 };
@@ -285,6 +287,7 @@ export interface StudentHomeworkAssignment {
   incorrectQuestions?: string;
   unsolvedQuestions?: string;
   completion?: number;
+  followUpFlag?: boolean;
 }
 
 // Attendance types
@@ -487,6 +490,7 @@ export interface HomeworkProgress {
   incorrectCount?: number;
   unsolvedCount?: number;
   completion?: number;
+  followUpFlag?: boolean;
   lessonId?: number;
   lessonDate?: string;
 }

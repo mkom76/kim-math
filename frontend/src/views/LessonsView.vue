@@ -267,12 +267,6 @@ onMounted(async () => {
             <el-tag v-else type="info" size="small">없음</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="숙제" width="200">
-          <template #default="{ row }">
-            <span v-if="row.homeworkTitle">{{ row.homeworkTitle }}</span>
-            <el-tag v-else type="info" size="small">없음</el-tag>
-          </template>
-        </el-table-column>
         <el-table-column label="작업" width="180" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" size="small" @click="navigateToDetail(row)">

@@ -39,5 +39,6 @@ public class ClinicDetailDto {
         private Integer completion;
         private Long lessonId;
         private String lessonDate;
+        private Boolean followUpFlag;
     }
 }

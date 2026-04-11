@@ -46,6 +46,10 @@ public class StudentHomework {
     @Column(name = "unsolved_questions", length = 500)
     private String unsolvedQuestions; // 안 푼 문항번호 (예: "2,7")
 
+    @Column(name = "follow_up_flag", nullable = false)
+    @Builder.Default
+    private Boolean followUpFlag = false;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

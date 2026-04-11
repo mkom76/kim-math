@@ -159,6 +159,19 @@ const saveHomework = async (studentId: number, homework: HomeworkProgress) => {
   }
 }
 
+const toggleFollowUp = async (studentId: number, homework: HomeworkProgress) => {
+  const prev = homework.followUpFlag
+  const newValue = !prev
+  homework.followUpFlag = newValue  // optimistic update
+  try {
+    await studentHomeworkAPI.setFollowUp(studentId, homework.homeworkId, newValue)
+    ElMessage.success(newValue ? 'RED 표시했습니다' : '표시를 해제했습니다')
+  } catch (error) {
+    homework.followUpFlag = prev  // rollback on failure
+    ElMessage.error('마킹 변경에 실패했습니다')
+  }
+}
+
 const updateAttendance = async (registrationId: number, status: string) => {
   try {
     await clinicAPI.updateAttendance(registrationId, status)
@@ -320,6 +333,18 @@ onMounted(() => {
                   </div>
                 </div>
                 <span v-else style="color: #909399; font-size: 13px">-</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="다음에 다시 보기" width="140" align="center">
+              <template #default="{ row }">
+                <el-tag
+                  :type="row.followUpFlag ? 'danger' : 'info'"
+                  :effect="row.followUpFlag ? 'dark' : 'plain'"
+                  style="cursor: pointer; user-select: none"
+                  @click="toggleFollowUp(student.studentId, row)"
+                >
+                  {{ row.followUpFlag ? 'RED 표시됨' : '표시 안 됨' }}
+                </el-tag>
               </template>
             </el-table-column>
             <el-table-column label="작업" width="180" align="center">

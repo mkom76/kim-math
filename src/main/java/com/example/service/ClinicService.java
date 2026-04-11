@@ -176,6 +176,7 @@ public class ClinicService {
                                              sh.getHomework().getLesson().getId() : null)
                                     .lessonDate(sh.getHomework().getLesson() != null ?
                                                sh.getHomework().getLesson().getLessonDate().toString() : null)
+                                    .followUpFlag(sh.getFollowUpFlag() != null ? sh.getFollowUpFlag() : false)
                                     .build())
                             .collect(Collectors.toList());
 

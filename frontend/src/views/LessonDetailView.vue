@@ -3,7 +3,7 @@ import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ChatLineSquare, BellFilled, VideoPlay, Plus, Top, Bottom, Delete, DocumentCopy } from '@element-plus/icons-vue'
-import { lessonAPI, testAPI, homeworkAPI, studentHomeworkAPI, lessonVideoAPI, aiFeedbackAPI, authAPI, type Lesson, type Test, type Homework, type LessonStudentStats, type StudentHomeworkAssignment, type LessonVideo, type VideoStats, type AttendanceRecord, type AttendanceRequest } from '../api/client'
+import { lessonAPI, testAPI, homeworkAPI, studentHomeworkAPI, lessonVideoAPI, aiFeedbackAPI, authAPI, type Lesson, type Test, type Homework, type LessonStudentStats, type StudentHomeworkAssignment, type StudentHomework, type LessonVideo, type VideoStats, type AttendanceRecord, type AttendanceRequest } from '../api/client'
 
 const route = useRoute()
 const router = useRouter()
@@ -37,6 +37,9 @@ const addHomeworkDialogVisible = ref(false)
 const studentAssignments = ref<StudentHomeworkAssignment[]>([])
 const bulkAssignHomeworkId = ref<number | undefined>(undefined)
 
+// Follow-up (이어서 풀 숙제) state
+const followUpsByStudent = ref<Record<number, StudentHomework[]>>({})
+
 const lessonId = computed(() => Number(route.params.id))
 
 const fetchLesson = async () => {
@@ -57,6 +60,9 @@ const fetchLesson = async () => {
 
     // Fetch attendance
     await loadAttendance()
+
+    // Fetch follow-ups (이어서 풀 숙제)
+    await fetchFollowUps()
   } catch (error) {
     ElMessage.error('수업 정보를 불러오는데 실패했습니다.')
   } finally {
@@ -81,6 +87,26 @@ const fetchAssignments = async () => {
     studentAssignments.value = response.data
   } catch (error) {
     ElMessage.error('할당 현황을 불러오는데 실패했습니다.')
+  }
+}
+
+const fetchFollowUps = async () => {
+  if (!studentAssignments.value.length) {
+    followUpsByStudent.value = {}
+    return
+  }
+  try {
+    const result: Record<number, StudentHomework[]> = {}
+    await Promise.all(
+      studentAssignments.value.map(async (a) => {
+        const res = await studentHomeworkAPI.getFollowUps(a.studentId)
+        if (res.data.length > 0) result[a.studentId] = res.data
+      })
+    )
+    followUpsByStudent.value = result
+  } catch (error) {
+    // non-blocking — main view should still render
+    followUpsByStudent.value = {}
   }
 }
 
@@ -442,6 +468,72 @@ const calculateAverageCompletion = () => {
 
   const total = completedStudents.reduce((sum, s) => sum + (s.completion || 0), 0)
   return Math.round(total / completedStudents.length)
+}
+
+const toggleFollowUp = async (row: StudentHomeworkAssignment) => {
+  if (!row.assignedHomeworkId) return
+  const prev = row.followUpFlag
+  const newValue = !prev
+  row.followUpFlag = newValue  // optimistic update
+  try {
+    await studentHomeworkAPI.setFollowUp(row.studentId, row.assignedHomeworkId, newValue)
+    ElMessage.success(newValue ? 'RED 표시했습니다' : '표시를 해제했습니다')
+    // Sync the lower "이어서 풀 숙제" card so both tables stay consistent
+    await fetchFollowUps()
+  } catch (error) {
+    row.followUpFlag = prev  // rollback
+    ElMessage.error('마킹 변경에 실패했습니다')
+  }
+}
+
+const followUpRows = computed(() => {
+  const rows: Array<{
+    studentId: number
+    studentName: string
+    homework: StudentHomework
+  }> = []
+  studentAssignments.value.forEach((a) => {
+    const list = followUpsByStudent.value[a.studentId] || []
+    list.forEach((h) => rows.push({
+      studentId: a.studentId,
+      studentName: a.studentName,
+      homework: h,
+    }))
+  })
+  return rows
+})
+
+const hasFollowUps = computed(() => followUpRows.value.length > 0)
+
+const removeFollowUpFromSection = async (studentId: number, homeworkId: number | undefined) => {
+  if (typeof homeworkId !== 'number') {
+    ElMessage.error('숙제 정보가 올바르지 않습니다')
+    return
+  }
+  // remove from local state immediately (optimistic)
+  const list = followUpsByStudent.value[studentId] || []
+  const idx = list.findIndex(h => h.homeworkId === homeworkId)
+  if (idx === -1) return
+  const removed = list[idx] as StudentHomework  // safe: idx !== -1 guaranteed above
+  list.splice(idx, 1)
+  if (list.length === 0) delete followUpsByStudent.value[studentId]
+
+  // Also sync the upper "학생별 숙제 완성도" table if this homework is shown there
+  const upperRow = studentAssignments.value.find(
+    (a) => a.studentId === studentId && a.assignedHomeworkId === homeworkId
+  )
+  if (upperRow) upperRow.followUpFlag = false
+
+  try {
+    await studentHomeworkAPI.setFollowUp(studentId, homeworkId, false)
+    ElMessage.success('표시를 해제했습니다')
+  } catch (error) {
+    // rollback both lower card and upper table
+    const rollbackList = followUpsByStudent.value[studentId] ?? (followUpsByStudent.value[studentId] = [])
+    rollbackList.splice(idx, 0, removed)
+    if (upperRow) upperRow.followUpFlag = true
+    ElMessage.error('변경에 실패했습니다')
+  }
 }
 
 // AI 일괄 피드백 state
@@ -1165,6 +1257,20 @@ onBeforeUnmount(() => {
             <el-tag v-else type="info">미제출</el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="다음에 다시 보기" width="140" align="center">
+          <template #default="{ row }">
+            <el-tag
+              v-if="row.assignedHomeworkId"
+              :type="row.followUpFlag ? 'danger' : 'info'"
+              :effect="row.followUpFlag ? 'dark' : 'plain'"
+              style="cursor: pointer; user-select: none"
+              @click="toggleFollowUp(row)"
+            >
+              {{ row.followUpFlag ? 'RED 표시됨' : '표시 안 됨' }}
+            </el-tag>
+            <span v-else style="color: #c0c4cc">-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="작업" width="120" align="center">
           <template #default="{ row }">
             <div v-if="editingHomeworkMap.get(row.studentId)" style="display: flex; gap: 4px; justify-content: center">
@@ -1182,6 +1288,63 @@ onBeforeUnmount(() => {
         </el-table-column>
         <el-table-column prop="assignedHomeworkTitle" label="할당된 숙제" min-width="150" />
       </el-table>
+    </el-card>
+
+    <!-- Follow-up: 이어서 풀 숙제 (지난 수업 미완) -->
+    <el-card v-if="hasFollowUps" shadow="never" style="margin-top: 24px">
+      <template #header>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <el-tag type="danger" effect="dark">RED</el-tag>
+          <h3 style="margin: 0; font-size: 18px; font-weight: 600">이어서 풀 숙제 (지난 수업 미완)</h3>
+        </div>
+      </template>
+      <el-table :data="followUpRows" stripe style="width: 100%">
+        <el-table-column prop="studentName" label="학생" width="120" />
+        <el-table-column label="숙제" min-width="200">
+          <template #default="{ row }">
+            <span>{{ row.homework.homeworkTitle }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="현재 완성도" width="120" align="center">
+          <template #default="{ row }">
+            <span
+              v-if="row.homework.completion !== null && row.homework.completion !== undefined"
+              :style="{ fontWeight: 600, color: row.homework.completion >= 80 ? '#67c23a' : row.homework.completion >= 50 ? '#e6a23c' : '#f56c6c' }"
+            >
+              {{ row.homework.completion }}%
+            </span>
+            <el-tag v-else type="info" size="small">미제출</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="오답/안 푼 문항" min-width="200">
+          <template #default="{ row }">
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <div v-if="row.homework.incorrectQuestions">
+                <span style="color: #f56c6c; font-size: 12px">오답:</span>
+                {{ row.homework.incorrectQuestions }}
+              </div>
+              <div v-if="row.homework.unsolvedQuestions">
+                <span style="color: #e6a23c; font-size: 12px">안 풂:</span>
+                {{ row.homework.unsolvedQuestions }}
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="작업" width="120" align="center">
+          <template #default="{ row }">
+            <el-button size="small" @click="removeFollowUpFromSection(row.studentId, row.homework.homeworkId)">
+              해제
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-alert
+        title="이 표는 학생-숙제 단위로 표시되며, 채점은 클리닉 또는 원래 수업 화면에서 진행하시면 됩니다. 채점 결과는 모든 화면에 동일하게 반영됩니다."
+        type="info"
+        :closable="false"
+        show-icon
+        style="margin-top: 16px"
+      />
     </el-card>
 
     <!-- Attach Test Dialog -->

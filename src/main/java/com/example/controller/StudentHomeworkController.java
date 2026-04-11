@@ -21,11 +21,6 @@ public class StudentHomeworkController {
         return ResponseEntity.ok(studentHomeworkService.getByStudentId(studentId));
     }
 
-    @GetMapping("/homework/{homeworkId}")
-    public ResponseEntity<List<StudentHomeworkDto>> getByHomeworkId(@PathVariable Long homeworkId) {
-        return ResponseEntity.ok(studentHomeworkService.getByHomeworkId(homeworkId));
-    }
-
     @PutMapping("/student/{studentId}/homework/{homeworkId}")
     public ResponseEntity<StudentHomeworkDto> updateIncorrectCount(
             @PathVariable Long studentId,
@@ -36,6 +31,21 @@ public class StudentHomeworkController {
         String incorrectQuestions = (String) request.get("incorrectQuestions");
         String unsolvedQuestions = (String) request.get("unsolvedQuestions");
         return ResponseEntity.ok(studentHomeworkService.updateIncorrectCount(studentId, homeworkId, incorrectCount, unsolvedCount, incorrectQuestions, unsolvedQuestions));
+    }
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @PutMapping("/student/{studentId}/homework/{homeworkId}/follow-up")
+    public ResponseEntity<StudentHomeworkDto> setFollowUp(
+            @PathVariable Long studentId,
+            @PathVariable Long homeworkId,
+            @RequestBody Map<String, Boolean> request) {
+        boolean followUp = Boolean.TRUE.equals(request.get("followUp"));
+        return ResponseEntity.ok(studentHomeworkService.setFollowUp(studentId, homeworkId, followUp));
+    }
+
+    @GetMapping("/student/{studentId}/follow-ups")
+    public ResponseEntity<List<StudentHomeworkDto>> getFollowUps(@PathVariable Long studentId) {
+        return ResponseEntity.ok(studentHomeworkService.getFollowUpsByStudent(studentId));
     }
 
     @PreAuthorize("hasRole('TEACHER')")

@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { academyAPI, type Academy } from '../api/client'
 import { usePagination } from '../composables/usePagination'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const loading = ref(false)
 const academies = ref<Academy[]>([])
 const searchQuery = ref('')
 const dialogVisible = ref(false)
-const editMode = ref(false)
 const currentAcademy = ref<Academy>({ name: '' })
 const { currentPage, pageSize } = usePagination('academies-view')
 
@@ -29,6 +30,12 @@ const tableData = computed(() => {
 
 const totalItems = computed(() => filteredData.value.length)
 
+const canEdit = (academy: Academy) => {
+  if (!academy.id) return false
+  const membership = authStore.memberships.find(m => m.academyId === academy.id)
+  return membership?.role === 'ACADEMY_ADMIN'
+}
+
 const fetchAcademies = async () => {
   loading.value = true
   try {
@@ -41,55 +48,20 @@ const fetchAcademies = async () => {
   }
 }
 
-const openAddDialog = () => {
-  editMode.value = false
-  currentAcademy.value = { name: '' }
-  dialogVisible.value = true
-}
-
 const openEditDialog = (academy: Academy) => {
-  editMode.value = true
   currentAcademy.value = { ...academy }
   dialogVisible.value = true
 }
 
 const handleSubmit = async () => {
+  if (!currentAcademy.value.id) return
   try {
-    if (editMode.value && currentAcademy.value.id) {
-      await academyAPI.updateAcademy(currentAcademy.value.id, currentAcademy.value)
-      ElMessage.success('학원 정보가 수정되었습니다.')
-    } else {
-      await academyAPI.createAcademy(currentAcademy.value)
-      ElMessage.success('학원이 추가되었습니다.')
-    }
+    await academyAPI.updateAcademy(currentAcademy.value.id, currentAcademy.value)
+    ElMessage.success('학원 정보가 수정되었습니다.')
     dialogVisible.value = false
     fetchAcademies()
   } catch (error) {
     ElMessage.error('작업을 완료할 수 없습니다.')
-  }
-}
-
-const handleDelete = async (academy: Academy) => {
-  if (!academy.id) return
-
-  try {
-    await ElMessageBox.confirm(
-      `${academy.name} 학원을 삭제하시겠습니까?`,
-      '삭제 확인',
-      {
-        confirmButtonText: '삭제',
-        cancelButtonText: '취소',
-        type: 'warning',
-      }
-    )
-
-    await academyAPI.deleteAcademy(academy.id)
-    ElMessage.success('학원이 삭제되었습니다.')
-    fetchAcademies()
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('삭제에 실패했습니다.')
-    }
   }
 }
 
@@ -127,10 +99,6 @@ onMounted(() => {
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
-          <el-button type="primary" @click="openAddDialog">
-            <el-icon style="margin-right: 8px"><Plus /></el-icon>
-            학원 추가
-          </el-button>
         </div>
       </div>
     </el-card>
@@ -144,14 +112,19 @@ onMounted(() => {
       >
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="학원명" />
-        <el-table-column label="작업" width="250" align="center">
+        <el-table-column label="작업" width="200" align="center">
           <template #default="{ row }">
             <el-button size="small" type="info" @click="navigateToLessons(row)">
               <el-icon style="margin-right: 4px"><Calendar /></el-icon>
               수업 보기
             </el-button>
-            <el-button size="small" @click="openEditDialog(row)">수정</el-button>
-            <el-button size="small" type="danger" @click="handleDelete(row)">삭제</el-button>
+            <el-button
+              v-if="canEdit(row)"
+              size="small"
+              @click="openEditDialog(row)"
+            >
+              수정
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -173,7 +146,7 @@ onMounted(() => {
 
     <el-dialog
       v-model="dialogVisible"
-      :title="editMode ? '학원 수정' : '학원 추가'"
+      title="학원 수정"
       width="500px"
     >
       <el-form :model="currentAcademy" label-width="100px">
@@ -183,9 +156,7 @@ onMounted(() => {
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">취소</el-button>
-        <el-button type="primary" @click="handleSubmit">
-          {{ editMode ? '수정' : '추가' }}
-        </el-button>
+        <el-button type="primary" @click="handleSubmit">수정</el-button>
       </template>
     </el-dialog>
   </div>

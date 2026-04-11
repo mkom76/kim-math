@@ -33,12 +33,13 @@ public class StudentHomeworkService {
                 .collect(Collectors.toList());
     }
 
-    public List<StudentHomeworkDto> getByHomeworkId(Long homeworkId) {
-        Homework homework = homeworkRepository.findById(homeworkId)
-                .orElseThrow(() -> new RuntimeException("Homework not found"));
-        authorizationService.assertCanAccessHomework(homework);
+    @Transactional(readOnly = true)
+    public List<StudentHomeworkDto> getFollowUpsByStudent(Long studentId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        authorizationService.assertCanAccessStudent(student);
 
-        return studentHomeworkRepository.findByHomeworkId(homeworkId).stream()
+        return studentHomeworkRepository.findByStudentIdAndFollowUpFlagTrue(studentId).stream()
                 .map(StudentHomeworkDto::from)
                 .collect(Collectors.toList());
     }
@@ -62,6 +63,24 @@ public class StudentHomeworkService {
         studentHomework.setUnsolvedCount(unsolvedCount);
         studentHomework.setIncorrectQuestions(incorrectQuestions);
         studentHomework.setUnsolvedQuestions(unsolvedQuestions);
+        studentHomework = studentHomeworkRepository.save(studentHomework);
+
+        return StudentHomeworkDto.from(studentHomework);
+    }
+
+    public StudentHomeworkDto setFollowUp(Long studentId, Long homeworkId, boolean followUp) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        authorizationService.assertCanAccessStudent(student);
+        Homework homework = homeworkRepository.findById(homeworkId)
+                .orElseThrow(() -> new RuntimeException("Homework not found"));
+        authorizationService.assertCanAccessHomework(homework);
+
+        StudentHomework studentHomework = studentHomeworkRepository
+                .findByStudentIdAndHomeworkId(studentId, homeworkId)
+                .orElseThrow(() -> new RuntimeException("StudentHomework not found"));
+
+        studentHomework.setFollowUpFlag(followUp);
         studentHomework = studentHomeworkRepository.save(studentHomework);
 
         return StudentHomeworkDto.from(studentHomework);

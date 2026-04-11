@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { dailyFeedbackAPI, aiFeedbackAPI, type DailyFeedback, type EssayDetail, authAPI, lessonAPI, type Lesson, studentAPI } from '../api/client'
+import { dailyFeedbackAPI, aiFeedbackAPI, type DailyFeedback, type EssayDetail, authAPI, lessonAPI, type Lesson, studentAPI, studentHomeworkAPI, type StudentHomework } from '../api/client'
 import { useRouter, useRoute } from 'vue-router'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 
@@ -9,6 +9,7 @@ const router = useRouter()
 const route = useRoute()
 const loading = ref(false)
 const feedback = ref<DailyFeedback | null>(null)
+const followUps = ref<StudentHomework[]>([])
 const currentUser = ref<any>(null)
 const lessons = ref<Lesson[]>([])
 const selectedLessonId = ref<number | null>(null)
@@ -81,6 +82,7 @@ const fetchLessons = async () => {
     // 학생 정보에서 classId 가져오기
     const studentRes = await studentAPI.getStudent(studentId.value)
     studentName.value = studentRes.data.name
+    await fetchFollowUps()
     const classId = studentRes.data.classId
 
     if (classId) {
@@ -133,6 +135,17 @@ const fetchFeedback = async () => {
     }
   } finally {
     loading.value = false
+  }
+}
+
+const fetchFollowUps = async () => {
+  if (!studentId.value) return
+  try {
+    const res = await studentHomeworkAPI.getFollowUps(studentId.value)
+    followUps.value = res.data
+  } catch (error) {
+    // non-blocking — main view should still render
+    followUps.value = []
   }
 }
 
@@ -387,6 +400,52 @@ onMounted(() => {
           </el-card>
         </el-col>
       </el-row>
+
+      <!-- Follow-up: 이어서 풀 숙제 -->
+      <el-card v-if="followUps.length > 0" shadow="never" style="margin-bottom: 24px">
+        <template #header>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <el-icon size="20" color="#f56c6c"><Warning /></el-icon>
+            <span :style="{ fontWeight: 600, fontSize: labelFontSize }">이어서 풀 숙제</span>
+            <el-badge :value="followUps.length" type="danger" />
+          </div>
+        </template>
+
+        <el-table :data="followUps" stripe :size="isMobile ? 'small' : 'default'" style="width: 100%">
+          <el-table-column label="숙제" min-width="180">
+            <template #default="{ row }">
+              <span :style="{ fontWeight: 500, fontSize: tableFontSize }">{{ row.homeworkTitle }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="완성도" width="100" align="center">
+            <template #default="{ row }">
+              <span
+                v-if="row.completion !== null && row.completion !== undefined"
+                :style="{
+                  fontWeight: 600,
+                  fontSize: tableFontSize,
+                  color: row.completion >= 80 ? '#67c23a' : row.completion >= 50 ? '#e6a23c' : '#f56c6c'
+                }"
+              >
+                {{ row.completion }}%
+              </span>
+              <el-tag v-else type="info" size="small">미제출</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="오답/안 푼 문항" min-width="180">
+            <template #default="{ row }">
+              <div :style="{ fontSize: smallTextFontSize }">
+                <div v-if="row.incorrectQuestions" style="color: #f56c6c">
+                  오답: {{ row.incorrectQuestions }}
+                </div>
+                <div v-if="row.unsolvedQuestions" style="color: #e6a23c">
+                  안 풂: {{ row.unsolvedQuestions }}
+                </div>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
 
       <el-card v-if="feedback.todayTest" shadow="never" style="margin-bottom: 24px">
         <template #header>
