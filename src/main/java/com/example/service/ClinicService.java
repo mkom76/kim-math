@@ -25,6 +25,7 @@ public class ClinicService {
     private final StudentRepository studentRepository;
     private final StudentHomeworkRepository studentHomeworkRepository;
     private final ClinicHomeworkProgressRepository clinicHomeworkProgressRepository;
+    private final AuthorizationService authorizationService;
 
     /**
      * 이번주 클리닉 생성 (반의 기본 설정 기반)
@@ -32,6 +33,7 @@ public class ClinicService {
     public ClinicDto createClinicForThisWeek(Long classId) {
         AcademyClass academyClass = academyClassRepository.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
+        authorizationService.assertCanModifyClass(academyClass);
 
         if (academyClass.getClinicDayOfWeek() == null || academyClass.getClinicTime() == null) {
             throw new RuntimeException("클리닉 요일/시간이 설정되지 않았습니다");
@@ -65,6 +67,7 @@ public class ClinicService {
     public ClinicDto createClinic(Long classId, LocalDate clinicDate, java.time.LocalTime clinicTime) {
         AcademyClass academyClass = academyClassRepository.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
+        authorizationService.assertCanModifyClass(academyClass);
 
         Optional<Clinic> existing = clinicRepository.findByClassIdAndDate(classId, clinicDate);
         if (existing.isPresent()) {
@@ -87,6 +90,10 @@ public class ClinicService {
      */
     @Transactional(readOnly = true)
     public List<ClinicDto> getClinicsByClass(Long classId) {
+        AcademyClass academyClass = academyClassRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Class not found"));
+        authorizationService.assertCanModifyClass(academyClass);
+
         return clinicRepository.findByAcademyClassIdOrderByClinicDateDesc(classId)
                 .stream()
                 .map(ClinicDto::from)
@@ -98,6 +105,10 @@ public class ClinicService {
      */
     @Transactional(readOnly = true)
     public Optional<ClinicDto> getUpcomingClinic(Long classId) {
+        AcademyClass academyClass = academyClassRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Class not found"));
+        authorizationService.assertCanModifyClass(academyClass);
+
         LocalDate today = LocalDate.now();
         List<Clinic> upcomingClinics = clinicRepository.findUpcomingClinicsByClass(classId, today);
 
@@ -115,6 +126,7 @@ public class ClinicService {
     public ClinicDetailDto getClinicDetail(Long clinicId) {
         Clinic clinic = clinicRepository.findById(clinicId)
                 .orElseThrow(() -> new RuntimeException("Clinic not found"));
+        authorizationService.assertCanAccessClinic(clinic);
 
         // Get all students in the class
         List<Student> students = studentRepository.findAll().stream()
@@ -188,8 +200,10 @@ public class ClinicService {
     public ClinicRegistrationDto registerForClinic(Long clinicId, Long studentId) {
         Clinic clinic = clinicRepository.findById(clinicId)
                 .orElseThrow(() -> new RuntimeException("Clinic not found"));
+        authorizationService.assertCanAccessClinic(clinic);
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
+        authorizationService.assertCanAccessStudent(student);
 
         // Check if clinic is open
         if (clinic.getStatus() != ClinicStatus.OPEN) {
@@ -230,6 +244,7 @@ public class ClinicService {
         ClinicRegistration registration = clinicRegistrationRepository
                 .findByClinicIdAndStudentId(clinicId, studentId)
                 .orElseThrow(() -> new RuntimeException("Registration not found"));
+        authorizationService.assertCanAccessClinic(registration.getClinic());
 
         registration.setStatus(ClinicRegistrationStatus.CANCELLED);
         clinicRegistrationRepository.save(registration);
@@ -241,6 +256,7 @@ public class ClinicService {
     public ClinicRegistrationDto updateAttendance(Long registrationId, ClinicRegistrationStatus status) {
         ClinicRegistration registration = clinicRegistrationRepository.findById(registrationId)
                 .orElseThrow(() -> new RuntimeException("Registration not found"));
+        authorizationService.assertCanAccessClinic(registration.getClinic());
 
         registration.setStatus(status);
         registration = clinicRegistrationRepository.save(registration);
@@ -254,6 +270,7 @@ public class ClinicService {
     public StudentClinicInfoDto getStudentClinicInfo(Long studentId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
+        authorizationService.assertCanAccessStudent(student);
 
         // Get upcoming clinic for student's class
         Optional<ClinicDto> upcomingClinic = getUpcomingClinic(student.getAcademyClass().getId());
@@ -301,6 +318,7 @@ public class ClinicService {
     public ClinicDto closeClinic(Long clinicId) {
         Clinic clinic = clinicRepository.findById(clinicId)
                 .orElseThrow(() -> new RuntimeException("Clinic not found"));
+        authorizationService.assertCanAccessClinic(clinic);
 
         clinic.setStatus(ClinicStatus.CLOSED);
         clinic = clinicRepository.save(clinic);
@@ -313,13 +331,14 @@ public class ClinicService {
     public void deleteClinic(Long clinicId) {
         Clinic clinic = clinicRepository.findById(clinicId)
                 .orElseThrow(() -> new RuntimeException("Clinic not found"));
+        authorizationService.assertCanAccessClinic(clinic);
 
         // Check if there are any registrations
         if (!clinic.getRegistrations().isEmpty()) {
             throw new RuntimeException("신청자가 있는 클리닉은 삭제할 수 없습니다");
         }
 
-        clinicRepository.deleteById(clinicId);
+        clinicRepository.delete(clinic);
     }
 
     /**
@@ -328,6 +347,7 @@ public class ClinicService {
     public void startClinic(Long clinicId) {
         Clinic clinic = clinicRepository.findById(clinicId)
                 .orElseThrow(() -> new RuntimeException("Clinic not found"));
+        authorizationService.assertCanAccessClinic(clinic);
 
         // Get all students in the class
         List<Student> students = studentRepository.findAll().stream()
@@ -379,6 +399,7 @@ public class ClinicService {
     public void endClinic(Long clinicId) {
         Clinic clinic = clinicRepository.findById(clinicId)
                 .orElseThrow(() -> new RuntimeException("Clinic not found"));
+        authorizationService.assertCanAccessClinic(clinic);
 
         // Set clinic status to CLOSED
         clinic.setStatus(ClinicStatus.CLOSED);
@@ -414,6 +435,10 @@ public class ClinicService {
      */
     @Transactional(readOnly = true)
     public List<ClinicHomeworkProgressDto> getClinicProgress(Long clinicId) {
+        Clinic clinic = clinicRepository.findById(clinicId)
+                .orElseThrow(() -> new RuntimeException("Clinic not found"));
+        authorizationService.assertCanAccessClinic(clinic);
+
         return clinicHomeworkProgressRepository.findByClinicId(clinicId).stream()
                 .map(ClinicHomeworkProgressDto::from)
                 .collect(Collectors.toList());
@@ -426,6 +451,7 @@ public class ClinicService {
     public Optional<RecentClinicResultDto> getRecentClinicResult(Long studentId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
+        authorizationService.assertCanAccessStudent(student);
 
         if (student.getAcademyClass() == null) {
             return Optional.empty();

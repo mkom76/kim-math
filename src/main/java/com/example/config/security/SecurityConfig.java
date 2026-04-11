@@ -5,6 +5,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -35,9 +39,10 @@ public class SecurityConfig {
                     "/api/auth/student/login",
                     "/api/auth/teacher/login"
                 ).permitAll()
+                .requestMatchers("/api/admin/**").hasRole("ACADEMY_ADMIN")
                 .requestMatchers("/api/**").authenticated()
-                .requestMatchers("/actuator/**").hasRole("TEACHER")
-                .anyRequest().permitAll()
+                .requestMatchers("/actuator/**").hasAnyRole("TEACHER", "ACADEMY_ADMIN")
+                .anyRequest().denyAll()
             )
             .addFilterBefore(new SessionAuthenticationFilter(),
                     UsernamePasswordAuthenticationFilter.class)
@@ -78,5 +83,17 @@ public class SecurityConfig {
 
     private String[] parseAllowedOrigins() {
         return allowedOrigins.split(",");
+    }
+
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.fromHierarchy("ROLE_ACADEMY_ADMIN > ROLE_TEACHER");
+    }
+
+    @Bean
+    static MethodSecurityExpressionHandler methodSecurityExpressionHandler(RoleHierarchy roleHierarchy) {
+        DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
+        handler.setRoleHierarchy(roleHierarchy);
+        return handler;
     }
 }

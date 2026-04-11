@@ -1,16 +1,21 @@
 package com.example.service.ai;
 
+import com.example.config.security.TenantContext;
 import com.example.dto.AiFeedbackRequest;
 import com.example.dto.AiFeedbackResponse;
 import com.example.dto.BulkAiFeedbackRequest;
 import com.example.dto.BulkAiFeedbackResponse;
 import com.example.dto.DailyFeedbackDto;
 import com.example.entity.FeedbackPromptTemplate;
+import com.example.entity.Lesson;
 import com.example.entity.Student;
 import com.example.entity.StudentLesson;
+import com.example.exception.ForbiddenException;
 import com.example.repository.FeedbackPromptTemplateRepository;
+import com.example.repository.LessonRepository;
 import com.example.repository.StudentLessonRepository;
 import com.example.repository.StudentRepository;
+import com.example.service.AuthorizationService;
 import com.example.service.DailyFeedbackService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,21 +35,52 @@ public class AiFeedbackService {
     private final FeedbackPromptTemplateRepository promptTemplateRepository;
     private final StudentLessonRepository studentLessonRepository;
     private final StudentRepository studentRepository;
+    private final LessonRepository lessonRepository;
     private final OpenAiApiClient openAiApiClient;
     private final BulkAiFeedbackProcessor bulkProcessor;
+    private final AuthorizationService authorizationService;
 
-    // lessonId -> 진행 상태
-    private final ConcurrentHashMap<Long, BulkAiFeedbackResponse> bulkStatusMap = new ConcurrentHashMap<>();
+    // (academyId:lessonId) -> 진행 상태 (per-academy namespace to prevent cross-tenant collisions)
+    private final ConcurrentHashMap<String, BulkAiFeedbackResponse> bulkStatusMap = new ConcurrentHashMap<>();
+
+    private Long requireTeacherId() {
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null || ctx.teacherId() == null || ctx.role() == null) {
+            throw new ForbiddenException("선생님 인증이 필요합니다");
+        }
+        return ctx.teacherId();
+    }
+
+    private static String statusKey(Long academyId, Long lessonId) {
+        return academyId + ":" + lessonId;
+    }
 
     public BulkAiFeedbackResponse getBulkStatus(Long lessonId) {
-        return bulkStatusMap.get(lessonId);
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null || ctx.academyId() == null) {
+            throw new ForbiddenException("인증 컨텍스트가 없습니다");
+        }
+        Lesson lesson = lessonRepository.findById(lessonId).orElse(null);
+        if (lesson != null) {
+            authorizationService.assertCanAccessLesson(lesson);
+        }
+        return bulkStatusMap.get(statusKey(ctx.academyId(), lessonId));
     }
 
     public BulkAiFeedbackResponse startBulkFeedback(BulkAiFeedbackRequest request) {
         Long lessonId = request.getLessonId();
 
+        // Load and authorize the lesson
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
+
+        TenantContext.Context ctx = TenantContext.current();
+        Long academyId = ctx.academyId();
+        String key = statusKey(academyId, lessonId);
+
         // 이미 진행 중이면 현재 상태 반환
-        BulkAiFeedbackResponse existing = bulkStatusMap.get(lessonId);
+        BulkAiFeedbackResponse existing = bulkStatusMap.get(key);
         if (existing != null && "PROCESSING".equals(existing.getStatus())) {
             return existing;
         }
@@ -70,15 +106,31 @@ public class AiFeedbackService {
                 .skippedCount(0)
                 .skippedStudents(new ArrayList<>())
                 .build();
-        bulkStatusMap.put(lessonId, initial);
+        bulkStatusMap.put(key, initial);
+
+        // Override DTO teacherId with context-derived teacherId for downstream calls
+        request.setTeacherId(requireTeacherId());
 
         // 별도 빈을 통한 비동기 실행 (프록시 경유)
-        bulkProcessor.processAsync(request, snapshots, initial);
+        // Pass captured tenant context for propagation into the async thread
+        bulkProcessor.processAsync(request, snapshots, initial, ctx);
 
         return initial;
     }
 
     public AiFeedbackResponse generateFeedback(AiFeedbackRequest request) {
+        // Always derive teacherId from context, ignore DTO value
+        Long teacherId = requireTeacherId();
+
+        // Authorize student and lesson access up front
+        Student student = studentRepository.findById(request.getStudentId())
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        authorizationService.assertCanAccessStudent(student);
+
+        Lesson lesson = lessonRepository.findById(request.getLessonId())
+                .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
+
         // 1. 학생 시험 데이터 수집
         DailyFeedbackDto feedbackData = dailyFeedbackService.getDailyFeedback(
                 request.getStudentId(), request.getLessonId());
@@ -87,22 +139,19 @@ public class AiFeedbackService {
             throw new RuntimeException("No test or homework data available for this lesson");
         }
 
-        Student student = studentRepository.findById(request.getStudentId())
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-
         // 2. 선생님별 프롬프트 템플릿 조회 (없으면 기본값)
-        String systemPrompt = promptTemplateRepository.findByTeacherId(request.getTeacherId())
+        String systemPrompt = promptTemplateRepository.findByTeacherId(teacherId)
                 .filter(FeedbackPromptTemplate::getIsActive)
                 .map(FeedbackPromptTemplate::getSystemPrompt)
                 .orElse(DefaultFeedbackPrompt.SYSTEM_PROMPT);
 
-        int fewShotCount = promptTemplateRepository.findByTeacherId(request.getTeacherId())
+        int fewShotCount = promptTemplateRepository.findByTeacherId(teacherId)
                 .map(FeedbackPromptTemplate::getFewShotCount)
                 .orElse(DefaultFeedbackPrompt.DEFAULT_FEW_SHOT_COUNT);
 
         // 3. Few-shot 예시 수집 (해당 선생님이 이전에 작성한 피드백)
         List<Map<String, String>> messages = buildMessages(
-                feedbackData, student, request.getTeacherId(), fewShotCount);
+                feedbackData, student, teacherId, fewShotCount);
 
         // 4. OpenAI API 호출
         String generated = openAiApiClient.sendMessage(systemPrompt, messages, request.getModel());

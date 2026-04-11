@@ -1,8 +1,11 @@
 package com.example.service;
 
+import com.example.config.security.TenantContext;
 import com.example.dto.AcademyClassDto;
 import com.example.entity.Academy;
 import com.example.entity.AcademyClass;
+import com.example.entity.TeacherAcademyRole;
+import com.example.exception.ForbiddenException;
 import com.example.repository.AcademyRepository;
 import com.example.repository.AcademyClassRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,8 @@ import java.util.stream.Collectors;
 public class AcademyClassService {
     private final AcademyClassRepository academyClassRepository;
     private final AcademyRepository academyRepository;
+    private final MembershipService membershipService;
+    private final AuthorizationService authorizationService;
 
     public Page<AcademyClassDto> getClasses(Pageable pageable) {
         return academyClassRepository.findAll(pageable).map(AcademyClassDto::from);
@@ -34,16 +39,60 @@ public class AcademyClassService {
     public AcademyClassDto getClass(Long id) {
         AcademyClass academyClass = academyClassRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
+
+        // Filter bypass guard: verify caller can see this class
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null) {
+            throw new ForbiddenException("인증 컨텍스트가 없습니다");
+        }
+        Long classAcademyId = academyClass.getAcademy() != null ? academyClass.getAcademy().getId() : null;
+        if (classAcademyId == null || !classAcademyId.equals(ctx.academyId())) {
+            throw new RuntimeException("Class not found");  // 404 — don't leak existence
+        }
+        if (ctx.role() == TeacherAcademyRole.TEACHER &&
+            (academyClass.getOwnerTeacherId() == null || !ctx.teacherId().equals(academyClass.getOwnerTeacherId()))) {
+            throw new RuntimeException("Class not found");  // 404 — don't leak existence
+        }
+
         return AcademyClassDto.from(academyClass);
     }
 
     public AcademyClassDto createClass(AcademyClassDto dto) {
-        Academy academy = academyRepository.findById(dto.getAcademyId())
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null) {
+            throw new ForbiddenException("인증 컨텍스트가 없습니다");
+        }
+
+        // Force active academy from session — ignore dto.academyId if it differs
+        if (dto.getAcademyId() != null && !dto.getAcademyId().equals(ctx.academyId())) {
+            throw new ForbiddenException("활성 학원과 다른 학원에 반을 생성할 수 없습니다");
+        }
+
+        Academy academy = academyRepository.findById(ctx.academyId())
                 .orElseThrow(() -> new RuntimeException("Academy not found"));
+
+        // Owner: defaults to current teacher. Cross-owner assignment is admin-only.
+        Long ownerTeacherId;
+        if (dto.getOwnerTeacherId() == null || dto.getOwnerTeacherId().equals(ctx.teacherId())) {
+            ownerTeacherId = ctx.teacherId();
+        } else {
+            authorizationService.assertIsAcademyAdmin();
+            ownerTeacherId = dto.getOwnerTeacherId();
+        }
+
+        // Validate the owner is a member of the active academy
+        try {
+            membershipService.requireMembership(ownerTeacherId, academy.getId());
+        } catch (IllegalArgumentException e) {
+            throw new ForbiddenException("선택된 선생님이 해당 학원의 멤버가 아닙니다");
+        }
 
         AcademyClass academyClass = AcademyClass.builder()
                 .name(dto.getName())
                 .academy(academy)
+                .ownerTeacherId(ownerTeacherId)
+                .clinicDayOfWeek(dto.getClinicDayOfWeek())
+                .clinicTime(dto.getClinicTime())
                 .build();
 
         academyClass = academyClassRepository.save(academyClass);
@@ -54,15 +103,19 @@ public class AcademyClassService {
         AcademyClass academyClass = academyClassRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
 
-        academyClass.setName(dto.getName());
+        authorizationService.assertCanModifyClass(academyClass);
 
+        // Reject academy reassignment — would break tenant isolation
         if (dto.getAcademyId() != null && !dto.getAcademyId().equals(academyClass.getAcademy().getId())) {
-            Academy academy = academyRepository.findById(dto.getAcademyId())
-                    .orElseThrow(() -> new RuntimeException("Academy not found"));
-            academyClass.setAcademy(academy);
+            throw new ForbiddenException("반의 소속 학원은 변경할 수 없습니다");
         }
 
-        // Update clinic settings
+        // Reject owner change via this endpoint — use the admin owner-reassignment endpoint instead
+        if (dto.getOwnerTeacherId() != null && !dto.getOwnerTeacherId().equals(academyClass.getOwnerTeacherId())) {
+            throw new ForbiddenException("반 담당자 변경은 어드민 전용 엔드포인트를 사용하세요");
+        }
+
+        academyClass.setName(dto.getName());
         academyClass.setClinicDayOfWeek(dto.getClinicDayOfWeek());
         academyClass.setClinicTime(dto.getClinicTime());
 
@@ -71,6 +124,15 @@ public class AcademyClassService {
     }
 
     public void deleteClass(Long id) {
-        academyClassRepository.deleteById(id);
+        AcademyClass academyClass = academyClassRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Class not found"));
+        authorizationService.assertCanModifyClass(academyClass);
+
+        // Safety: prevent destructive cascade. CASCADE.ALL on students would wipe submissions/homework history.
+        if (academyClass.getStudents() != null && !academyClass.getStudents().isEmpty()) {
+            throw new ForbiddenException("학생이 등록된 반은 삭제할 수 없습니다. 학생을 다른 반으로 이동한 뒤 다시 시도하세요.");
+        }
+
+        academyClassRepository.delete(academyClass);
     }
 }

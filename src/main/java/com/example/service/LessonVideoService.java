@@ -1,11 +1,13 @@
 package com.example.service;
 
+import com.example.config.security.TenantContext;
 import com.example.dto.LessonVideoDto;
 import com.example.dto.StudentLessonVideosDto;
 import com.example.dto.YouTubeVideoInfo;
 import com.example.entity.Lesson;
 import com.example.entity.LessonVideo;
 import com.example.entity.Student;
+import com.example.exception.ForbiddenException;
 import com.example.repository.LessonRepository;
 import com.example.repository.LessonVideoRepository;
 import com.example.repository.StudentLessonRepository;
@@ -28,6 +30,7 @@ public class LessonVideoService {
     private final StudentRepository studentRepository;
     private final StudentLessonRepository studentLessonRepository;
     private final YouTubeService youtubeService;
+    private final AuthorizationService authorizationService;
 
     /**
      * 영상 추가
@@ -35,6 +38,7 @@ public class LessonVideoService {
     public LessonVideoDto addVideo(Long lessonId, String youtubeUrl) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
 
         // 1. YouTube URL에서 video ID 추출
         String videoId = youtubeService.extractVideoId(youtubeUrl);
@@ -66,6 +70,10 @@ public class LessonVideoService {
      */
     @Transactional(readOnly = true)
     public List<LessonVideoDto> getVideos(Long lessonId) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
+
         return lessonVideoRepository.findByLessonIdOrderByOrderIndexAsc(lessonId).stream()
                 .map(LessonVideoDto::from)
                 .collect(Collectors.toList());
@@ -77,6 +85,7 @@ public class LessonVideoService {
     public LessonVideoDto updateOrder(Long lessonId, Long videoId, int newOrderIndex) {
         LessonVideo video = lessonVideoRepository.findById(videoId)
                 .orElseThrow(() -> new RuntimeException("Video not found"));
+        authorizationService.assertCanAccessLesson(video.getLesson());
 
         if (!video.getLesson().getId().equals(lessonId)) {
             throw new RuntimeException("Video does not belong to this lesson");
@@ -118,6 +127,7 @@ public class LessonVideoService {
     public void deleteVideo(Long lessonId, Long videoId) {
         LessonVideo video = lessonVideoRepository.findById(videoId)
                 .orElseThrow(() -> new RuntimeException("Video not found"));
+        authorizationService.assertCanAccessLesson(video.getLesson());
 
         if (!video.getLesson().getId().equals(lessonId)) {
             throw new RuntimeException("Video does not belong to this lesson");
@@ -141,8 +151,20 @@ public class LessonVideoService {
      */
     @Transactional(readOnly = true)
     public List<StudentLessonVideosDto> getStudentVideos(Long studentId) {
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null) {
+            throw new ForbiddenException("인증 컨텍스트가 없습니다");
+        }
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
+        if (ctx.role() == null) {
+            // Student session: may only view own videos
+            if (!ctx.teacherId().equals(studentId)) {
+                throw new ForbiddenException("본인의 영상만 접근할 수 있습니다");
+            }
+        } else {
+            authorizationService.assertCanAccessStudent(student);
+        }
 
         if (student.getAcademyClass() == null) {
             throw new RuntimeException("Student is not assigned to a class");

@@ -1,5 +1,6 @@
 package com.example.service;
 
+import com.example.config.security.TenantContext;
 import com.example.controller.LessonController;
 import com.example.dto.AttendanceStatsDto;
 import com.example.dto.HomeworkDto;
@@ -8,6 +9,7 @@ import com.example.dto.LessonStudentStatsDto;
 import com.example.dto.StudentHomeworkAssignmentDto;
 import com.example.dto.StudentLessonDto;
 import com.example.entity.*;
+import com.example.exception.ForbiddenException;
 import com.example.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -32,6 +34,7 @@ public class LessonService {
     private final StudentSubmissionRepository studentSubmissionRepository;
     private final StudentHomeworkRepository studentHomeworkRepository;
     private final StudentLessonRepository studentLessonRepository;
+    private final AuthorizationService authorizationService;
 
     /**
      * Get or create lesson for a specific date/class
@@ -63,11 +66,16 @@ public class LessonService {
     public LessonDto getLesson(Long id) {
         Lesson lesson = lessonRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
         return LessonDto.from(lesson);
     }
 
     @Transactional(readOnly = true)
     public List<LessonDto> getLessonsByClass(Long classId) {
+        AcademyClass academyClass = academyClassRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Class not found"));
+        authorizationService.assertCanModifyClass(academyClass);
+
         return lessonRepository.findByAcademyClassIdOrderByLessonDateDesc(classId)
                 .stream()
                 .map(LessonDto::from)
@@ -77,6 +85,7 @@ public class LessonService {
     public void deleteLesson(Long id) {
         Lesson lesson = lessonRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
 
         // Validate: cannot delete if test or homework attached
         if (lesson.getTest() != null) {
@@ -86,17 +95,26 @@ public class LessonService {
             throw new RuntimeException("Cannot delete lesson with attached homework");
         }
 
-        lessonRepository.deleteById(id);
+        lessonRepository.delete(lesson);
     }
 
     /**
      * Create a new lesson (manual creation for the new workflow)
      */
     public LessonDto createLesson(Long academyId, Long classId, LocalDate lessonDate) {
-        Academy academy = academyRepository.findById(academyId)
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null) {
+            throw new ForbiddenException("인증 컨텍스트가 없습니다");
+        }
+        if (academyId != null && !academyId.equals(ctx.academyId())) {
+            throw new ForbiddenException("활성 학원과 다른 학원에 수업을 생성할 수 없습니다");
+        }
+
+        Academy academy = academyRepository.findById(ctx.academyId())
                 .orElseThrow(() -> new RuntimeException("Academy not found"));
         AcademyClass academyClass = academyClassRepository.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
+        authorizationService.assertCanModifyClass(academyClass);
 
         // Check if lesson already exists for this date/class
         if (lessonRepository.findByAcademyIdAndClassIdAndLessonDate(academyId, classId, lessonDate).isPresent()) {
@@ -119,8 +137,10 @@ public class LessonService {
     public LessonDto attachTest(Long lessonId, Long testId) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
         Test test = testRepository.findById(testId)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
+        authorizationService.assertCanAccessTest(test);
 
         // Validate: test must not already be attached to another lesson
         if (test.getLesson() != null && !test.getLesson().getId().equals(lessonId)) {
@@ -145,8 +165,10 @@ public class LessonService {
     public LessonDto attachHomework(Long lessonId, Long homeworkId) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
         Homework homework = homeworkRepository.findById(homeworkId)
                 .orElseThrow(() -> new RuntimeException("Homework not found"));
+        authorizationService.assertCanAccessHomework(homework);
 
         // Validate: homework must not already be attached to another lesson
         if (homework.getLesson() != null && !homework.getLesson().getId().equals(lessonId)) {
@@ -171,6 +193,7 @@ public class LessonService {
     public LessonDto detachTest(Long lessonId) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
 
         if (lesson.getTest() != null) {
             Test test = lesson.getTest();
@@ -187,8 +210,10 @@ public class LessonService {
     public LessonDto removeHomework(Long lessonId, Long homeworkId) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
         Homework homework = homeworkRepository.findById(homeworkId)
                 .orElseThrow(() -> new RuntimeException("Homework not found"));
+        authorizationService.assertCanAccessHomework(homework);
 
         // Validate: homework must belong to this lesson
         if (homework.getLesson() == null || !homework.getLesson().getId().equals(lessonId)) {
@@ -209,6 +234,7 @@ public class LessonService {
     public List<LessonDto> getLessonsByStudent(Long studentId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
+        authorizationService.assertCanAccessStudent(student);
 
         return lessonRepository.findByAcademyClassIdOrderByLessonDateDesc(student.getAcademyClass().getId())
                 .stream()
@@ -222,6 +248,7 @@ public class LessonService {
     public LessonDto updateLessonContent(Long lessonId, String commonFeedback, String announcement) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
 
         lesson.setCommonFeedback(commonFeedback);
         lesson.setAnnouncement(announcement);
@@ -236,6 +263,7 @@ public class LessonService {
     public LessonDto updateLessonDate(Long lessonId, LocalDate newDate) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
 
         // Check if another lesson already exists for this date and class
         Optional<Lesson> existingLesson = lessonRepository.findByAcademyIdAndClassIdAndLessonDate(
@@ -259,6 +287,7 @@ public class LessonService {
     public LessonStudentStatsDto getLessonStudentStats(Long lessonId) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
 
         // Get all students in this class
         List<Student> students = studentRepository.findAll().stream()
@@ -377,6 +406,7 @@ public class LessonService {
     public List<HomeworkDto> getLessonHomeworks(Long lessonId) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
 
         return lesson.getHomeworks().stream()
                 .map(HomeworkDto::from)
@@ -391,6 +421,7 @@ public class LessonService {
     public void assignHomeworksToStudents(Long lessonId, Map<Long, Long> assignments) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
 
         // Get all homework IDs for validation
         List<Long> lessonHomeworkIds = lesson.getHomeworks().stream()
@@ -459,6 +490,7 @@ public class LessonService {
     public List<StudentHomeworkAssignmentDto> getAssignments(Long lessonId) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
 
         // Get all students in this class
         List<Student> students = studentRepository.findAll().stream()
@@ -503,6 +535,7 @@ public class LessonService {
     public List<StudentLessonDto> getAttendance(Long lessonId) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
 
         List<Student> students = studentRepository.findByAcademyClassId(
                 lesson.getAcademyClass().getId());
@@ -535,6 +568,7 @@ public class LessonService {
     public void saveAttendance(Long lessonId, List<LessonController.AttendanceRequest> attendanceList) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
 
         for (LessonController.AttendanceRequest req : attendanceList) {
             StudentLesson sl = studentLessonRepository
@@ -561,6 +595,7 @@ public class LessonService {
     public AttendanceStatsDto getAttendanceStats(Long studentId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
+        authorizationService.assertCanAccessStudent(student);
 
         long totalLessons = lessonRepository.findByAcademyClassIdOrderByLessonDateDesc(
                 student.getAcademyClass().getId()).size();

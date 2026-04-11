@@ -5,6 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -16,6 +19,10 @@ import java.util.List;
 @Entity
 @Table(name = "tests")
 @EntityListeners(AuditingEntityListener.class)
+@FilterDef(name = "academyFilter", parameters = @ParamDef(name = "academyId", type = Long.class))
+@FilterDef(name = "ownerFilter",   parameters = @ParamDef(name = "teacherId", type = Long.class))
+@Filter(name = "academyFilter", condition = "academy_id = :academyId")
+@Filter(name = "ownerFilter",   condition = "class_id IN (SELECT id FROM academy_classes WHERE owner_teacher_id = :teacherId)")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

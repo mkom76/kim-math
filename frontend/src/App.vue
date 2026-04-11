@@ -5,9 +5,13 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { authAPI } from '@/api/client'
 import type { AuthResponse } from '@/api/client'
+import AcademySwitcher from '@/components/AcademySwitcher.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const route = useRoute()
+
+const authStore = useAuthStore()
 
 const activeIndex = ref('/')
 const currentUser = ref<AuthResponse>({})
@@ -21,6 +25,10 @@ const fetchCurrentUser = async () => {
   try {
     const response = await authAPI.getCurrentUser()
     currentUser.value = response.data
+    // Also hydrate the auth store so AcademySwitcher and other components have state
+    if (response.data.userId) {
+      await authStore.loadCurrentUser()
+    }
   } catch (error) {
     // User not logged in
   }
@@ -33,7 +41,7 @@ const handleSelect = (index: string) => {
 
 const handleLogout = async () => {
   try {
-    await authAPI.logout()
+    await authStore.logout()
     currentUser.value = {}
     ElMessage.success('로그아웃 되었습니다')
     router.push('/login')
@@ -88,8 +96,9 @@ watch(() => route.path, () => {
           </div>
         </div>
 
-        <!-- Right: User Info + Logout -->
+        <!-- Right: Academy Switcher + User Info + Logout -->
         <div style="display: flex; align-items: center; gap: 12px">
+          <AcademySwitcher />
           <span style="color: #606266; font-size: 14px">{{ currentUser.name }}님</span>
           <el-button type="danger" size="small" @click="handleLogout">
             로그아웃
@@ -145,6 +154,19 @@ watch(() => route.path, () => {
           <el-icon><Grid /></el-icon>
           <span>반 관리</span>
         </el-menu-item>
+
+        <el-divider v-if="authStore.isAdmin" style="margin: 12px 0" />
+
+        <template v-if="authStore.isAdmin">
+          <el-menu-item index="/admin/teachers">
+            <el-icon><UserFilled /></el-icon>
+            <span>선생님 관리</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/class-owners">
+            <el-icon><Avatar /></el-icon>
+            <span>반 담당자 관리</span>
+          </el-menu-item>
+        </template>
 
         <el-divider style="margin: 12px 0" />
 

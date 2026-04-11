@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { authAPI } from '@/api/client'
+import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -9,6 +9,12 @@ const router = createRouter({
       name: 'login',
       component: () => import('../views/LoginView.vue'),
       meta: { requiresAuth: false }
+    },
+    {
+      path: '/no-academy',
+      name: 'no-academy',
+      component: () => import('../views/NoAcademyView.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/',
@@ -81,6 +87,18 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresRole: 'TEACHER' }
     },
     {
+      path: '/admin/teachers',
+      name: 'admin-teachers',
+      component: () => import('../views/AdminTeachersView.vue'),
+      meta: { requiresAuth: true, requiresRole: 'TEACHER', requiresAdmin: true }
+    },
+    {
+      path: '/admin/class-owners',
+      name: 'admin-class-owners',
+      component: () => import('../views/AdminClassOwnersView.vue'),
+      meta: { requiresAuth: true, requiresRole: 'TEACHER', requiresAdmin: true }
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('../views/SettingsView.vue'),
@@ -147,39 +165,47 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const requiresAuth = to.meta.requiresAuth !== false
   const requiresRole = to.meta.requiresRole as string | undefined
+  const requiresAdmin = to.meta.requiresAdmin === true
 
   if (!requiresAuth) {
-    // Public route
     next()
     return
   }
 
-  try {
-    // Check authentication status
-    const response = await authAPI.getCurrentUser()
-    const currentUser = response.data
+  const authStore = useAuthStore()
 
-    if (!currentUser.userId) {
-      // Not authenticated
+  try {
+    if (!authStore.userId) {
+      await authStore.loadCurrentUser()
+    }
+    if (!authStore.userId) {
       next('/login')
       return
     }
 
-    // Check role requirement
-    if (requiresRole && currentUser.role !== requiresRole) {
-      // Wrong role - redirect to appropriate dashboard
-      if (currentUser.role === 'STUDENT') {
-        next('/student/dashboard')
+    if (authStore.role === 'TEACHER') {
+      if (authStore.memberships.length === 0) {
+        if (to.name !== 'no-academy') {
+          next('/no-academy')
+          return
+        }
       } else {
-        next('/')
+        await authStore.ensureActiveAcademy()
       }
+    }
+
+    if (requiresRole && authStore.role !== requiresRole) {
+      next(authStore.role === 'STUDENT' ? '/student/dashboard' : '/')
       return
     }
 
-    // Authenticated and authorized
+    if (requiresAdmin && !authStore.isAdmin) {
+      next('/')
+      return
+    }
+
     next()
   } catch (error) {
-    // Authentication failed
     next('/login')
   }
 })

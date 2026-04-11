@@ -1,8 +1,10 @@
 package com.example.service;
 
+import com.example.config.security.TenantContext;
 import com.example.dto.FeedbackPromptTemplateDto;
 import com.example.entity.FeedbackPromptTemplate;
 import com.example.entity.Teacher;
+import com.example.exception.ForbiddenException;
 import com.example.repository.FeedbackPromptTemplateRepository;
 import com.example.repository.TeacherRepository;
 import com.example.service.ai.DefaultFeedbackPrompt;
@@ -18,7 +20,16 @@ public class FeedbackPromptTemplateService {
     private final FeedbackPromptTemplateRepository repository;
     private final TeacherRepository teacherRepository;
 
-    public FeedbackPromptTemplateDto getByTeacherId(Long teacherId) {
+    private Long currentTeacherId() {
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null || ctx.teacherId() == null || ctx.role() == null) {
+            throw new ForbiddenException("선생님 인증이 필요합니다");
+        }
+        return ctx.teacherId();
+    }
+
+    public FeedbackPromptTemplateDto getByTeacherId(Long ignoredTeacherId) {
+        Long teacherId = currentTeacherId();
         return repository.findByTeacherId(teacherId)
                 .map(this::toDto)
                 .orElseGet(() -> FeedbackPromptTemplateDto.builder()
@@ -31,10 +42,11 @@ public class FeedbackPromptTemplateService {
 
     @Transactional
     public FeedbackPromptTemplateDto save(FeedbackPromptTemplateDto dto) {
-        Teacher teacher = teacherRepository.findById(dto.getTeacherId())
+        Long teacherId = currentTeacherId();
+        Teacher teacher = teacherRepository.findById(teacherId)
                 .orElseThrow(() -> new RuntimeException("Teacher not found"));
 
-        FeedbackPromptTemplate template = repository.findByTeacherId(dto.getTeacherId())
+        FeedbackPromptTemplate template = repository.findByTeacherId(teacherId)
                 .orElseGet(() -> FeedbackPromptTemplate.builder()
                         .teacher(teacher)
                         .build());
