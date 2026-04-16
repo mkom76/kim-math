@@ -1,6 +1,6 @@
 spring:
   application:
-    name: suhui-scretary
+    name: kim-math
 
   profiles:
     active: local

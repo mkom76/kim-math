@@ -87,10 +87,10 @@ watch(() => route.path, () => {
             </el-icon>
             <div style="line-height: 1.2">
               <div style="font-size: 18px; font-weight: 700; background: linear-gradient(135deg, #409eff, #67c23a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 0.5px">
-                SUHUI
+                KIM
               </div>
               <div style="font-size: 13px; font-weight: 600; color: #606266; letter-spacing: 1px">
-                SECRETARY
+                MATH
               </div>
             </div>
           </div>

@@ -1,7 +1,7 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: suhui-mysql
+    container_name: kim-math-mysql
     restart: unless-stopped
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
@@ -16,7 +16,7 @@ services:
     ports:
       - "127.0.0.1:3306:3306"
     networks:
-      - suhui-network
+      - kim-math-network
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
@@ -26,8 +26,8 @@ services:
       start_period: 30s
 
   backend:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-mkom76}/suhui-secretary-backend:latest
-    container_name: suhui-backend
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-mkom76}/kim-math-backend:latest
+    container_name: kim-math-backend
     restart: unless-stopped
     environment:
       - SPRING_PROFILES_ACTIVE=prod
@@ -40,7 +40,7 @@ services:
       - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     networks:
-      - suhui-network
+      - kim-math-network
     depends_on:
       mysql:
         condition: service_healthy
@@ -54,11 +54,11 @@ services:
       start_period: 60s
 
   frontend:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-mkom76}/suhui-secretary-frontend:latest
-    container_name: suhui-frontend
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-mkom76}/kim-math-frontend:latest
+    container_name: kim-math-frontend
     restart: unless-stopped
     networks:
-      - suhui-network
+      - kim-math-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/health"]
       interval: 30s
@@ -67,7 +67,7 @@ services:
 
   nginx:
     image: nginx:1.25-alpine
-    container_name: suhui-nginx
+    container_name: kim-math-nginx
     restart: unless-stopped
     ports:
       - "80:80"
@@ -79,13 +79,13 @@ services:
       - /var/lib/letsencrypt:/var/lib/letsencrypt:ro
       - ./certbot/www:/var/www/certbot:ro
     networks:
-      - suhui-network
+      - kim-math-network
     depends_on:
       - backend
       - frontend
 
 networks:
-  suhui-network:
+  kim-math-network:
     driver: bridge
 
 volumes:

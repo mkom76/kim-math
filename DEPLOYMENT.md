@@ -1,4 +1,4 @@
-# Suhui-Secretary 배포 가이드
+# Kim-Math 배포 가이드
 
 ## 아키텍처 개요
 
@@ -37,7 +37,7 @@
      # 공개키 복사
      cat ~/.ssh/id_ed25519.pub
      ```
-   - **Hostname**: suhui-secretary-prod
+   - **Hostname**: kim-math-prod
 4. "Create Droplet" 클릭
 5. **IP 주소 기록** (예: 159.89.XXX.XXX)
 
@@ -47,11 +47,11 @@
 2. 설정:
    - **Datacenter**: Singapore (sgp1)
    - **Enable CDN**: No (백업용이므로 불필요)
-   - **Space Name**: suhui-secretary-backups
+   - **Space Name**: kim-math-backups
    - **Select Project**: Default
 3. "Create a Space" 클릭
 4. "Settings" → "API" → "Generate New Key"
-   - **Name**: suhui-backup-key
+   - **Name**: kim-math-backup-key
    - **Access Key와 Secret Key 기록** (다시 볼 수 없음!)
 
 ---
@@ -149,11 +149,11 @@ sudo ufw status
 
 ```bash
 # 애플리케이션 디렉토리 생성
-mkdir -p /home/suhui/suhui-secretary
-cd /home/suhui/suhui-secretary
+mkdir -p /home/suhui/kim-math
+cd /home/suhui/kim-math
 
 # Git 저장소 클론
-git clone https://github.com/YOUR_USERNAME/suhui-scretary.git .
+git clone https://github.com/YOUR_USERNAME/kim-math.git .
 ```
 
 ### 3.2 환경 변수 설정
@@ -168,8 +168,8 @@ nano .env
 ```env
 # MySQL Database Configuration
 MYSQL_ROOT_PASSWORD=your-super-strong-root-password-here
-MYSQL_DATABASE=suhui_secretary
-MYSQL_USER=suhui_app
+MYSQL_DATABASE=kim_math
+MYSQL_USER=kim_math_app
 MYSQL_PASSWORD=your-strong-app-password-here
 
 # CORS Configuration
@@ -177,7 +177,7 @@ ALLOWED_ORIGINS=http://YOUR_DROPLET_IP,http://yourdomain.com,https://yourdomain.
 
 # S3 Backup Configuration (DigitalOcean Spaces)
 S3_ENDPOINT=https://sgp1.digitaloceanspaces.com
-S3_BUCKET=suhui-secretary-backups
+S3_BUCKET=kim-math-backups
 S3_ACCESS_KEY=YOUR_SPACES_ACCESS_KEY
 S3_SECRET_KEY=YOUR_SPACES_SECRET_KEY
 S3_REGION=sgp1
@@ -217,10 +217,10 @@ MySQL 컨테이너가 실행되면 JPA가 자동으로 스키마를 생성합니
 # 생성된 CREATE TABLE 문 복사
 
 # 서버의 MySQL 컨테이너에 접속
-docker exec -it suhui-mysql mysql -u root -p
+docker exec -it kim-math-mysql mysql -u root -p
 
 # 스키마 생성
-USE suhui_secretary;
+USE kim_math;
 -- CREATE TABLE 문 실행
 ```
 
@@ -261,14 +261,14 @@ curl http://localhost/api/actuator/health
 mkdir -p /home/suhui/backups
 
 # 수동 백업 테스트
-cd /home/suhui/suhui-secretary
+cd /home/suhui/kim-math
 ./scripts/backup-mysql-to-s3.sh
 ```
 
 성공하면 다음과 같이 표시됩니다:
 ```
-✓ Database dump created: suhui_secretary_backup_20250126_140530.sql.gz (2.3M)
-✓ Backup uploaded to S3: s3://suhui-secretary-backups/mysql-backups/...
+✓ Database dump created: kim_math_backup_20250126_140530.sql.gz (2.3M)
+✓ Backup uploaded to S3: s3://kim-math-backups/mysql-backups/...
 ✓ Backup Completed Successfully!
 ```
 
@@ -279,7 +279,7 @@ cd /home/suhui/suhui-secretary
 crontab -e
 
 # 다음 라인 추가 (매일 새벽 2시에 백업)
-0 2 * * * /home/suhui/suhui-secretary/scripts/backup-mysql-to-s3.sh >> /home/suhui/backups/backup.log 2>&1
+0 2 * * * /home/suhui/kim-math/scripts/backup-mysql-to-s3.sh >> /home/suhui/backups/backup.log 2>&1
 ```
 
 ### 4.3 복구 테스트
@@ -289,7 +289,7 @@ crontab -e
 ./scripts/restore-mysql-from-s3.sh
 
 # 특정 백업 복구 (테스트용)
-./scripts/restore-mysql-from-s3.sh suhui_secretary_backup_20250126_140530.sql.gz
+./scripts/restore-mysql-from-s3.sh kim_math_backup_20250126_140530.sql.gz
 ```
 
 ---
@@ -323,9 +323,9 @@ sudo certbot certonly --standalone \
   --no-eff-email
 
 # 인증서를 프로젝트 디렉토리로 복사
-sudo mkdir -p /home/suhui/suhui-secretary/certbot/conf
-sudo cp -r /etc/letsencrypt/* /home/suhui/suhui-secretary/certbot/conf/
-sudo chown -R suhui:suhui /home/suhui/suhui-secretary/certbot
+sudo mkdir -p /home/suhui/kim-math/certbot/conf
+sudo cp -r /etc/letsencrypt/* /home/suhui/kim-math/certbot/conf/
+sudo chown -R suhui:suhui /home/suhui/kim-math/certbot
 
 # Nginx 설정 수정
 nano nginx/conf.d/app.conf
@@ -347,10 +347,10 @@ nano /home/suhui/scripts/renew-ssl.sh
 내용:
 ```bash
 #!/bin/bash
-cd /home/suhui/suhui-secretary
+cd /home/suhui/kim-math
 docker-compose -f docker-compose.prod.yml stop nginx
 certbot renew --quiet
-cp -r /etc/letsencrypt/* /home/suhui/suhui-secretary/certbot/conf/
+cp -r /etc/letsencrypt/* /home/suhui/kim-math/certbot/conf/
 docker-compose -f docker-compose.prod.yml start nginx
 ```
 
@@ -375,9 +375,9 @@ crontab -e
 docker-compose -f docker-compose.prod.yml logs -f
 
 # 특정 컨테이너 로그
-docker logs suhui-backend -f
-docker logs suhui-mysql -f
-docker logs suhui-nginx -f
+docker logs kim-math-backend -f
+docker logs kim-math-mysql -f
+docker logs kim-math-nginx -f
 ```
 
 ### 6.2 컨테이너 관리
@@ -403,7 +403,7 @@ docker stats
 ### 6.3 업데이트 배포
 
 ```bash
-cd /home/suhui/suhui-secretary
+cd /home/suhui/kim-math
 
 # 최신 코드 가져오기
 git pull origin main
@@ -422,7 +422,7 @@ docker-compose -f docker-compose.prod.yml logs -f backend
 ls -lh /home/suhui/backups/
 
 # S3 백업 확인
-source /home/suhui/suhui-secretary/.env
+source /home/suhui/kim-math/.env
 s3cmd ls s3://${S3_BUCKET}/mysql-backups/ \
   --access_key=${S3_ACCESS_KEY} \
   --secret_key=${S3_SECRET_KEY} \
@@ -438,7 +438,7 @@ s3cmd ls s3://${S3_BUCKET}/mysql-backups/ \
 
 ```bash
 # 로그 확인
-docker logs suhui-mysql
+docker logs kim-math-mysql
 
 # 볼륨 삭제 후 재시작 (데이터 삭제됨!)
 docker-compose -f docker-compose.prod.yml down -v
@@ -452,7 +452,7 @@ docker-compose -f docker-compose.prod.yml up -d
 docker ps
 
 # Backend 로그 확인
-docker logs suhui-backend
+docker logs kim-math-backend
 
 # .env 파일의 비밀번호 확인
 cat .env
@@ -462,7 +462,7 @@ cat .env
 
 ```bash
 # S3 연결 테스트
-source /home/suhui/suhui-secretary/.env
+source /home/suhui/kim-math/.env
 s3cmd ls \
   --access_key=${S3_ACCESS_KEY} \
   --secret_key=${S3_SECRET_KEY} \

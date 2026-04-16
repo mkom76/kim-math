@@ -153,6 +153,48 @@ const onLessonChange = () => {
   fetchFeedback()
 }
 
+// 다음 수업 숙제 + 미완성 숙제(재제출대상)를 하나의 리스트로 합침
+const nextHomeworks = computed(() => {
+  const list: Array<{
+    homeworkTitle: string
+    questionCount?: number
+    dueDate?: string
+    completion?: number | null
+    incorrectQuestions?: string
+    unsolvedQuestions?: string
+    isFollowUp: boolean
+  }> = []
+
+  // 다음 수업 숙제
+  if (feedback.value?.nextHomework) {
+    const nh = feedback.value.nextHomework
+    list.push({
+      homeworkTitle: nh.homeworkTitle,
+      questionCount: nh.questionCount,
+      dueDate: nh.dueDate,
+      completion: nh.completion,
+      incorrectQuestions: nh.incorrectQuestions,
+      unsolvedQuestions: nh.unsolvedQuestions,
+      isFollowUp: false,
+    })
+  }
+
+  // 미완성 숙제 (재제출대상)
+  for (const fu of followUps.value) {
+    list.push({
+      homeworkTitle: fu.homeworkTitle || '',
+      questionCount: fu.questionCount,
+      dueDate: fu.dueDate,
+      completion: fu.completion,
+      incorrectQuestions: fu.incorrectQuestions,
+      unsolvedQuestions: fu.unsolvedQuestions,
+      isFollowUp: true,
+    })
+  }
+
+  return list
+})
+
 const todayHomeworkStatus = computed(() => {
   if (!feedback.value?.todayHomework) return null
   const hw = feedback.value.todayHomework
@@ -379,73 +421,45 @@ onMounted(() => {
               <div style="display: flex; align-items: center; gap: 8px">
                 <el-icon size="20" color="#67c23a"><Calendar /></el-icon>
                 <span :style="{ fontWeight: 600, fontSize: labelFontSize }">다음 수업 숙제</span>
+                <el-badge v-if="nextHomeworks.length > 1" :value="nextHomeworks.length" type="primary" />
               </div>
             </template>
 
-            <div v-if="feedback.nextHomework">
-              <div :style="{ fontSize: sectionTitleFontSize, fontWeight: 600, marginBottom: isMobile ? '12px' : '16px' }">
-                {{ feedback.nextHomework.homeworkTitle }}
-              </div>
+            <div v-if="nextHomeworks.length > 0">
+              <div v-for="(hw, idx) in nextHomeworks" :key="idx"
+                :style="{ marginBottom: idx < nextHomeworks.length - 1 ? (isMobile ? '16px' : '20px') : '0',
+                  paddingBottom: idx < nextHomeworks.length - 1 ? (isMobile ? '16px' : '20px') : '0',
+                  borderBottom: idx < nextHomeworks.length - 1 ? '1px solid #ebeef5' : 'none' }">
+                <div :style="{ fontSize: sectionTitleFontSize, fontWeight: 600, marginBottom: isMobile ? '12px' : '16px', display: 'flex', alignItems: 'center', gap: '8px' }">
+                  {{ hw.homeworkTitle }}
+                  <el-tag v-if="hw.isFollowUp" type="danger" size="small">재제출대상</el-tag>
+                </div>
 
-              <el-descriptions :column="1" border :size="isMobile ? 'small' : 'default'" :style="{ fontSize: tableFontSize }">
-                <el-descriptions-item label="문제 수" :label-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }" :content-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }">
-                  {{ feedback.nextHomework.questionCount }}문제
-                </el-descriptions-item>
-                <el-descriptions-item label="마감일" v-if="feedback.nextHomework.dueDate" :label-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }" :content-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }">
-                  {{ new Date(feedback.nextHomework.dueDate).toLocaleDateString('ko-KR') }}
-                </el-descriptions-item>
-              </el-descriptions>
+                <el-descriptions :column="1" border :size="isMobile ? 'small' : 'default'" :style="{ fontSize: tableFontSize }">
+                  <el-descriptions-item v-if="hw.questionCount" label="문제 수" :label-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }" :content-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }">
+                    {{ hw.questionCount }}문제
+                  </el-descriptions-item>
+                  <el-descriptions-item label="마감일" v-if="hw.dueDate" :label-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }" :content-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }">
+                    {{ new Date(hw.dueDate).toLocaleDateString('ko-KR') }}
+                  </el-descriptions-item>
+                  <el-descriptions-item v-if="hw.isFollowUp && hw.completion !== null && hw.completion !== undefined" label="완성도" :label-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }" :content-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }">
+                    <span :style="{ fontWeight: 600, color: hw.completion >= 80 ? '#67c23a' : hw.completion >= 50 ? '#e6a23c' : '#f56c6c' }">
+                      {{ hw.completion }}%
+                    </span>
+                  </el-descriptions-item>
+                  <el-descriptions-item v-if="hw.isFollowUp && hw.incorrectQuestions" label="오답 문항" :label-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }" :content-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px', color: '#f56c6c' }">
+                    {{ hw.incorrectQuestions }}
+                  </el-descriptions-item>
+                  <el-descriptions-item v-if="hw.isFollowUp && hw.unsolvedQuestions" label="안 푼 문항" :label-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }" :content-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px', color: '#e6a23c' }">
+                    {{ hw.unsolvedQuestions }}
+                  </el-descriptions-item>
+                </el-descriptions>
+              </div>
             </div>
             <el-empty v-else description="다음 숙제가 없습니다" :image-size="80" />
           </el-card>
         </el-col>
       </el-row>
-
-      <!-- Follow-up: 이어서 풀 숙제 -->
-      <el-card v-if="followUps.length > 0" shadow="never" style="margin-bottom: 24px">
-        <template #header>
-          <div style="display: flex; align-items: center; gap: 8px">
-            <el-icon size="20" color="#f56c6c"><Warning /></el-icon>
-            <span :style="{ fontWeight: 600, fontSize: labelFontSize }">미완성 숙제</span>
-            <el-badge :value="followUps.length" type="danger" />
-          </div>
-        </template>
-
-        <el-table :data="followUps" stripe :size="isMobile ? 'small' : 'default'" style="width: 100%">
-          <el-table-column label="숙제" min-width="180">
-            <template #default="{ row }">
-              <span :style="{ fontWeight: 500, fontSize: tableFontSize }">{{ row.homeworkTitle }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="완성도" width="100" align="center">
-            <template #default="{ row }">
-              <span
-                v-if="row.completion !== null && row.completion !== undefined"
-                :style="{
-                  fontWeight: 600,
-                  fontSize: tableFontSize,
-                  color: row.completion >= 80 ? '#67c23a' : row.completion >= 50 ? '#e6a23c' : '#f56c6c'
-                }"
-              >
-                {{ row.completion }}%
-              </span>
-              <el-tag v-else type="info" size="small">미제출</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="오답/안 푼 문항" min-width="180">
-            <template #default="{ row }">
-              <div :style="{ fontSize: smallTextFontSize }">
-                <div v-if="row.incorrectQuestions" style="color: #f56c6c">
-                  오답: {{ row.incorrectQuestions }}
-                </div>
-                <div v-if="row.unsolvedQuestions" style="color: #e6a23c">
-                  안 풂: {{ row.unsolvedQuestions }}
-                </div>
-              </div>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
 
       <el-card v-if="feedback.todayTest" shadow="never" style="margin-bottom: 24px">
         <template #header>

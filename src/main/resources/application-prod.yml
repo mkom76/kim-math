@@ -41,7 +41,7 @@ logging:
     org.hibernate.SQL: WARN
     org.hibernate.type.descriptor.sql.BasicBinder: WARN
   file:
-    name: /var/log/suhui-secretary/application.log
+    name: /var/log/kim-math/application.log
     max-size: 10MB
     max-history: 30
 

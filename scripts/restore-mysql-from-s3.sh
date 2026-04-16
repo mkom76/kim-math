@@ -5,8 +5,8 @@ set -e
 # This script downloads a backup from S3 and restores to MySQL
 
 # Load environment variables
-if [ -f /home/suhui/suhui-secretary/.env ]; then
-    source /home/suhui/suhui-secretary/.env
+if [ -f /home/suhui/kim-math/.env ]; then
+    source /home/suhui/kim-math/.env
 else
     echo "Error: .env file not found!"
     exit 1
@@ -14,7 +14,7 @@ fi
 
 # Configuration
 BACKUP_DIR="/home/suhui/backups"
-CONTAINER_NAME="suhui-mysql"
+CONTAINER_NAME="kim-math-mysql"
 
 echo "========================================="
 echo "MySQL Restore Tool"

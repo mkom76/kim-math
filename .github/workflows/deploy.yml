@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository_owner }}/suhui-secretary
+  IMAGE_PREFIX: ${{ github.repository_owner }}/kim-math
 
 jobs:
   build-and-push:
@@ -83,7 +83,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /home/suhui/suhui-secretary/suhui-secretary
+            cd /home/suhui/kim-math
 
             # Pull latest code
             git pull origin main

@@ -16,5 +16,5 @@ echo "s3cmd is installed. The backup script uses .env variables for configuratio
 echo "No additional configuration needed."
 echo ""
 echo "To test S3 connection:"
-echo "  source /home/suhui/suhui-secretary/.env"
+echo "  source /home/suhui/kim-math/.env"
 echo "  s3cmd ls --access_key=\$S3_ACCESS_KEY --secret_key=\$S3_SECRET_KEY --host=\${S3_ENDPOINT#https://} --region=\$S3_REGION"

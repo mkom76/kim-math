@@ -18,7 +18,7 @@ GitHub 저장소 페이지에서:
 
 ### SERVER_HOST
 ```
-값: suhui-secretary.site (또는 서버 IP 주소)
+값: kim-math.site (또는 서버 IP 주소)
 ```
 
 ### SERVER_USER
@@ -57,7 +57,7 @@ b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
 서버에 SSH 접속 후:
 
 ```bash
-cd /home/suhui/suhui-secretary/suhui-secretar
+cd /home/suhui/kim-math
 
 # .env 파일 편집
 nano .env
@@ -130,7 +130,7 @@ GitHub 저장소 페이지에서:
 
 서버에서:
 ```bash
-cd /home/suhui/suhui-secretary/suhui-secretar
+cd /home/suhui/kim-math
 git pull origin main
 docker-compose -f docker-compose.prod.yml pull
 docker-compose -f docker-compose.prod.yml up -d

@@ -25,8 +25,8 @@ RUN groupadd -r spring && useradd -r -g spring spring
 COPY --from=builder /app/build/libs/*.jar app.jar
 
 # Create log directory
-RUN mkdir -p /var/log/suhui-secretary && \
-    chown -R spring:spring /var/log/suhui-secretary
+RUN mkdir -p /var/log/kim-math && \
+    chown -R spring:spring /var/log/kim-math
 
 # Switch to non-root user
 USER spring

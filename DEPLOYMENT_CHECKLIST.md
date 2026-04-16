@@ -60,8 +60,8 @@ ufw enable
 ### 3.1 코드 클론
 ```bash
 cd /root
-git clone https://github.com/YOUR_USERNAME/suhui-scretary.git
-cd suhui-scretary
+git clone https://github.com/YOUR_USERNAME/kim-math.git
+cd kim-math
 ```
 
 ### 3.2 환경 변수 설정
@@ -74,8 +74,8 @@ nano .env
 ```env
 # MySQL Database Configuration
 MYSQL_ROOT_PASSWORD=강력한_루트_비밀번호_여기에
-MYSQL_DATABASE=suhui_secretary
-MYSQL_USER=suhui_app
+MYSQL_DATABASE=kim_math
+MYSQL_USER=kim_math_app
 MYSQL_PASSWORD=강력한_앱_비밀번호_여기에
 
 # CORS Configuration
@@ -83,7 +83,7 @@ ALLOWED_ORIGINS=http://yourdomain.com,https://yourdomain.com
 
 # S3 Backup Configuration (DigitalOcean Spaces)
 S3_ENDPOINT=https://sgp1.digitaloceanspaces.com
-S3_BUCKET=suhui-secretary-backups
+S3_BUCKET=kim-math-backups
 S3_ACCESS_KEY=실제_액세스_키
 S3_SECRET_KEY=실제_시크릿_키
 S3_REGION=sgp1
@@ -115,10 +115,10 @@ docker compose -f docker-compose.prod.yml logs -f
 docker ps
 
 # 개별 서비스 로그 확인
-docker logs suhui-backend
-docker logs suhui-frontend
-docker logs suhui-mysql
-docker logs suhui-nginx
+docker logs kim-math-backend
+docker logs kim-math-frontend
+docker logs kim-math-mysql
+docker logs kim-math-nginx
 ```
 
 ---
@@ -165,7 +165,7 @@ docker compose -f docker-compose.prod.yml restart nginx
 crontab -e
 
 # 다음 라인 추가 (매일 새벽 3시에 인증서 갱신 시도)
-0 3 * * * certbot renew --quiet --deploy-hook "docker compose -f /root/suhui-scretary/docker-compose.prod.yml restart nginx"
+0 3 * * * certbot renew --quiet --deploy-hook "docker compose -f /root/kim-math/docker-compose.prod.yml restart nginx"
 ```
 
 ---
@@ -183,7 +183,7 @@ chmod +x scripts/restore.sh
 crontab -e
 
 # 다음 라인 추가 (매일 새벽 2시에 백업)
-0 2 * * * /root/suhui-scretary/scripts/backup.sh
+0 2 * * * /root/kim-math/scripts/backup.sh
 ```
 
 ### 5.3 백업 테스트
@@ -231,7 +231,7 @@ curl -X POST http://localhost/api/auth/teacher/login \
 docker compose -f docker-compose.prod.yml logs -f
 
 # 특정 서비스 로그
-docker logs suhui-backend --tail 100 -f
+docker logs kim-math-backend --tail 100 -f
 ```
 
 ### 7.2 디스크 사용량 확인
@@ -243,7 +243,7 @@ docker system df
 ### 7.3 업데이트 배포
 ```bash
 # 코드 업데이트
-cd /root/suhui-scretary
+cd /root/kim-math
 git pull origin main
 
 # 재빌드 및 재시작
@@ -285,10 +285,10 @@ docker compose -f docker-compose.prod.yml restart
 ### 데이터베이스 연결 오류
 ```bash
 # MySQL 컨테이너 로그 확인
-docker logs suhui-mysql
+docker logs kim-math-mysql
 
 # MySQL 접속 테스트
-docker exec -it suhui-mysql mysql -u suhui_app -p
+docker exec -it kim-math-mysql mysql -u kim_math_app -p
 ```
 
 ### 디스크 공간 부족
@@ -304,7 +304,7 @@ find backups/ -name "*.sql.gz" -mtime +30 -delete
 
 ## 10. 긴급 연락처 및 문서
 
-- **GitHub Repository**: https://github.com/YOUR_USERNAME/suhui-scretary
+- **GitHub Repository**: https://github.com/YOUR_USERNAME/kim-math
 - **상세 배포 가이드**: DEPLOYMENT.md
 - **DigitalOcean 대시보드**: https://cloud.digitalocean.com
 - **Spaces 대시보드**: https://cloud.digitalocean.com/spaces
@@ -318,7 +318,7 @@ find backups/ -name "*.sql.gz" -mtime +30 -delete
 ssh root@YOUR_SERVER_IP
 
 # 애플리케이션 디렉토리로 이동
-cd /root/suhui-scretary
+cd /root/kim-math
 
 # 컨테이너 상태 확인
 docker ps

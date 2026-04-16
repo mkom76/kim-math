@@ -5,8 +5,8 @@ set -e
 # This script dumps MySQL database and uploads to S3-compatible storage
 
 # Load environment variables
-if [ -f /home/suhui/suhui-secretary/.env ]; then
-    source /home/suhui/suhui-secretary/.env
+if [ -f /home/suhui/kim-math/.env ]; then
+    source /home/suhui/kim-math/.env
 else
     echo "Error: .env file not found!"
     exit 1
@@ -15,8 +15,8 @@ fi
 # Configuration
 BACKUP_DIR="/home/suhui/backups"
 DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="suhui_secretary_backup_${DATE}.sql.gz"
-CONTAINER_NAME="suhui-mysql"
+BACKUP_FILE="kim_math_backup_${DATE}.sql.gz"
+CONTAINER_NAME="kim-math-mysql"
 
 # Create backup directory if not exists
 mkdir -p $BACKUP_DIR
@@ -66,7 +66,7 @@ fi
 
 # 3. Keep only last 30 days of local backups
 echo "Cleaning up old local backups (older than 30 days)..."
-find $BACKUP_DIR -name "suhui_secretary_backup_*.sql.gz" -mtime +30 -delete
+find $BACKUP_DIR -name "kim_math_backup_*.sql.gz" -mtime +30 -delete
 echo "✓ Old local backups cleaned"
 
 # 4. Keep only last 90 days on S3 (optional - saves storage costs)
@@ -79,7 +79,7 @@ s3cmd ls s3://${S3_BUCKET}/mysql-backups/ \
     --host=${S3_ENDPOINT#https://} \
     --region=${S3_REGION} | while read -r line; do
 
-    BACKUP_DATE=$(echo $line | grep -oP 'suhui_secretary_backup_\K\d{8}')
+    BACKUP_DATE=$(echo $line | grep -oP 'kim_math_backup_\K\d{8}')
 
     if [ ! -z "$BACKUP_DATE" ] && [ $BACKUP_DATE -lt $CUTOFF_DATE ]; then
         FILE_PATH=$(echo $line | awk '{print $4}')
@@ -102,4 +102,4 @@ echo "Completed: $(date)"
 echo "========================================="
 
 # Send notification (optional - requires mail setup)
-# echo "MySQL backup completed successfully" | mail -s "Suhui-Secretary Backup Success" admin@example.com
+# echo "MySQL backup completed successfully" | mail -s "Kim-Math Backup Success" admin@example.com
