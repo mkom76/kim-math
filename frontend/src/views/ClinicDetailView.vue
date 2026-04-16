@@ -448,7 +448,7 @@ onMounted(() => {
                 <span v-else style="color: #909399; font-size: 13px">-</span>
               </template>
             </el-table-column>
-            <el-table-column label="다음에 다시 보기" width="140" align="center">
+            <el-table-column label="숙제 다시내기" width="140" align="center">
               <template #default="{ row }">
                 <el-tag
                   :type="row.followUpFlag ? 'danger' : 'info'"
@@ -456,7 +456,7 @@ onMounted(() => {
                   style="cursor: pointer; user-select: none"
                   @click="toggleFollowUp(student.studentId, row)"
                 >
-                  {{ row.followUpFlag ? 'RED 표시됨' : '표시 안 됨' }}
+                  {{ row.followUpFlag ? '재제출' : '정상' }}
                 </el-tag>
               </template>
             </el-table-column>

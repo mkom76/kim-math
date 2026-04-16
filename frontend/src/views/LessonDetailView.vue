@@ -1257,7 +1257,7 @@ onBeforeUnmount(() => {
             <el-tag v-else type="info">미제출</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="다음에 다시 보기" width="140" align="center">
+        <el-table-column label="숙제 다시내기" width="140" align="center">
           <template #default="{ row }">
             <el-tag
               v-if="row.assignedHomeworkId"
@@ -1266,7 +1266,7 @@ onBeforeUnmount(() => {
               style="cursor: pointer; user-select: none"
               @click="toggleFollowUp(row)"
             >
-              {{ row.followUpFlag ? 'RED 표시됨' : '표시 안 됨' }}
+              {{ row.followUpFlag ? '재제출' : '정상' }}
             </el-tag>
             <span v-else style="color: #c0c4cc">-</span>
           </template>
