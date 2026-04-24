@@ -1,9 +1,11 @@
 package com.example.service;
 
+import com.example.config.security.TenantContext;
 import com.example.dto.StudentHomeworkDto;
 import com.example.entity.Homework;
 import com.example.entity.Student;
 import com.example.entity.StudentHomework;
+import com.example.exception.ForbiddenException;
 import com.example.repository.HomeworkRepository;
 import com.example.repository.StudentHomeworkRepository;
 import com.example.repository.StudentRepository;
@@ -63,6 +65,32 @@ public class StudentHomeworkService {
         studentHomework.setUnsolvedCount(unsolvedCount);
         studentHomework.setIncorrectQuestions(incorrectQuestions);
         studentHomework.setUnsolvedQuestions(unsolvedQuestions);
+        studentHomework = studentHomeworkRepository.save(studentHomework);
+
+        return StudentHomeworkDto.from(studentHomework);
+    }
+
+    public StudentHomeworkDto updateQuestionedQuestions(Long studentId, Long homeworkId, String questionedQuestions) {
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null || ctx.role() != null || !studentId.equals(ctx.teacherId())) {
+            throw new ForbiddenException("본인의 숙제만 수정할 수 있습니다");
+        }
+
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        Homework homework = homeworkRepository.findById(homeworkId)
+                .orElseThrow(() -> new RuntimeException("Homework not found"));
+
+        String normalized = QuestionNumberNormalizer.normalize(questionedQuestions, homework.getQuestionCount());
+
+        StudentHomework studentHomework = studentHomeworkRepository
+                .findByStudentIdAndHomeworkId(studentId, homeworkId)
+                .orElse(StudentHomework.builder()
+                        .student(student)
+                        .homework(homework)
+                        .build());
+
+        studentHomework.setQuestionedQuestions(normalized);
         studentHomework = studentHomeworkRepository.save(studentHomework);
 
         return StudentHomeworkDto.from(studentHomework);

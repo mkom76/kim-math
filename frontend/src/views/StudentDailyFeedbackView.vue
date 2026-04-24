@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import { dailyFeedbackAPI, aiFeedbackAPI, type DailyFeedback, type EssayDetail, authAPI, lessonAPI, type Lesson, studentAPI, studentHomeworkAPI, type StudentHomework } from '../api/client'
 import { useRouter, useRoute } from 'vue-router'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import QuestionedQuestionsPicker from '@/components/QuestionedQuestionsPicker.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -156,12 +157,14 @@ const onLessonChange = () => {
 // 다음 수업 숙제 + 미완성 숙제(재제출대상)를 하나의 리스트로 합침
 const nextHomeworks = computed(() => {
   const list: Array<{
+    homeworkId?: number
     homeworkTitle: string
     questionCount?: number
     dueDate?: string
     completion?: number | null
     incorrectQuestions?: string
     unsolvedQuestions?: string
+    questionedQuestions?: string
     isFollowUp: boolean
   }> = []
 
@@ -169,12 +172,14 @@ const nextHomeworks = computed(() => {
   if (feedback.value?.nextHomework) {
     const nh = feedback.value.nextHomework
     list.push({
+      homeworkId: nh.homeworkId,
       homeworkTitle: nh.homeworkTitle,
       questionCount: nh.questionCount,
       dueDate: nh.dueDate,
       completion: nh.completion,
       incorrectQuestions: nh.incorrectQuestions,
       unsolvedQuestions: nh.unsolvedQuestions,
+      questionedQuestions: nh.questionedQuestions,
       isFollowUp: false,
     })
   }
@@ -182,18 +187,54 @@ const nextHomeworks = computed(() => {
   // 미완성 숙제 (재제출대상)
   for (const fu of followUps.value) {
     list.push({
+      homeworkId: fu.homeworkId,
       homeworkTitle: fu.homeworkTitle || '',
       questionCount: fu.questionCount,
       dueDate: fu.dueDate,
       completion: fu.completion,
       incorrectQuestions: fu.incorrectQuestions,
       unsolvedQuestions: fu.unsolvedQuestions,
+      questionedQuestions: fu.questionedQuestions,
       isFollowUp: true,
     })
   }
 
   return list
 })
+
+// 질문 표시 바텀시트 상태
+const questionPickerVisible = ref(false)
+const questionPickerHomeworkId = ref<number | null>(null)
+const questionPickerInitialValue = ref<string | null>(null)
+const questionPickerQuestionCount = ref<number>(0)
+
+const openQuestionPicker = (hw: { homeworkId?: number; questionCount?: number; questionedQuestions?: string }) => {
+  if (!hw.homeworkId || !hw.questionCount) return
+  questionPickerHomeworkId.value = hw.homeworkId
+  questionPickerInitialValue.value = hw.questionedQuestions || null
+  questionPickerQuestionCount.value = hw.questionCount
+  questionPickerVisible.value = true
+}
+
+const saveQuestionedQuestions = async (value: string) => {
+  if (!studentId.value || !questionPickerHomeworkId.value) return
+  try {
+    await studentHomeworkAPI.updateQuestionedQuestions(
+      studentId.value,
+      questionPickerHomeworkId.value,
+      value,
+    )
+    // Optimistically reflect in local state so the card text updates without refetch
+    if (feedback.value?.nextHomework?.homeworkId === questionPickerHomeworkId.value) {
+      feedback.value.nextHomework.questionedQuestions = value || undefined
+    }
+    const fu = followUps.value.find(f => f.homeworkId === questionPickerHomeworkId.value)
+    if (fu) fu.questionedQuestions = value || undefined
+  } catch (error) {
+    ElMessage.error('질문 저장에 실패했습니다')
+    throw error
+  }
+}
 
 const todayHomeworkStatus = computed(() => {
   if (!feedback.value?.todayHomework) return null
@@ -453,6 +494,22 @@ onMounted(() => {
                   <el-descriptions-item v-if="hw.isFollowUp && hw.unsolvedQuestions" label="안 푼 문항" :label-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }" :content-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px', color: '#e6a23c' }">
                     {{ hw.unsolvedQuestions }}
                   </el-descriptions-item>
+                  <el-descriptions-item label="질문할 문항" :label-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }" :content-style="{ fontSize: tableFontSize, padding: isMobile ? '8px' : '12px' }">
+                    <div :style="{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }">
+                      <span :style="{ color: hw.questionedQuestions ? '#409eff' : '#c0c4cc', fontWeight: hw.questionedQuestions ? 500 : 400 }">
+                        {{ hw.questionedQuestions || '표시된 질문 없음' }}
+                      </span>
+                      <el-button
+                        v-if="!isTeacherView && hw.homeworkId && hw.questionCount"
+                        type="primary"
+                        plain
+                        :size="isMobile ? 'small' : 'default'"
+                        @click="openQuestionPicker(hw)"
+                      >
+                        질문 표시하기
+                      </el-button>
+                    </div>
+                  </el-descriptions-item>
                 </el-descriptions>
               </div>
             </div>
@@ -460,6 +517,23 @@ onMounted(() => {
           </el-card>
         </el-col>
       </el-row>
+
+      <el-drawer
+        v-model="questionPickerVisible"
+        title="질문할 문항을 선택하세요"
+        direction="btt"
+        :size="isMobile ? '70%' : '50%'"
+      >
+        <QuestionedQuestionsPicker
+          v-if="questionPickerVisible && questionPickerHomeworkId"
+          :question-count="questionPickerQuestionCount"
+          :initial-value="questionPickerInitialValue"
+          :on-save="saveQuestionedQuestions"
+        />
+        <template #footer>
+          <el-button type="primary" @click="questionPickerVisible = false">닫기</el-button>
+        </template>
+      </el-drawer>
 
       <el-card v-if="feedback.todayTest" shadow="never" style="margin-bottom: 24px">
         <template #header>

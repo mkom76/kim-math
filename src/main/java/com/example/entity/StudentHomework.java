@@ -46,6 +46,9 @@ public class StudentHomework {
     @Column(name = "unsolved_questions", length = 500)
     private String unsolvedQuestions; // 안 푼 문항번호 (예: "2,7")
 
+    @Column(name = "questioned_questions", length = 500)
+    private String questionedQuestions; // 학생이 질문하고 싶은 문항번호 (예: "3,7,12")
+
     @Column(name = "follow_up_flag", nullable = false)
     @Builder.Default
     private Boolean followUpFlag = false;

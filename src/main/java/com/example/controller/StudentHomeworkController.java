@@ -33,6 +33,15 @@ public class StudentHomeworkController {
         return ResponseEntity.ok(studentHomeworkService.updateIncorrectCount(studentId, homeworkId, incorrectCount, unsolvedCount, incorrectQuestions, unsolvedQuestions));
     }
 
+    @PutMapping("/student/{studentId}/homework/{homeworkId}/questioned-questions")
+    public ResponseEntity<StudentHomeworkDto> updateQuestionedQuestions(
+            @PathVariable Long studentId,
+            @PathVariable Long homeworkId,
+            @RequestBody Map<String, String> request) {
+        String questionedQuestions = request.get("questionedQuestions");
+        return ResponseEntity.ok(studentHomeworkService.updateQuestionedQuestions(studentId, homeworkId, questionedQuestions));
+    }
+
     @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/student/{studentId}/homework/{homeworkId}/follow-up")
     public ResponseEntity<StudentHomeworkDto> setFollowUp(

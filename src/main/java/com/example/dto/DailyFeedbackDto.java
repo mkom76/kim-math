@@ -33,6 +33,7 @@ public class DailyFeedbackDto {
         private Integer unsolvedCount; // 안 푼 문제 개수
         private String incorrectQuestions; // 오답 문항번호
         private String unsolvedQuestions; // 안 푼 문항번호
+        private String questionedQuestions; // 학생이 질문하고 싶은 문항번호
         private Integer completion; // 0-100
         private LocalDate dueDate;
         private String memo; // 숙제 메모 (유형 정보 등)

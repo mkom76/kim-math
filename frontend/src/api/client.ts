@@ -118,6 +118,7 @@ interface StudentHomework {
   unsolvedCount?: number; // 안 푼 문제 개수
   incorrectQuestions?: string; // 오답 문항번호
   unsolvedQuestions?: string; // 안 푼 문항번호
+  questionedQuestions?: string; // 학생이 질문하고 싶은 문항번호
   completion?: number; // 완성도 (계산된 값, 0-100)
   followUpFlag?: boolean;
   createdAt?: string;
@@ -239,6 +240,8 @@ export const studentHomeworkAPI = {
     client.put<StudentHomework>(`/student-homeworks/student/${studentId}/homework/${homeworkId}/follow-up`, { followUp }),
   getFollowUps: (studentId: number) =>
     client.get<StudentHomework[]>(`/student-homeworks/student/${studentId}/follow-ups`),
+  updateQuestionedQuestions: (studentId: number, homeworkId: number, questionedQuestions: string) =>
+    client.put<StudentHomework>(`/student-homeworks/student/${studentId}/homework/${homeworkId}/questioned-questions`, { questionedQuestions }),
 };
 
 // Lesson Student Stats Types
@@ -404,6 +407,9 @@ export interface HomeworkSummary {
   questionCount: number;
   incorrectCount?: number;
   unsolvedCount?: number;
+  incorrectQuestions?: string;
+  unsolvedQuestions?: string;
+  questionedQuestions?: string;
   completion?: number;
   dueDate?: string;
 }
