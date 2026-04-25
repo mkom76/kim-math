@@ -112,6 +112,16 @@ class StudentHomeworkQuestionedQuestionsControllerTest {
     }
 
     @Test
+    void out_of_range_question_number_returns_400() throws Exception {
+        mockMvc.perform(put("/api/student-homeworks/student/{sid}/homework/{hid}/questioned-questions",
+                        student.getId(), homework.getId())
+                        .session(studentSession(student.getId(), academy.getId()))
+                        .contentType("application/json")
+                        .content("{\"questionedQuestions\":\"100\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void other_student_session_is_rejected() throws Exception {
         // path studentId is `student.getId()`, but session userId is a different student
         mockMvc.perform(put("/api/student-homeworks/student/{sid}/homework/{hid}/questioned-questions",
