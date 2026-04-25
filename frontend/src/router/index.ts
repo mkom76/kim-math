@@ -69,6 +69,18 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresRole: 'TEACHER' }
     },
     {
+      path: '/textbooks',
+      name: 'textbooks',
+      component: () => import('../views/TextbooksView.vue'),
+      meta: { requiresAuth: true, requiresRole: 'TEACHER' }
+    },
+    {
+      path: '/textbooks/:id',
+      name: 'textbook-detail',
+      component: () => import('../views/TextbookDetailView.vue'),
+      meta: { requiresAuth: true, requiresRole: 'TEACHER' }
+    },
+    {
       path: '/lessons/:id',
       name: 'lesson-detail',
       component: () => import('../views/LessonDetailView.vue'),

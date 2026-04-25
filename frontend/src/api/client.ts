@@ -244,6 +244,47 @@ export const studentHomeworkAPI = {
     client.put<StudentHomework>(`/student-homeworks/student/${studentId}/homework/${homeworkId}/questioned-questions`, { questionedQuestions }),
 };
 
+// Textbooks API
+export type TextbookQuestionType = 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY';
+
+export interface TextbookProblem {
+  id?: number;
+  textbookId?: number;
+  number: number;
+  answer?: string | null;
+  questionType: TextbookQuestionType;
+  topic?: string | null;
+  videoLink?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Textbook {
+  id?: number;
+  ownerTeacherId?: number;
+  title: string;
+  problemCount?: number;
+  problems?: TextbookProblem[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const textbookAPI = {
+  list: () => client.get<Textbook[]>('/textbooks'),
+  get: (id: number) => client.get<Textbook>(`/textbooks/${id}`),
+  create: (title: string) => client.post<Textbook>('/textbooks', { title }),
+  update: (id: number, title: string) => client.put<Textbook>(`/textbooks/${id}`, { title }),
+  remove: (id: number) => client.delete(`/textbooks/${id}`),
+
+  listProblems: (textbookId: number) =>
+    client.get<TextbookProblem[]>(`/textbooks/${textbookId}/problems`),
+  createProblem: (textbookId: number, data: TextbookProblem) =>
+    client.post<TextbookProblem>(`/textbooks/${textbookId}/problems`, data),
+  updateProblem: (id: number, data: TextbookProblem) =>
+    client.put<TextbookProblem>(`/textbook-problems/${id}`, data),
+  deleteProblem: (id: number) => client.delete(`/textbook-problems/${id}`),
+};
+
 // Lesson Student Stats Types
 export interface LessonStudentStats {
   testScores?: StudentTestScore[];

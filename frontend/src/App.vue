@@ -133,6 +133,11 @@ watch(() => route.path, () => {
           <span>숙제 관리</span>
         </el-menu-item>
 
+        <el-menu-item index="/textbooks">
+          <el-icon><Collection /></el-icon>
+          <span>교재 관리</span>
+        </el-menu-item>
+
         <el-menu-item index="/lessons">
           <el-icon><Calendar /></el-icon>
           <span>수업 관리</span>
