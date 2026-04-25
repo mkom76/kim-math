@@ -16,6 +16,12 @@ const questions = ref<Question[]>([])
 const answers = ref<Record<number, string>>({})
 
 const { isMobile } = useBreakpoint()
+
+const openVideo = (url?: string | null) => {
+  if (!url) return
+  window.open(url, '_blank', 'noopener')
+}
+
 const containerPadding = computed(() => isMobile.value ? '12px' : '24px')
 const badgeSize = computed(() => isMobile.value ? '40px' : '60px')
 const badgeFontSize = computed(() => isMobile.value ? '14px' : '24px')
@@ -187,6 +193,23 @@ onMounted(() => {
                 <el-icon style="margin-right: 4px"><Memo /></el-icon>
                 서술형
               </el-tag>
+              <el-tag
+                v-if="question.textbookProblem?.topic"
+                type="primary"
+                size="small"
+                effect="plain"
+              >
+                🏷 {{ question.textbookProblem.topic }}
+              </el-tag>
+              <el-button
+                v-if="question.textbookProblem?.videoLink"
+                size="small"
+                type="primary"
+                link
+                @click="openVideo(question.textbookProblem.videoLink)"
+              >
+                ▶ 해설 영상
+              </el-button>
             </div>
             <!-- 객관식: 라디오 버튼 -->
             <el-radio-group

@@ -57,6 +57,10 @@ public class Homework {
     @Builder.Default
     private List<StudentHomework> studentHomeworks = new ArrayList<>();
 
+    @OneToMany(mappedBy = "homework", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<HomeworkProblem> problems = new ArrayList<>();
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

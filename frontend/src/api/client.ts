@@ -240,7 +240,17 @@ export const homeworkAPI = {
   deleteHomework: (id: number) => client.delete(`/homeworks/${id}`),
   getUnattachedHomeworks: (academyId: number, classId: number) =>
     client.get('/homeworks/unattached', { params: { academyId, classId } }),
+  getProblems: (id: number) =>
+    client.get<HomeworkProblemRow[]>(`/homeworks/${id}/problems`),
+  replaceProblems: (id: number, items: Array<{ textbookProblemId: number | null }>) =>
+    client.put<HomeworkProblemRow[]>(`/homeworks/${id}/problems`, items),
 };
+
+export interface HomeworkProblemRow {
+  id: number;
+  position: number;
+  textbookProblem?: TextbookProblemMeta | null;
+}
 
 // Student Homeworks API
 export const studentHomeworkAPI = {

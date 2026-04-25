@@ -4,6 +4,18 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { homeworkAPI, academyAPI, academyClassAPI, type Homework, type Academy, type AcademyClass } from '../api/client'
 import { usePagination } from '../composables/usePagination'
 import { useAuthStore } from '@/stores/auth'
+import HomeworkProblemsComposer from '@/components/HomeworkProblemsComposer.vue'
+
+const composerVisible = ref(false)
+const composerHomeworkId = ref<number | null>(null)
+const composerHomeworkTitle = ref<string>('')
+
+const openComposer = (hw: Homework) => {
+  if (!hw.id) return
+  composerHomeworkId.value = hw.id
+  composerHomeworkTitle.value = hw.title || ''
+  composerVisible.value = true
+}
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -281,8 +293,18 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column label="관리" width="120" fixed="right">
+        <el-table-column label="관리" width="170" fixed="right">
           <template #default="{ row }">
+            <el-tooltip content="문제 구성" placement="top">
+              <el-button
+                size="small"
+                type="success"
+                circle
+                @click="openComposer(row)"
+              >
+                <el-icon><Collection /></el-icon>
+              </el-button>
+            </el-tooltip>
             <el-tooltip content="수정" placement="top">
               <el-button
                 size="small"
@@ -306,6 +328,14 @@ onMounted(() => {
           </template>
         </el-table-column>
       </el-table>
+
+      <HomeworkProblemsComposer
+        v-if="composerHomeworkId !== null"
+        v-model:visible="composerVisible"
+        :homework-id="composerHomeworkId"
+        :homework-title="composerHomeworkTitle"
+        @saved="fetchHomeworks"
+      />
 
       <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center">
         <span style="color: #909399; font-size: 14px">

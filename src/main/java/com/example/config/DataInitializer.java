@@ -40,7 +40,10 @@ public class DataInitializer {
             ClinicHomeworkProgressRepository clinicHomeworkProgressRepository,
             LessonVideoRepository lessonVideoRepository,
             StudentVideoProgressRepository studentVideoProgressRepository,
-            TeacherAcademyRepository teacherAcademyRepository
+            TeacherAcademyRepository teacherAcademyRepository,
+            TextbookRepository textbookRepository,
+            TextbookProblemRepository textbookProblemRepository,
+            HomeworkProblemRepository homeworkProblemRepository
     ) {
         return args -> {
             log.info("Initializing sample data...");
@@ -741,6 +744,70 @@ public class DataInitializer {
             studentHomeworkRepository.save(sh10);
 
             log.info("Created {} student homework records", 10);
+
+            // 10.5 교재(Textbook) 시드 데이터
+            // teacherKim의 교재 한 권 — 다양한 유형/형식 + 해설 영상 일부
+            Textbook textbook1 = textbookRepository.save(Textbook.builder()
+                    .ownerTeacherId(teacherKim.getId())
+                    .title("쎈 수학 (고1)")
+                    .build());
+
+            TextbookProblem tp1 = textbookProblemRepository.save(TextbookProblem.builder()
+                    .textbook(textbook1).number(1).answer("3")
+                    .questionType(QuestionType.OBJECTIVE)
+                    .topic("일차함수")
+                    .videoLink("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+                    .build());
+            TextbookProblem tp2 = textbookProblemRepository.save(TextbookProblem.builder()
+                    .textbook(textbook1).number(2).answer("5")
+                    .questionType(QuestionType.OBJECTIVE)
+                    .topic("일차함수")
+                    .build());
+            TextbookProblem tp3 = textbookProblemRepository.save(TextbookProblem.builder()
+                    .textbook(textbook1).number(3).answer("x = 2 또는 x = -3")
+                    .questionType(QuestionType.SUBJECTIVE)
+                    .topic("이차방정식")
+                    .videoLink("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+                    .build());
+            TextbookProblem tp4 = textbookProblemRepository.save(TextbookProblem.builder()
+                    .textbook(textbook1).number(4)
+                    .questionType(QuestionType.ESSAY)
+                    .topic("이차방정식")
+                    .build());
+            TextbookProblem tp5 = textbookProblemRepository.save(TextbookProblem.builder()
+                    .textbook(textbook1).number(5).answer("4")
+                    .questionType(QuestionType.OBJECTIVE)
+                    .topic("도형의 닮음")
+                    .videoLink("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+                    .build());
+
+            // teacherLee의 교재 (다른 선생님 시연용)
+            Textbook textbook2 = textbookRepository.save(Textbook.builder()
+                    .ownerTeacherId(teacherLee.getId())
+                    .title("이선생 자작 문제집")
+                    .build());
+            textbookProblemRepository.save(TextbookProblem.builder()
+                    .textbook(textbook2).number(1).answer("?")
+                    .questionType(QuestionType.SUBJECTIVE)
+                    .topic("미분")
+                    .build());
+
+            // homework1(방정식 기본 문제)에 처음 3개 슬롯을 textbook1 문제로 구성, 나머지 2개는 수동
+            homeworkProblemRepository.save(HomeworkProblem.builder()
+                    .homework(homework1).textbookProblem(tp1).position(1).build());
+            homeworkProblemRepository.save(HomeworkProblem.builder()
+                    .homework(homework1).textbookProblem(tp3).position(2).build());
+            homeworkProblemRepository.save(HomeworkProblem.builder()
+                    .homework(homework1).textbookProblem(tp5).position(3).build());
+            homeworkProblemRepository.save(HomeworkProblem.builder()
+                    .homework(homework1).position(4).build()); // 수동 슬롯
+            homeworkProblemRepository.save(HomeworkProblem.builder()
+                    .homework(homework1).position(5).build()); // 수동 슬롯
+
+            log.info("Created {} textbooks with {} problems",
+                    2, 6);
+            // suppress unused warnings
+            if (tp2 == null || tp4 == null) { /* unused */ }
 
             // 11. 클리닉 데이터 생성
             // 이번주 토요일 클리닉 (class1 - 고1 수학 기본반)

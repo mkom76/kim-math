@@ -1,6 +1,7 @@
 package com.example.controller;
 
 import com.example.dto.HomeworkDto;
+import com.example.dto.HomeworkProblemDto;
 import com.example.service.HomeworkService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -53,5 +54,18 @@ public class HomeworkController {
             @RequestParam Long academyId,
             @RequestParam Long classId) {
         return ResponseEntity.ok(homeworkService.getUnattachedHomeworks(academyId, classId));
+    }
+
+    @GetMapping("/{id}/problems")
+    public ResponseEntity<List<HomeworkProblemDto>> getProblems(@PathVariable Long id) {
+        return ResponseEntity.ok(homeworkService.getProblems(id));
+    }
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @PutMapping("/{id}/problems")
+    public ResponseEntity<List<HomeworkProblemDto>> replaceProblems(
+            @PathVariable Long id,
+            @RequestBody List<HomeworkService.ReplaceProblemItem> items) {
+        return ResponseEntity.ok(homeworkService.replaceProblems(id, items));
     }
 }
