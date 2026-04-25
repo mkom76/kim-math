@@ -781,6 +781,40 @@ public class DataInitializer {
                     .videoLink("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
                     .build());
 
+            // teacherKim 두 번째 교재
+            Textbook textbookKim2 = textbookRepository.save(Textbook.builder()
+                    .ownerTeacherId(teacherKim.getId())
+                    .title("마플 수학 1")
+                    .build());
+            TextbookProblem tpK2_1 = textbookProblemRepository.save(TextbookProblem.builder()
+                    .textbook(textbookKim2).number(1).answer("2")
+                    .questionType(QuestionType.OBJECTIVE)
+                    .topic("집합과 명제")
+                    .videoLink("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+                    .build());
+            TextbookProblem tpK2_2 = textbookProblemRepository.save(TextbookProblem.builder()
+                    .textbook(textbookKim2).number(2).answer("1")
+                    .questionType(QuestionType.OBJECTIVE)
+                    .topic("집합과 명제")
+                    .build());
+            TextbookProblem tpK2_3 = textbookProblemRepository.save(TextbookProblem.builder()
+                    .textbook(textbookKim2).number(3).answer("y = 2x + 3")
+                    .questionType(QuestionType.SUBJECTIVE)
+                    .topic("일차함수")
+                    .videoLink("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+                    .build());
+            TextbookProblem tpK2_4 = textbookProblemRepository.save(TextbookProblem.builder()
+                    .textbook(textbookKim2).number(4)
+                    .questionType(QuestionType.ESSAY)
+                    .topic("도형의 닮음")
+                    .build());
+            TextbookProblem tpK2_5 = textbookProblemRepository.save(TextbookProblem.builder()
+                    .textbook(textbookKim2).number(5).answer("5")
+                    .questionType(QuestionType.OBJECTIVE)
+                    .topic("확률과 통계")
+                    .videoLink("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+                    .build());
+
             // teacherLee의 교재 (다른 선생님 시연용)
             Textbook textbook2 = textbookRepository.save(Textbook.builder()
                     .ownerTeacherId(teacherLee.getId())
@@ -790,6 +824,34 @@ public class DataInitializer {
                     .textbook(textbook2).number(1).answer("?")
                     .questionType(QuestionType.SUBJECTIVE)
                     .topic("미분")
+                    .build());
+            textbookProblemRepository.save(TextbookProblem.builder()
+                    .textbook(textbook2).number(2).answer("0")
+                    .questionType(QuestionType.OBJECTIVE)
+                    .topic("미분")
+                    .videoLink("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+                    .build());
+
+            // teacherJung의 교재 (양쪽 학원 소속 선생님)
+            Textbook textbookJung = textbookRepository.save(Textbook.builder()
+                    .ownerTeacherId(teacherJung.getId())
+                    .title("정선생 자작 모의고사")
+                    .build());
+            textbookProblemRepository.save(TextbookProblem.builder()
+                    .textbook(textbookJung).number(1).answer("3")
+                    .questionType(QuestionType.OBJECTIVE)
+                    .topic("수열")
+                    .build());
+            textbookProblemRepository.save(TextbookProblem.builder()
+                    .textbook(textbookJung).number(2).answer("ln(2)")
+                    .questionType(QuestionType.SUBJECTIVE)
+                    .topic("로그함수")
+                    .videoLink("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+                    .build());
+            textbookProblemRepository.save(TextbookProblem.builder()
+                    .textbook(textbookJung).number(3)
+                    .questionType(QuestionType.ESSAY)
+                    .topic("적분")
                     .build());
 
             // homework1(방정식 기본 문제)에 처음 3개 슬롯을 textbook1 문제로 구성, 나머지 2개는 수동
@@ -804,8 +866,30 @@ public class DataInitializer {
             homeworkProblemRepository.save(HomeworkProblem.builder()
                     .homework(homework1).position(5).build()); // 수동 슬롯
 
-            log.info("Created {} textbooks with {} problems",
-                    2, 6);
+            // homework2(중간고사 대비 종합)에 마플 교재로 5문제 채우기 (전체 교재 출처 데모)
+            homeworkProblemRepository.save(HomeworkProblem.builder()
+                    .homework(homework2).textbookProblem(tpK2_1).position(1).build());
+            homeworkProblemRepository.save(HomeworkProblem.builder()
+                    .homework(homework2).textbookProblem(tpK2_2).position(2).build());
+            homeworkProblemRepository.save(HomeworkProblem.builder()
+                    .homework(homework2).textbookProblem(tpK2_3).position(3).build());
+            homeworkProblemRepository.save(HomeworkProblem.builder()
+                    .homework(homework2).textbookProblem(tpK2_4).position(4).build());
+            homeworkProblemRepository.save(HomeworkProblem.builder()
+                    .homework(homework2).textbookProblem(tpK2_5).position(5).build());
+
+            // test1(고1 수학 1학기 중간고사 대비)의 처음 3문제에 textbook1 문제 연결
+            // → 학생이 시험 응시 시 메타데이터(주제/해설영상) 노출 데모
+            test1Questions.get(0).setTextbookProblem(tp1); // 1번 = 일차함수 (영상)
+            test1Questions.get(0).setQuestionType(tp1.getQuestionType());
+            test1Questions.get(1).setTextbookProblem(tp3); // 2번 = 이차방정식 (영상)
+            test1Questions.get(1).setQuestionType(tp3.getQuestionType());
+            test1Questions.get(2).setTextbookProblem(tp5); // 3번 = 도형의 닮음 (영상)
+            test1Questions.get(2).setQuestionType(tp5.getQuestionType());
+            testQuestionRepository.saveAll(test1Questions.subList(0, 3));
+
+            log.info("Created {} textbooks with {} problems (including kim×2, lee×1, jung×1)",
+                    4, 5 + 5 + 2 + 3);
             // suppress unused warnings
             if (tp2 == null || tp4 == null) { /* unused */ }
 
