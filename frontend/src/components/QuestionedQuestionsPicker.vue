@@ -90,6 +90,7 @@ watch(
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  justify-content: center;
 }
 .number-btn {
   min-width: 44px;
