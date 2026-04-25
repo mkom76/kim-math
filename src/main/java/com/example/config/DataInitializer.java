@@ -695,6 +695,7 @@ public class DataInitializer {
             sh_lesson6.setStudent(student1);
             sh_lesson6.setHomework(homework6);
             sh_lesson6.setIncorrectCount(14); // 45문제 중 14개 오답 (69% 정답률)
+            sh_lesson6.setQuestionedQuestions("5,9,13,21"); // 학생이 미리 표시한 질문 문항
             studentHomeworkRepository.save(sh_lesson6);
 
             StudentHomework sh4 = new StudentHomework();
