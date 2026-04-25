@@ -273,7 +273,7 @@ export interface TextbookProblem {
   textbookId?: number;
   number: number;
   answer?: string | null;
-  questionType: TextbookQuestionType;
+  questionType?: TextbookQuestionType | null;
   topic?: string | null;
   videoLink?: string | null;
   createdAt?: string;
@@ -304,6 +304,8 @@ export const textbookAPI = {
   updateProblem: (id: number, data: TextbookProblem) =>
     client.put<TextbookProblem>(`/textbook-problems/${id}`, data),
   deleteProblem: (id: number) => client.delete(`/textbook-problems/${id}`),
+  bulkCreateProblems: (textbookId: number, items: Array<Partial<TextbookProblem>>) =>
+    client.post<TextbookProblem[]>(`/textbooks/${textbookId}/problems/bulk`, items),
 };
 
 // Lesson Student Stats Types

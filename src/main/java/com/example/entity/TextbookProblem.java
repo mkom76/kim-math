@@ -33,9 +33,8 @@ public class TextbookProblem {
     private String answer;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "question_type", nullable = false)
-    @Builder.Default
-    private QuestionType questionType = QuestionType.SUBJECTIVE;
+    @Column(name = "question_type")
+    private QuestionType questionType; // nullable — 시험 출제 시 스냅샷에서 null이면 디폴트(SUBJECTIVE) 사용
 
     @Column
     private String topic;

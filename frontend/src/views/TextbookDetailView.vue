@@ -8,6 +8,7 @@ import {
   type TextbookProblem,
   type TextbookQuestionType,
 } from '@/api/client'
+import TextbookProblemsBulkImportDialog from '@/components/TextbookProblemsBulkImportDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -135,6 +136,9 @@ const editTitle = async () => {
   }
 }
 
+const bulkVisible = ref(false)
+const existingNumbers = computed(() => problems.value.map(p => p.number))
+
 onMounted(fetchAll)
 </script>
 
@@ -153,10 +157,16 @@ onMounted(fetchAll)
             <el-icon><Edit /></el-icon>
           </el-button>
         </div>
-        <el-button type="primary" @click="openAdd">
-          <el-icon style="margin-right: 4px"><Plus /></el-icon>
-          문제 추가
-        </el-button>
+        <div style="display: flex; gap: 8px">
+          <el-button @click="bulkVisible = true">
+            <el-icon style="margin-right: 4px"><DocumentCopy /></el-icon>
+            여러 문제 추가
+          </el-button>
+          <el-button type="primary" @click="openAdd">
+            <el-icon style="margin-right: 4px"><Plus /></el-icon>
+            문제 추가
+          </el-button>
+        </div>
       </div>
     </el-card>
 
@@ -225,5 +235,12 @@ onMounted(fetchAll)
         <el-button type="primary" @click="save">저장</el-button>
       </template>
     </el-dialog>
+
+    <TextbookProblemsBulkImportDialog
+      v-model:visible="bulkVisible"
+      :textbook-id="textbookId"
+      :existing-numbers="existingNumbers"
+      @imported="fetchAll"
+    />
   </div>
 </template>

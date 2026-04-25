@@ -321,7 +321,7 @@ public class TestService {
                     .number(item.number())
                     .answer(tp.getAnswer())
                     .points(item.points())
-                    .questionType(tp.getQuestionType())
+                    .questionType(tp.getQuestionType() != null ? tp.getQuestionType() : QuestionType.SUBJECTIVE)
                     .textbookProblem(tp)
                     .build();
             q = testQuestionRepository.save(q);

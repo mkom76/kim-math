@@ -29,6 +29,23 @@ public class TextbookProblemService {
                 .collect(Collectors.toList());
     }
 
+    public List<TextbookProblemDto> bulkCreate(Long textbookId, List<TextbookProblemDto> items) {
+        Textbook tb = loadOwnedTextbook(textbookId);
+        List<TextbookProblem> toSave = items.stream()
+                .map(dto -> TextbookProblem.builder()
+                        .textbook(tb)
+                        .number(dto.getNumber())
+                        .answer(dto.getAnswer())
+                        .questionType(dto.getQuestionType())
+                        .topic(dto.getTopic())
+                        .videoLink(dto.getVideoLink())
+                        .build())
+                .collect(Collectors.toList());
+        return textbookProblemRepository.saveAll(toSave).stream()
+                .map(TextbookProblemDto::from)
+                .collect(Collectors.toList());
+    }
+
     public TextbookProblemDto create(Long textbookId, TextbookProblemDto dto) {
         Textbook tb = loadOwnedTextbook(textbookId);
         TextbookProblem p = TextbookProblem.builder()

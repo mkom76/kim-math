@@ -63,6 +63,12 @@ public class TextbookController {
         return ResponseEntity.ok(textbookProblemService.create(textbookId, dto));
     }
 
+    @PostMapping("/textbooks/{textbookId}/problems/bulk")
+    public ResponseEntity<List<TextbookProblemDto>> bulkCreateProblems(@PathVariable Long textbookId,
+                                                                       @RequestBody List<TextbookProblemDto> items) {
+        return ResponseEntity.ok(textbookProblemService.bulkCreate(textbookId, items));
+    }
+
     @PutMapping("/textbook-problems/{id}")
     public ResponseEntity<TextbookProblemDto> updateProblem(@PathVariable Long id,
                                                             @RequestBody TextbookProblemDto dto) {
