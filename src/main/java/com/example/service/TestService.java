@@ -30,7 +30,8 @@ public class TestService {
     private final AcademyClassRepository academyClassRepository;
     private final LessonService lessonService;
     private final AuthorizationService authorizationService;
-    
+    private final TextbookProblemRepository textbookProblemRepository;
+
     public Page<TestDto> getTests(Pageable pageable) {
         return testRepository.findAll(pageable).map(TestDto::from);
     }
@@ -291,6 +292,45 @@ public class TestService {
                 .map(TestQuestionDto::from)
                 .collect(Collectors.toList());
     }
+
+    /**
+     * 교재 문제들을 시험 문항으로 일괄 추가. 답/배점/출제형식은 교재에서 복사(스냅샷)하고,
+     * textbook_problem_id FK를 채워서 라이브 메타데이터(주제/해설영상) 조회 경로를 남긴다.
+     */
+    public List<TestQuestionDto> addQuestionsFromTextbook(Long testId, List<FromTextbookItem> items) {
+        Test test = testRepository.findById(testId)
+                .orElseThrow(() -> new RuntimeException("Test not found"));
+        authorizationService.assertCanAccessTest(test);
+
+        TenantContext.Context ctx = TenantContext.current();
+        Long teacherId = ctx != null ? ctx.teacherId() : null;
+        if (teacherId == null) {
+            throw new ForbiddenException("선생님 권한이 필요합니다");
+        }
+
+        List<TestQuestionDto> result = new ArrayList<>();
+        for (FromTextbookItem item : items) {
+            TextbookProblem tp = textbookProblemRepository.findById(item.textbookProblemId())
+                    .orElseThrow(() -> new ForbiddenException("교재 문제를 찾을 수 없습니다"));
+            if (tp.getTextbook() == null || !teacherId.equals(tp.getTextbook().getOwnerTeacherId())) {
+                throw new ForbiddenException("본인의 교재 문제만 출제할 수 있습니다");
+            }
+
+            TestQuestion q = TestQuestion.builder()
+                    .test(test)
+                    .number(item.number())
+                    .answer(tp.getAnswer())
+                    .points(item.points())
+                    .questionType(tp.getQuestionType())
+                    .textbookProblem(tp)
+                    .build();
+            q = testQuestionRepository.save(q);
+            result.add(TestQuestionDto.from(q));
+        }
+        return result;
+    }
+
+    public record FromTextbookItem(Long textbookProblemId, Integer number, Double points) {}
 
     public TestQuestionDto addQuestion(Long testId, TestQuestionDto dto) {
         Test test = testRepository.findById(testId)

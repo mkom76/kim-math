@@ -85,6 +85,14 @@ public class TestController {
                 .body(testService.addQuestion(id, dto));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
+    @PostMapping("/{id}/questions/from-textbook")
+    public ResponseEntity<List<TestQuestionDto>> addQuestionsFromTextbook(
+            @PathVariable Long id,
+            @RequestBody List<TestService.FromTextbookItem> items) {
+        return ResponseEntity.ok(testService.addQuestionsFromTextbook(id, items));
+    }
+
     @GetMapping("/unattached")
     public ResponseEntity<List<TestDto>> getUnattachedTests(
             @RequestParam Long academyId,

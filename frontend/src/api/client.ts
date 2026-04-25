@@ -55,12 +55,21 @@ interface Test {
   updatedAt?: string;
 }
 
+export interface TextbookProblemMeta {
+  id: number;
+  textbookId: number;
+  number: number;
+  topic?: string | null;
+  videoLink?: string | null;
+}
+
 interface Question {
   id?: number;
   number: number;
   answer: string;
   points: number;
   questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY';
+  textbookProblem?: TextbookProblemMeta | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -204,6 +213,8 @@ export const testAPI = {
   recalculateScores: (id: number) => client.post(`/tests/${id}/recalculate`),
   saveTestAnswers: (id: number, answers: Array<{ number: number; answer: string; points: number; questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY' }>) =>
     client.put(`/tests/${id}/answers`, { testId: id, answers }),
+  addQuestionsFromTextbook: (testId: number, items: Array<{ textbookProblemId: number; number: number; points: number }>) =>
+    client.post(`/tests/${testId}/questions/from-textbook`, items),
 };
 
 // Submissions API

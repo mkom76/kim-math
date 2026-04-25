@@ -45,6 +45,10 @@ public class TestQuestion {
     @Builder.Default
     private QuestionType questionType = QuestionType.SUBJECTIVE;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "textbook_problem_id")
+    private TextbookProblem textbookProblem;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

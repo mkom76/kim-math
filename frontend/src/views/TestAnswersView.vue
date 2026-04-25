@@ -2,7 +2,8 @@
 import {computed, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {ElMessage, ElMessageBox} from 'element-plus'
-import {type Question, testAPI} from '../api/client'
+import {type Question, testAPI, type TextbookProblem} from '../api/client'
+import TextbookProblemPicker from '@/components/TextbookProblemPicker.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -142,6 +143,47 @@ const goBack = () => {
   }
 }
 
+// 교재 picker
+const pickerVisible = ref(false)
+
+const usedTextbookProblemIds = computed(() =>
+  questions.value.map(q => q.textbookProblem?.id).filter((x): x is number => x != null),
+)
+
+const openPicker = async () => {
+  if (hasChanges.value) {
+    try {
+      await ElMessageBox.confirm(
+        '저장하지 않은 변경사항이 있습니다. 먼저 저장하면 현재 문제 수정 내용이 반영됩니다. 그대로 교재에서 가져올까요?',
+        '확인',
+        { confirmButtonText: '계속', cancelButtonText: '취소', type: 'warning' },
+      )
+    } catch {
+      return
+    }
+  }
+  pickerVisible.value = true
+}
+
+const onPick = async (items: { problem: TextbookProblem }[]) => {
+  const startNumber = (questions.value.length > 0
+    ? Math.max(...questions.value.map(q => q.number || 0))
+    : 0) + 1
+  const defaultPoints = 5
+  const payload = items.map((it, idx) => ({
+    textbookProblemId: it.problem.id!,
+    number: startNumber + idx,
+    points: defaultPoints,
+  }))
+  try {
+    await testAPI.addQuestionsFromTextbook(Number(testId), payload)
+    ElMessage.success(`${items.length}개 문제를 추가했습니다`)
+    await fetchQuestions()
+  } catch {
+    ElMessage.error('교재 문제 추가에 실패했습니다')
+  }
+}
+
 onMounted(() => {
   fetchQuestions()
 })
@@ -164,6 +206,10 @@ onMounted(() => {
           <el-button type="primary" @click="handleAddQuestion">
             <el-icon><Plus /></el-icon>
             문제 추가
+          </el-button>
+          <el-button type="primary" plain @click="openPicker">
+            <el-icon><Collection /></el-icon>
+            교재에서 가져오기
           </el-button>
           <el-button @click="goBack">
             <el-icon><ArrowLeft /></el-icon>
@@ -191,9 +237,17 @@ onMounted(() => {
         stripe
         row-key="number"
       >
-        <el-table-column prop="number" label="문제 번호" width="120" align="center">
+        <el-table-column prop="number" label="문제 번호" width="160" align="center">
           <template #default="{ row }">
-            <el-tag type="info" size="large">{{ row.number }}번</el-tag>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px">
+              <el-tag type="info" size="large">{{ row.number }}번</el-tag>
+              <el-tag v-if="row.textbookProblem" type="success" size="small" effect="plain">
+                📚 교재 #{{ row.textbookProblem.number }}
+              </el-tag>
+              <span v-if="row.textbookProblem?.topic" style="font-size: 11px; color: #409eff">
+                {{ row.textbookProblem.topic }}
+              </span>
+            </div>
           </template>
         </el-table-column>
 
@@ -331,6 +385,12 @@ onMounted(() => {
         </el-button>
       </div>
     </el-card>
+
+    <TextbookProblemPicker
+      v-model:visible="pickerVisible"
+      :exclude-problem-ids="usedTextbookProblemIds"
+      @pick="onPick"
+    />
   </div>
 </template>
 

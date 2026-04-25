@@ -17,6 +17,7 @@ public class TestQuestionDto {
     private String answer;
     private Double points;
     private QuestionType questionType;
+    private TextbookProblemMetaDto textbookProblem; // null = 수동 출제
 
     public static TestQuestionDto from(TestQuestion question) {
         return TestQuestionDto.builder()
@@ -25,6 +26,7 @@ public class TestQuestionDto {
                 .answer(question.getAnswer())
                 .points(question.getPoints())
                 .questionType(question.getQuestionType())
+                .textbookProblem(TextbookProblemMetaDto.fromOrNull(question.getTextbookProblem()))
                 .build();
     }
 }
