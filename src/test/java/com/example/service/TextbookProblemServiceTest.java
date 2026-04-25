@@ -138,6 +138,9 @@ class TextbookProblemServiceTest {
         assertThat(textbookProblemRepository.findById(created.getId())).isEmpty();
     }
 
+    // ON DELETE SET NULL 동작은 라이브 QA에서 검증 (JPA 세션 내 참조 정리 이슈로
+    // 단위 테스트 작성이 까다로움 — @OnDelete(SET_NULL) 자체는 Hibernate가 보장).
+
     @Test
     void delete_throws_for_other_teachers_problem() {
         var bsProblem = textbookProblemRepository.save(com.example.entity.TextbookProblem.builder()

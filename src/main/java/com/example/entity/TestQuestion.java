@@ -47,6 +47,7 @@ public class TestQuestion {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "textbook_problem_id")
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.SET_NULL)
     private TextbookProblem textbookProblem;
 
     @CreatedDate
