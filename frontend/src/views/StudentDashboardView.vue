@@ -366,6 +366,8 @@ onMounted(() => {
         :style="{ fontSize: tableFontSize }"
         :header-cell-style="{ fontSize: tableFontSize, padding: isMobile ? '6px 0' : '12px 0' }"
         :cell-style="{ fontSize: tableFontSize, padding: isMobile ? '6px 8px' : '12px 8px' }"
+        :row-style="{ cursor: 'pointer' }"
+        @row-click="(row: any) => row.testId && $router.push(`/student/tests/${row.testId}/result`)"
       >
         <el-table-column label="시험 제목" :min-width="isMobile ? 150 : 200">
           <template #default="{ row }">

@@ -325,6 +325,8 @@ onMounted(() => {
               style="width: 100%"
               stripe
               :max-height="400"
+              :row-style="{ cursor: 'pointer' }"
+              @row-click="(row: any) => row.studentId && router.push(`/tests/${testId}/students/${row.studentId}/result`)"
             >
               <el-table-column label="순위" width="80" align="center">
                 <template #default="{ $index }">

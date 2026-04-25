@@ -74,16 +74,31 @@ interface Question {
   updatedAt?: string;
 }
 
-interface SubmissionDetail {
+export interface SubmissionDetail {
   id: number;
   questionNumber: number;
   studentAnswer?: string;
   correctAnswer?: string;
-  isCorrect?: boolean;
+  isCorrect?: boolean | null;
   earnedPoints?: number;
   maxPoints?: number;
   teacherComment?: string;
   questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY';
+  topic?: string | null;
+  videoLink?: string | null;
+}
+
+export interface SubmissionResult {
+  id: number;
+  testId: number;
+  testTitle: string;
+  totalScore: number;
+  classAverage?: number;
+  rank?: number;
+  pendingEssayCount?: number;
+  submittedAt?: string;
+  student?: Student;
+  details: SubmissionDetail[];
 }
 
 interface Submission {
@@ -230,6 +245,10 @@ export const submissionAPI = {
     }),
   getSubmissionWithDetails: (submissionId: number) =>
     client.get<Submission & { details: SubmissionDetail[] }>(`/submissions/${submissionId}`),
+  getMyResultByTest: (testId: number) =>
+    client.get<SubmissionResult>(`/submissions/me/test/${testId}`),
+  getResultByStudentAndTest: (studentId: number, testId: number) =>
+    client.get<SubmissionResult>(`/submissions`, { params: { studentId, testId } }),
 };
 
 // Homeworks API

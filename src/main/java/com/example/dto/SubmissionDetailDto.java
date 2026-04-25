@@ -20,8 +20,11 @@ public class SubmissionDetailDto {
     private Double maxPoints;
     private String teacherComment;
     private String questionType;
+    private String topic;
+    private String videoLink;
 
     public static SubmissionDetailDto from(StudentSubmissionDetail detail) {
+        var tp = detail.getQuestion().getTextbookProblem();
         return SubmissionDetailDto.builder()
                 .id(detail.getId())
                 .questionNumber(detail.getQuestion().getNumber())
@@ -32,6 +35,8 @@ public class SubmissionDetailDto {
                 .maxPoints(detail.getQuestion().getPoints())
                 .teacherComment(detail.getTeacherComment())
                 .questionType(detail.getQuestion().getQuestionType().name())
+                .topic(tp != null ? tp.getTopic() : null)
+                .videoLink(tp != null ? tp.getVideoLink() : null)
                 .build();
     }
 }

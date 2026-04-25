@@ -33,6 +33,11 @@ public class SubmissionController {
         return ResponseEntity.ok(submissionService.getSubmission(id));
     }
 
+    @GetMapping("/me/test/{testId}")
+    public ResponseEntity<StudentSubmissionDto> getMyResult(@PathVariable Long testId) {
+        return ResponseEntity.ok(submissionService.getMyResultByTest(testId));
+    }
+
     @GetMapping
     public ResponseEntity<StudentSubmissionDto> getSubmissionByStudentAndTest(
             @RequestParam Long studentId,

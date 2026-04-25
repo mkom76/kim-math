@@ -1,13 +1,17 @@
 package com.example.service;
 
+import com.example.config.security.TenantContext;
 import com.example.dto.EssayGradeRequest;
 import com.example.dto.StudentSubmissionDto;
 import com.example.dto.SubmissionDetailDto;
 import com.example.entity.*;
+import com.example.exception.ForbiddenException;
 import com.example.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -106,6 +110,25 @@ public class SubmissionService {
         return dto;
     }
     
+    public StudentSubmissionDto getMyResultByTest(Long testId) {
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null || ctx.role() != null) {
+            throw new ForbiddenException("학생 인증이 필요합니다");
+        }
+        Long studentId = ctx.teacherId();
+        StudentSubmission submission = submissionRepository
+                .findByStudentIdAndTestId(studentId, testId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "응시 기록이 없습니다"));
+        authorizationService.assertCanAccessSubmission(submission);
+
+        StudentSubmissionDto dto = StudentSubmissionDto.from(submission);
+        dto.setDetails(submission.getDetails().stream()
+                .map(SubmissionDetailDto::from)
+                .collect(Collectors.toList()));
+        return dto;
+    }
+
     public StudentSubmissionDto getSubmissionByStudentAndTest(Long studentId, Long testId) {
         StudentSubmission submission = submissionRepository.findByStudentIdAndTestId(studentId, testId)
                 .orElseThrow(() -> new RuntimeException("Submission not found"));
