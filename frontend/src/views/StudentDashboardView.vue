@@ -177,22 +177,44 @@ onMounted(() => {
       </el-col>
 
       <el-col :xs="12" :sm="6" :md="6">
-        <el-card shadow="hover" style="cursor: pointer" :body-style="{ padding: isMobile ? '10px' : '20px', height: isMobile ? '100px' : '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }" @click="showPastTestsDialog">
+        <el-card
+          shadow="hover"
+          style="cursor: pointer; border: 1px solid #e6a23c; position: relative"
+          :body-style="{ padding: isMobile ? '10px' : '20px', height: isMobile ? '100px' : '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }"
+          @click="showPastTestsDialog"
+        >
+          <div style="position: absolute; top: 6px; right: 8px; color: #e6a23c; font-size: 14px; font-weight: 600">›</div>
           <div style="text-align: center">
             <h3 :style="{ margin: 0, fontSize: h3FontSize, color: '#e6a23c', marginBottom: isMobile ? '4px' : '8px' }">지난 시험</h3>
             <p :style="{ margin: 0, color: '#606266', fontSize: statFontSize, fontWeight: 700 }">
               {{ mySubmissions.length }}
+            </p>
+            <p :style="{ margin: '2px 0 0 0', color: '#e6a23c', fontSize: isMobile ? '10px' : '11px', fontWeight: 500 }">
+              결과 보기 →
             </p>
           </div>
         </el-card>
       </el-col>
 
       <el-col :xs="12" :sm="6" :md="6">
-        <el-card shadow="hover" style="cursor: pointer" :body-style="{ padding: isMobile ? '10px' : '20px', height: isMobile ? '100px' : '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }" @click="attendanceDialogVisible = true">
+        <el-card
+          shadow="hover"
+          :style="{
+            cursor: 'pointer',
+            border: `1px solid ${attendanceStats && attendanceStats.attendanceRate >= 80 ? '#67C23A' : '#F56C6C'}`,
+            position: 'relative',
+          }"
+          :body-style="{ padding: isMobile ? '10px' : '20px', height: isMobile ? '100px' : '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }"
+          @click="attendanceDialogVisible = true"
+        >
+          <div :style="{ position: 'absolute', top: '6px', right: '8px', color: attendanceStats && attendanceStats.attendanceRate >= 80 ? '#67C23A' : '#F56C6C', fontSize: '14px', fontWeight: 600 }">›</div>
           <div style="text-align: center">
             <h3 :style="{ margin: 0, fontSize: h3FontSize, marginBottom: isMobile ? '4px' : '8px', color: attendanceStats && attendanceStats.attendanceRate >= 80 ? '#67C23A' : '#F56C6C' }">출석률</h3>
             <p :style="{ margin: 0, color: attendanceStats && attendanceStats.attendanceRate >= 80 ? '#67C23A' : '#F56C6C', fontSize: statFontSize, fontWeight: 700 }">
               {{ attendanceStats ? attendanceStats.attendanceRate + '%' : '-' }}
+            </p>
+            <p :style="{ margin: '2px 0 0 0', color: attendanceStats && attendanceStats.attendanceRate >= 80 ? '#67C23A' : '#F56C6C', fontSize: isMobile ? '10px' : '11px', fontWeight: 500 }">
+              상세 보기 →
             </p>
           </div>
         </el-card>
