@@ -247,6 +247,13 @@ onMounted(() => {
               <span v-if="row.textbookProblem?.topic" style="font-size: 11px; color: #409eff">
                 {{ row.textbookProblem.topic }}
               </span>
+              <a
+                v-if="row.textbookProblem?.videoLink"
+                :href="row.textbookProblem.videoLink"
+                target="_blank"
+                rel="noopener"
+                style="font-size: 11px; color: #409eff; text-decoration: none"
+              >▶ 해설</a>
             </div>
           </template>
         </el-table-column>

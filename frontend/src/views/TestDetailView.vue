@@ -237,7 +237,25 @@ onMounted(() => {
                 </template>
               </el-table-column>
 
-              <el-table-column label="정답률 / 획득률" width="300" align="center">
+              <el-table-column label="유형 / 해설" width="180">
+                <template #default="{ row }">
+                  <div style="display: flex; flex-direction: column; gap: 4px">
+                    <span v-if="row.topic" style="color: #409eff; font-size: 13px; font-weight: 500">
+                      {{ row.topic }}
+                    </span>
+                    <span v-else style="color: #c0c4cc; font-size: 12px">유형 미지정</span>
+                    <a
+                      v-if="row.videoLink"
+                      :href="row.videoLink"
+                      target="_blank"
+                      rel="noopener"
+                      style="color: #409eff; font-size: 12px; text-decoration: none"
+                    >▶ 해설 영상</a>
+                  </div>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="정답률 / 획득률" width="240" align="center">
                 <template #default="{ row }">
                   <!-- 서술형: 평균 획득률 -->
                   <div v-if="row.questionType === 'ESSAY'">
@@ -348,7 +366,7 @@ onMounted(() => {
                 </template>
               </el-table-column>
 
-              <el-table-column prop="totalScore" label="점수" width="120" align="center">
+              <el-table-column prop="totalScore" label="점수" width="100" align="center">
                 <template #default="{ row }">
                   <el-tag
                     :type="row.totalScore >= 80 ? 'success' : row.totalScore >= 60 ? 'warning' : 'danger'"
@@ -356,6 +374,20 @@ onMounted(() => {
                   >
                     {{ row.totalScore }}점
                   </el-tag>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="결과" width="110" align="center">
+                <template #default="{ row }">
+                  <el-button
+                    v-if="row.studentId"
+                    size="small"
+                    type="primary"
+                    plain
+                    @click.stop="router.push(`/tests/${testId}/students/${row.studentId}/result`)"
+                  >
+                    결과 보기
+                  </el-button>
                 </template>
               </el-table-column>
             </el-table>

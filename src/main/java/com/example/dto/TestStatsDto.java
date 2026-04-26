@@ -39,5 +39,7 @@ public class TestStatsDto {
         private Double correctRate;             // OBJECTIVE/SUBJECTIVE: 정답률 (0-100)
         private Double avgEarnedRate;           // ESSAY: 평균 획득률 (0-100, null = 아직 미채점)
         private List<String> incorrectStudents; // OBJECTIVE/SUBJECTIVE: 틀린 학생, ESSAY: 미채점 학생
+        private String topic;                   // 교재 문제에서 라이브 메타
+        private String videoLink;               // 교재 문제에서 라이브 메타
     }
 }

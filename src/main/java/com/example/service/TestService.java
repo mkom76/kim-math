@@ -230,6 +230,15 @@ public class TestService {
         studentSubmissionDetailRepository.getEssayAvgEarnedRatesByTestId(testId)
                 .forEach(arr -> essayAvgEarnedMap.put((Integer) arr[0], (Double) arr[1]));
 
+        // 문제번호 → TextbookProblem 메타 (라이브 참조)
+        List<TestQuestion> questions = testQuestionRepository.findByTestIdOrderByNumber(testId);
+        Map<Integer, TextbookProblem> metaByNumber = new HashMap<>();
+        for (TestQuestion q : questions) {
+            if (q.getTextbookProblem() != null) {
+                metaByNumber.put(q.getNumber(), q.getTextbookProblem());
+            }
+        }
+
         // 문제별 정답률 및 틀린/미채점 학생 명단
         List<Object[]> correctRates = studentSubmissionDetailRepository.getQuestionCorrectRatesByTestId(testId);
         List<TestStatsDto.QuestionStat> questionStats = correctRates.stream()
@@ -237,6 +246,9 @@ public class TestService {
                     Integer questionNumber = (Integer) arr[0];
                     Double correctRate = (Double) arr[1];
                     QuestionType questionType = (QuestionType) arr[2];
+                    TextbookProblem meta = metaByNumber.get(questionNumber);
+                    String topic = meta != null ? meta.getTopic() : null;
+                    String videoLink = meta != null ? meta.getVideoLink() : null;
 
                     if (questionType == QuestionType.ESSAY) {
                         // 서술형: 미채점 학생 목록
@@ -252,6 +264,8 @@ public class TestService {
                                 .questionType(questionType.name())
                                 .avgEarnedRate(essayAvgEarnedMap.get(questionNumber)) // null = 아직 아무도 채점 안 됨
                                 .incorrectStudents(pendingStudents)
+                                .topic(topic)
+                                .videoLink(videoLink)
                                 .build();
                     } else {
                         // 객관식/주관식: 틀린 학생 목록
@@ -267,6 +281,8 @@ public class TestService {
                                 .questionType(questionType.name())
                                 .correctRate(correctRate)
                                 .incorrectStudents(incorrectStudents)
+                                .topic(topic)
+                                .videoLink(videoLink)
                                 .build();
                     }
                 })
