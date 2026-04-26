@@ -371,7 +371,14 @@ onMounted(() => {
       >
         <el-table-column label="시험 제목" :min-width="isMobile ? 150 : 200">
           <template #default="{ row }">
-            <span :style="{ fontSize: tableFontSize }">{{ row.testTitle || row.test?.title || '-' }}</span>
+            <span
+              :style="{
+                fontSize: tableFontSize,
+                color: row.testId ? '#409eff' : 'inherit',
+                textDecoration: row.testId ? 'underline' : 'none',
+                fontWeight: row.testId ? 500 : 400,
+              }"
+            >{{ row.testTitle || row.test?.title || '-' }}</span>
           </template>
         </el-table-column>
         <el-table-column label="제출 날짜" :width="isMobile ? 100 : 180">
@@ -421,6 +428,19 @@ onMounted(() => {
               {{ row.rank }}등
             </span>
             <span v-else :style="{ color: '#909399', fontSize: tableFontSize }">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="결과" :width="isMobile ? 80 : 110" align="center">
+          <template #default="{ row }">
+            <el-button
+              v-if="row.testId"
+              type="primary"
+              :size="isMobile ? 'small' : 'default'"
+              plain
+              @click.stop="$router.push(`/student/tests/${row.testId}/result`)"
+            >
+              결과 보기
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
