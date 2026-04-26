@@ -425,11 +425,11 @@ public class DataInitializer {
                     test3Questions.size() + test4Questions.size() + test5Questions.size());
 
             // 학생 답안 제출 생성
-            // student1의 test1 제출 (80점)
+            // student1의 test1 제출 (70점)
             StudentSubmission submission1 = new StudentSubmission();
             submission1.setStudent(student1);
             submission1.setTest(test1);
-            submission1.setTotalScore(80);
+            submission1.setTotalScore(70);
             submission1.setSubmittedAt(LocalDateTime.now().minusDays(30));
             submission1 = studentSubmissionRepository.save(submission1);
 
@@ -438,9 +438,13 @@ public class DataInitializer {
                 detail.setSubmission(submission1);
                 detail.setQuestion(test1Questions.get(i));
                 String correctAnswer = test1Questions.get(i).getAnswer();
-                String studentAnswer = (i < 8) ? correctAnswer : String.valueOf((Integer.parseInt(correctAnswer) % 5) + 1);
+                // 데모용: i==2(도형의 닮음) 오답 → 약점 시각화
+                String studentAnswer;
+                if (i == 2) studentAnswer = "9";
+                else if (i < 8) studentAnswer = correctAnswer;
+                else studentAnswer = String.valueOf((Integer.parseInt(correctAnswer) % 5) + 1);
                 detail.setStudentAnswer(studentAnswer);
-                detail.setIsCorrect(correctAnswer.equals(studentAnswer));
+                detail.setIsCorrect(correctAnswer != null && correctAnswer.equals(studentAnswer));
                 studentSubmissionDetailRepository.save(detail);
             }
 
@@ -878,15 +882,23 @@ public class DataInitializer {
             homeworkProblemRepository.save(HomeworkProblem.builder()
                     .homework(homework2).textbookProblem(tpK2_5).position(5).build());
 
-            // test1(고1 수학 1학기 중간고사 대비)의 처음 3문제에 textbook1 문제 연결
-            // → 학생이 시험 응시 시 메타데이터(주제/해설영상) 노출 데모
-            test1Questions.get(0).setTextbookProblem(tp1); // 1번 = 일차함수 (영상)
-            test1Questions.get(0).setQuestionType(tp1.getQuestionType());
-            test1Questions.get(1).setTextbookProblem(tp3); // 2번 = 이차방정식 (영상)
-            test1Questions.get(1).setQuestionType(tp3.getQuestionType());
-            test1Questions.get(2).setTextbookProblem(tp5); // 3번 = 도형의 닮음 (영상)
-            test1Questions.get(2).setQuestionType(tp5.getQuestionType());
-            testQuestionRepository.saveAll(test1Questions.subList(0, 3));
+            // test1(고1 수학 1학기 중간고사 대비)의 문제들에 textbook 문제 연결
+            // → 시험 결과 화면의 "유형별 정답률" 데모용 분포
+            //   1,4,7 일차함수 / 2,5 이차방정식 / 3 도형의 닮음 / 6 집합과 명제 / 8 확률과 통계
+            //   9,10 미연결("기타")
+            test1Questions.get(0).setTextbookProblem(tp1);     // 일차함수
+            test1Questions.get(1).setTextbookProblem(tp3);     // 이차방정식
+            test1Questions.get(2).setTextbookProblem(tp5);     // 도형의 닮음
+            test1Questions.get(3).setTextbookProblem(tp2);     // 일차함수
+            test1Questions.get(4).setTextbookProblem(tp4);     // 이차방정식
+            test1Questions.get(5).setTextbookProblem(tpK2_1);  // 집합과 명제
+            test1Questions.get(6).setTextbookProblem(tpK2_3);  // 일차함수
+            test1Questions.get(7).setTextbookProblem(tpK2_5);  // 확률과 통계
+            for (int i = 0; i < 8; i++) {
+                var qt = test1Questions.get(i).getTextbookProblem().getQuestionType();
+                if (qt != null) test1Questions.get(i).setQuestionType(qt);
+            }
+            testQuestionRepository.saveAll(test1Questions);
 
             log.info("Created {} textbooks with {} problems (including kim×2, lee×1, jung×1)",
                     4, 5 + 5 + 2 + 3);
