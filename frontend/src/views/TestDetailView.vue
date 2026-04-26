@@ -237,24 +237,6 @@ onMounted(() => {
                 </template>
               </el-table-column>
 
-              <el-table-column label="유형 / 해설" width="180">
-                <template #default="{ row }">
-                  <div style="display: flex; flex-direction: column; gap: 4px">
-                    <span v-if="row.topic" style="color: #409eff; font-size: 13px; font-weight: 500">
-                      {{ row.topic }}
-                    </span>
-                    <span v-else style="color: #c0c4cc; font-size: 12px">유형 미지정</span>
-                    <a
-                      v-if="row.videoLink"
-                      :href="row.videoLink"
-                      target="_blank"
-                      rel="noopener"
-                      style="color: #409eff; font-size: 12px; text-decoration: none"
-                    >▶ 해설 영상</a>
-                  </div>
-                </template>
-              </el-table-column>
-
               <el-table-column label="정답률 / 획득률" width="240" align="center">
                 <template #default="{ row }">
                   <!-- 서술형: 평균 획득률 -->
@@ -316,6 +298,24 @@ onMounted(() => {
                       </el-tag>
                     </div>
                     <span v-else style="color: #67c23a; font-weight: 500">전원 정답 ✓</span>
+                  </div>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="유형 / 해설" width="160">
+                <template #default="{ row }">
+                  <div style="display: flex; flex-direction: column; gap: 4px">
+                    <span v-if="row.topic" style="color: #409eff; font-size: 13px; font-weight: 500">
+                      {{ row.topic }}
+                    </span>
+                    <span v-else style="color: #c0c4cc; font-size: 12px">유형 미지정</span>
+                    <a
+                      v-if="row.videoLink"
+                      :href="row.videoLink"
+                      target="_blank"
+                      rel="noopener"
+                      style="color: #409eff; font-size: 12px; text-decoration: none"
+                    >▶ 해설 영상</a>
                   </div>
                 </template>
               </el-table-column>
