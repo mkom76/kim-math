@@ -5,6 +5,9 @@ import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import { submissionAPI, type SubmissionResult, type SubmissionDetail } from '@/api/client'
 import { groupByTopic } from '@/components/topicStats'
+import { useBreakpoint } from '@/composables/useBreakpoint'
+
+const { isMobile } = useBreakpoint()
 
 const route = useRoute()
 const router = useRouter()
@@ -142,7 +145,70 @@ onMounted(fetch)
       <template #header>
         <span style="font-weight: 600">문제별 답안</span>
       </template>
-      <el-table :data="sortedDetails" stripe>
+
+      <!-- 모바일: 카드 리스트 -->
+      <div v-if="isMobile" style="display: flex; flex-direction: column; gap: 10px">
+        <div
+          v-for="row in sortedDetails"
+          :key="row.id"
+          :style="{
+            border: '1px solid #ebeef5',
+            borderLeft: row.isCorrect === true ? '4px solid #67c23a'
+              : row.isCorrect === false ? '4px solid #f56c6c'
+              : '4px solid #909399',
+            borderRadius: '6px',
+            padding: '12px',
+            background: '#fff',
+          }"
+        >
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap">
+            <span style="font-size: 18px; font-weight: 700; color: #303133">{{ row.questionNumber }}번</span>
+            <el-tag v-if="row.isCorrect === true" type="success" size="small">정답</el-tag>
+            <el-tag v-else-if="row.isCorrect === false" type="danger" size="small">오답</el-tag>
+            <el-tag v-else type="info" size="small" effect="plain">미채점</el-tag>
+            <span v-if="row.topic" style="font-size: 12px; color: #409eff; font-weight: 500">
+              {{ row.topic }}
+            </span>
+            <span style="margin-left: auto; font-size: 11px; color: #909399">
+              {{ typeLabel(row.questionType) }}
+            </span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 60px 1fr; gap: 6px 10px; font-size: 14px">
+            <span style="color: #909399">내 답</span>
+            <span :style="{
+              color: row.isCorrect === false ? '#f56c6c' : '#303133',
+              wordBreak: 'break-all',
+              fontWeight: 500,
+            }">{{ row.studentAnswer || '—' }}</span>
+            <template v-if="row.correctAnswer">
+              <span style="color: #909399">정답</span>
+              <span style="color: #67c23a; word-break: break-all; font-weight: 500">{{ row.correctAnswer }}</span>
+            </template>
+          </div>
+
+          <a
+            v-if="row.videoLink"
+            :href="row.videoLink"
+            target="_blank"
+            rel="noopener"
+            style="
+              display: inline-block;
+              margin-top: 10px;
+              padding: 6px 12px;
+              background: #ecf5ff;
+              color: #409eff;
+              border-radius: 4px;
+              font-size: 13px;
+              text-decoration: none;
+              font-weight: 500;
+            "
+          >▶ 해설 영상 보기</a>
+        </div>
+      </div>
+
+      <!-- PC: 테이블 -->
+      <el-table v-else :data="sortedDetails" stripe>
         <el-table-column prop="questionNumber" label="번호" width="64" align="center" />
         <el-table-column label="유형" width="120">
           <template #default="{ row }">
