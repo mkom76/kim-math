@@ -9,8 +9,6 @@ const loading = ref(false)
 const textbooks = ref<Textbook[]>([])
 
 const dialogVisible = ref(false)
-const editMode = ref(false)
-const editingId = ref<number | null>(null)
 const titleInput = ref('')
 
 const fetchTextbooks = async () => {
@@ -26,16 +24,7 @@ const fetchTextbooks = async () => {
 }
 
 const openAdd = () => {
-  editMode.value = false
-  editingId.value = null
   titleInput.value = ''
-  dialogVisible.value = true
-}
-
-const openEdit = (tb: Textbook) => {
-  editMode.value = true
-  editingId.value = tb.id ?? null
-  titleInput.value = tb.title
   dialogVisible.value = true
 }
 
@@ -46,13 +35,8 @@ const save = async () => {
     return
   }
   try {
-    if (editMode.value && editingId.value) {
-      await textbookAPI.update(editingId.value, title)
-      ElMessage.success('교재가 수정되었습니다')
-    } else {
-      await textbookAPI.create(title)
-      ElMessage.success('교재가 생성되었습니다')
-    }
+    await textbookAPI.create(title)
+    ElMessage.success('교재가 생성되었습니다')
     dialogVisible.value = false
     await fetchTextbooks()
   } catch {
@@ -100,23 +84,32 @@ onMounted(fetchTextbooks)
 
     <el-card shadow="never">
       <el-empty v-if="textbooks.length === 0" description="등록된 교재가 없습니다" />
-      <el-table v-else :data="textbooks" stripe @row-click="goDetail" style="cursor: pointer">
-        <el-table-column prop="title" label="제목" min-width="240" />
+      <el-table v-else :data="textbooks" stripe>
+        <el-table-column prop="title" label="제목" min-width="240">
+          <template #default="{ row }">
+            <div
+              style="display: flex; align-items: center; gap: 8px; cursor: pointer"
+              @click="goDetail(row)"
+            >
+              <el-icon color="#67c23a"><Notebook /></el-icon>
+              <span style="font-weight: 500; color: #409eff">{{ row.title }}</span>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column prop="problemCount" label="문제 수" width="120" align="center">
           <template #default="{ row }">
             <el-tag>{{ row.problemCount ?? 0 }} 문제</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="작업" width="180" align="center">
+        <el-table-column label="작업" width="100" align="center">
           <template #default="{ row }">
-            <el-button size="small" @click.stop="openEdit(row)">제목 수정</el-button>
             <el-button size="small" type="danger" @click.stop="remove(row)">삭제</el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="editMode ? '교재 수정' : '새 교재'" width="420px">
+    <el-dialog v-model="dialogVisible" title="새 교재" width="420px">
       <el-form label-position="top">
         <el-form-item label="제목">
           <el-input v-model="titleInput" placeholder="예: 쎈 수학 상" maxlength="100" show-word-limit />

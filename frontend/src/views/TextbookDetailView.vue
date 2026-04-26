@@ -153,8 +153,9 @@ onMounted(fetchAll)
           <h1 style="margin: 0; font-size: 22px; font-weight: 600">
             {{ textbook?.title || '...' }}
           </h1>
-          <el-button text @click="editTitle">
-            <el-icon><Edit /></el-icon>
+          <el-button size="small" @click="editTitle">
+            <el-icon style="margin-right: 4px"><Edit /></el-icon>
+            제목 수정
           </el-button>
         </div>
         <div style="display: flex; gap: 8px">
