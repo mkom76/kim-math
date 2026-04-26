@@ -64,4 +64,14 @@ public class StudentController {
         }
         return ResponseEntity.ok(studentService.resetPin(id, newPin));
     }
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @PutMapping("/{id}/score-visibility")
+    public ResponseEntity<StudentDto> setScoreVisibility(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, Boolean> request) {
+        Boolean hide = request.get("hide");
+        if (hide == null) return ResponseEntity.badRequest().build();
+        return ResponseEntity.ok(studentService.setScoreVisibility(id, hide));
+    }
 }

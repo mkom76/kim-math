@@ -94,13 +94,21 @@ onMounted(fetch)
           </div>
         </div>
         <div style="text-align: right">
-          <div style="font-size: 12px; color: #909399">총점</div>
-          <div style="font-size: 22px; font-weight: 700; color: #409eff">
-            {{ result?.totalScore ?? '-' }}<span style="font-size: 13px; color: #909399; margin-left: 2px">점</span>
-          </div>
-          <div v-if="result?.rank" style="font-size: 12px; color: #606266">
-            반 {{ result.rank }}등
-          </div>
+          <template v-if="result && result.totalScore == null">
+            <el-tag type="info" effect="plain" size="large">성적 비공개</el-tag>
+            <div style="margin-top: 4px; font-size: 11px; color: #909399; max-width: 140px; line-height: 1.3">
+              점수·등수는 가려졌지만 유형별 분석·정답·해설은 그대로 볼 수 있어요
+            </div>
+          </template>
+          <template v-else>
+            <div style="font-size: 12px; color: #909399">총점</div>
+            <div style="font-size: 22px; font-weight: 700; color: #409eff">
+              {{ result?.totalScore ?? '-' }}<span style="font-size: 13px; color: #909399; margin-left: 2px">점</span>
+            </div>
+            <div v-if="result?.rank" style="font-size: 12px; color: #606266">
+              반 {{ result.rank }}등
+            </div>
+          </template>
         </div>
       </div>
     </el-card>

@@ -264,6 +264,22 @@ const loadAttendanceStats = async () => {
   }
 }
 
+const visibilitySaving = ref(false)
+const onScoreVisibilityChange = async (val: boolean | string | number) => {
+  if (!student.value?.id) return
+  const hide = !!val
+  visibilitySaving.value = true
+  try {
+    const res = await studentAPI.setScoreVisibility(student.value.id, hide)
+    student.value = res.data
+    ElMessage.success(hide ? '학생에게 성적이 비공개됩니다' : '학생에게 성적이 공개됩니다')
+  } catch {
+    ElMessage.error('변경에 실패했습니다')
+  } finally {
+    visibilitySaving.value = false
+  }
+}
+
 const fetchStudentDetail = async () => {
   loading.value = true
   try {
@@ -393,6 +409,22 @@ onMounted(() => {
               <div style="padding: 12px 0">
                 <span :style="{ color: '#909399', fontSize: bodyFontSize }">반</span>
                 <div style="margin-top: 4px; font-weight: 500">{{ student?.className }}</div>
+              </div>
+
+              <div v-if="isTeacher" style="padding: 12px 0; border-top: 1px solid #ebeef5; margin-top: 4px">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+                  <div>
+                    <span :style="{ color: '#909399', fontSize: bodyFontSize }">학생에게 성적 비공개</span>
+                    <div :style="{ marginTop: '4px', fontSize: '11px', color: '#909399' }">
+                      ON: 점수·등수·평균을 학생이 못 봄 (유형 분석은 그대로)
+                    </div>
+                  </div>
+                  <el-switch
+                    :model-value="!!student?.hideScoresFromStudent"
+                    :loading="visibilitySaving"
+                    @change="onScoreVisibilityChange"
+                  />
+                </div>
               </div>
             </div>
           </div>

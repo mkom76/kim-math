@@ -114,4 +114,13 @@ public class StudentService {
         student = studentRepository.save(student);
         return StudentDto.from(student);
     }
+
+    public StudentDto setScoreVisibility(Long id, boolean hide) {
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        authorizationService.assertCanAccessStudent(student);
+        student.setHideScoresFromStudent(hide);
+        student = studentRepository.save(student);
+        return StudentDto.from(student);
+    }
 }

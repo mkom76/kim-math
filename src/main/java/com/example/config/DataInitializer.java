@@ -248,6 +248,10 @@ public class DataInitializer {
 
             students = (List<Student>) studentRepository.saveAll(students);
 
+            // 데모: 이서연(student2)은 학생 화면에서 성적 비공개
+            students.get(1).setHideScoresFromStudent(true);
+            studentRepository.save(students.get(1));
+
             // 개별 학생 변수 할당 (기존 코드 호환성)
             Student student1 = students.get(0);
             Student student2 = students.get(1);

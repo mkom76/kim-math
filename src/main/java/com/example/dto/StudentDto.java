@@ -24,6 +24,7 @@ public class StudentDto {
     private String className;
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String pin;
+    private Boolean hideScoresFromStudent;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -37,6 +38,7 @@ public class StudentDto {
                 .academyName(student.getAcademy() != null ? student.getAcademy().getName() : null)
                 .classId(student.getAcademyClass() != null ? student.getAcademyClass().getId() : null)
                 .className(student.getAcademyClass() != null ? student.getAcademyClass().getName() : null)
+                .hideScoresFromStudent(Boolean.TRUE.equals(student.getHideScoresFromStudent()))
                 .createdAt(student.getCreatedAt())
                 .updatedAt(student.getUpdatedAt())
                 .build();

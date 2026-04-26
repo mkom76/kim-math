@@ -39,6 +39,7 @@ interface Student {
   classId?: number;
   className?: string;
   pin?: string;
+  hideScoresFromStudent?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -210,6 +211,8 @@ export const studentAPI = {
   updateStudent: (id: number, data: Student) => client.put(`/students/${id}`, data),
   deleteStudent: (id: number) => client.delete(`/students/${id}`),
   resetPin: (id: number, pin: string) => client.put(`/students/${id}/reset-pin`, { pin }),
+  setScoreVisibility: (id: number, hide: boolean) =>
+    client.put<Student>(`/students/${id}/score-visibility`, { hide }),
 };
 
 // Tests API

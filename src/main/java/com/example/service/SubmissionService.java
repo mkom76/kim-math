@@ -126,7 +126,22 @@ public class SubmissionService {
         dto.setDetails(submission.getDetails().stream()
                 .map(SubmissionDetailDto::from)
                 .collect(Collectors.toList()));
+        maskScoresIfHiddenForStudent(dto, submission.getStudent());
         return dto;
+    }
+
+    /**
+     * 학생 본인 호출인 경우, 해당 학생의 hideScoresFromStudent 플래그가 켜져 있으면
+     * 점수/등수/반평균을 null로 마스킹한다. 선생님 호출은 영향 없음.
+     */
+    private void maskScoresIfHiddenForStudent(StudentSubmissionDto dto, Student student) {
+        TenantContext.Context ctx = TenantContext.current();
+        boolean isStudentCaller = ctx != null && ctx.role() == null;
+        if (isStudentCaller && Boolean.TRUE.equals(student.getHideScoresFromStudent())) {
+            dto.setTotalScore(null);
+            dto.setClassAverage(null);
+            dto.setRank(null);
+        }
     }
 
     public StudentSubmissionDto getSubmissionByStudentAndTest(Long studentId, Long testId) {
@@ -180,6 +195,7 @@ public class SubmissionService {
                     dto.setClassAverage(classAverage);
                     dto.setRank(rank);
                     dto.setPendingEssayCount(submissionRepository.countPendingEssays(submission.getId()).intValue());
+                    maskScoresIfHiddenForStudent(dto, submission.getStudent());
 
                     return dto;
                 })

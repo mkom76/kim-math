@@ -40,6 +40,10 @@ public class Student {
     @Column(length = 4)
     private String pin;
 
+    @Column(name = "hide_scores_from_student", nullable = false)
+    @Builder.Default
+    private Boolean hideScoresFromStudent = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "academy_id", nullable = false)
     private Academy academy;

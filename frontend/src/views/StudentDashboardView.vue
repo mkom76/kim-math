@@ -418,6 +418,16 @@ onMounted(() => {
           <template #default="{ row }">
             <div style="display: flex; flex-direction: column; align-items: center; gap: 4px">
               <el-tag
+                v-if="row.totalScore == null"
+                type="info"
+                effect="plain"
+                :size="isMobile ? 'small' : 'default'"
+                :style="{ fontSize: tableFontSize }"
+              >
+                비공개
+              </el-tag>
+              <el-tag
+                v-else
                 :type="row.totalScore >= 90 ? 'success' : row.totalScore >= 70 ? 'warning' : 'danger'"
                 :size="isMobile ? 'small' : 'default'"
                 :style="{ fontSize: tableFontSize }"
