@@ -30,6 +30,7 @@ services:
     container_name: kim-math-backend
     restart: unless-stopped
     environment:
+      - TZ=Asia/Seoul
       - SPRING_PROFILES_ACTIVE=prod
       - DB_HOST=mysql
       - DB_PORT=3306

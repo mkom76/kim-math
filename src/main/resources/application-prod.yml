@@ -6,10 +6,13 @@ spring:
         max-page-size: 10000     # 최대 페이지 크기
 
   datasource:
-    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=true&requireSSL=true&serverTimezone=Asia/Seoul
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=true&requireSSL=true&connectionTimeZone=Asia/Seoul&forceConnectionTimeZoneToSession=true
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jackson:
+    time-zone: Asia/Seoul
 
   jpa:
     hibernate:
@@ -19,6 +22,8 @@ spring:
       hibernate:
         format_sql: false
         dialect: org.hibernate.dialect.MySQL8Dialect
+        jdbc:
+          time_zone: Asia/Seoul
 
   servlet:
     session:
