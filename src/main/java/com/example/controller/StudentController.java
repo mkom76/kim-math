@@ -1,7 +1,11 @@
 package com.example.controller;
 
+import com.example.dto.StudentBulkCreateRequest;
+import com.example.dto.StudentBulkCreateResponse;
 import com.example.dto.StudentDto;
+import com.example.service.StudentBulkService;
 import com.example.service.StudentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class StudentController {
     private final StudentService studentService;
+    private final StudentBulkService studentBulkService;
 
     @PreAuthorize("hasRole('TEACHER')")
     @GetMapping
@@ -36,6 +41,14 @@ public class StudentController {
     public ResponseEntity<StudentDto> createStudent(@RequestBody StudentDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(studentService.createStudent(dto));
+    }
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @PostMapping("/bulk")
+    public ResponseEntity<StudentBulkCreateResponse> bulkCreate(
+            @Valid @RequestBody StudentBulkCreateRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(studentBulkService.bulkCreate(req));
     }
     
     @PreAuthorize("hasRole('TEACHER')")

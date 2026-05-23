@@ -11,6 +11,12 @@ const router = createRouter({
       meta: { requiresAuth: false }
     },
     {
+      path: '/consent/:token',
+      name: 'consent',
+      component: () => import('../views/ConsentView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
       path: '/no-academy',
       name: 'no-academy',
       component: () => import('../views/NoAcademyView.vue'),

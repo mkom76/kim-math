@@ -40,6 +40,20 @@ public class Student {
     @Column(length = 4)
     private String pin;
 
+    @Column(name = "parent_name", length = 50)
+    private String parentName;
+
+    @Column(name = "parent_phone", length = 20)
+    private String parentPhone;
+
+    @Column(name = "contact_phone", length = 20)
+    private String contactPhone;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20, nullable = false)
+    @Builder.Default
+    private StudentStatus status = StudentStatus.ACTIVE;
+
     @Column(name = "hide_scores_from_student", nullable = false)
     @Builder.Default
     private Boolean hideScoresFromStudent = false;

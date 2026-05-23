@@ -1,6 +1,7 @@
 package com.example.dto;
 
 import com.example.entity.Student;
+import com.example.entity.StudentStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,6 +25,10 @@ public class StudentDto {
     private String className;
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String pin;
+    private String parentName;
+    private String parentPhone;
+    private String contactPhone;
+    private StudentStatus status;
     private Boolean hideScoresFromStudent;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -38,6 +43,10 @@ public class StudentDto {
                 .academyName(student.getAcademy() != null ? student.getAcademy().getName() : null)
                 .classId(student.getAcademyClass() != null ? student.getAcademyClass().getId() : null)
                 .className(student.getAcademyClass() != null ? student.getAcademyClass().getName() : null)
+                .parentName(student.getParentName())
+                .parentPhone(student.getParentPhone())
+                .contactPhone(student.getContactPhone())
+                .status(student.getStatus())
                 .hideScoresFromStudent(Boolean.TRUE.equals(student.getHideScoresFromStudent()))
                 .createdAt(student.getCreatedAt())
                 .updatedAt(student.getUpdatedAt())

@@ -5,6 +5,7 @@ import com.example.dto.LoginDto;
 import com.example.dto.MembershipDto;
 import com.example.dto.SwitchAcademyRequest;
 import com.example.entity.Student;
+import com.example.entity.StudentStatus;
 import com.example.entity.Teacher;
 import com.example.entity.TeacherAcademy;
 import com.example.repository.StudentRepository;
@@ -41,6 +42,19 @@ public class AuthController {
         }
 
         Student student = studentOpt.get();
+
+        if (student.getStatus() == StudentStatus.PENDING_CONSENT) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(AuthResponse.builder()
+                            .message("개인정보 동의가 완료되어야 이용할 수 있습니다. 학원에서 받은 동의 링크를 확인해 주세요.")
+                            .build());
+        }
+        if (student.getStatus() == StudentStatus.REVOKED) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(AuthResponse.builder()
+                            .message("계정이 비활성화되었습니다. 학원에 문의해 주세요.")
+                            .build());
+        }
 
         Long studentAcademyId = null;
         if (student.getAcademy() != null) {

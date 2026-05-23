@@ -5,6 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { studentAPI, academyAPI, academyClassAPI, type Student, type Academy, type AcademyClass } from '../api/client'
 import { usePagination } from '../composables/usePagination'
 import { useAuthStore } from '@/stores/auth'
+import StudentBulkImportDialog from '../components/StudentBulkImportDialog.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -15,6 +16,7 @@ const academies = ref<Academy[]>([])
 const allClasses = ref<AcademyClass[]>([])
 const searchQuery = ref('')
 const dialogVisible = ref(false)
+const bulkDialogVisible = ref(false)
 const editMode = ref(false)
 const currentStudent = ref<Student>({ name: '', grade: '', school: '', academyId: undefined, classId: undefined })
 const { currentPage, pageSize } = usePagination('students-view')
@@ -23,6 +25,11 @@ const availableClasses = computed(() => {
   if (!currentStudent.value.academyId) return []
   return allClasses.value.filter(cls => cls.academyId === currentStudent.value.academyId)
 })
+
+const bulkCandidateClasses = computed(() =>
+  allClasses.value.filter(c => c.academyId === authStore.activeAcademyId)
+)
+const existingStudentNames = computed(() => students.value.map(s => s.name))
 
 const filteredData = computed(() => {
   if (!searchQuery.value) return students.value
@@ -181,11 +188,27 @@ onMounted(() => {
           </h1>
           <p style="margin: 8px 0 0; color: #909399">학생 정보를 등록하고 관리합니다</p>
         </div>
-        <el-button type="primary" @click="openAddDialog" :icon="Plus" size="large">
-          학생 추가
-        </el-button>
+        <div style="display: flex; gap: 8px;">
+          <el-button
+            v-if="!authStore.isAssistant"
+            @click="bulkDialogVisible = true"
+            size="large"
+          >
+            일괄 등록
+          </el-button>
+          <el-button type="primary" @click="openAddDialog" :icon="Plus" size="large">
+            학생 추가
+          </el-button>
+        </div>
       </div>
     </el-card>
+
+    <StudentBulkImportDialog
+      v-model:visible="bulkDialogVisible"
+      :classes="bulkCandidateClasses"
+      :existing-names="existingStudentNames"
+      @imported="fetchStudents"
+    />
 
     <!-- Search and Filters -->
     <el-card shadow="never" style="margin-bottom: 24px">

@@ -29,6 +29,8 @@ interface AcademyClass {
   updatedAt?: string;
 }
 
+export type StudentStatus = 'PENDING_CONSENT' | 'ACTIVE' | 'REVOKED';
+
 interface Student {
   id?: number;
   name: string;
@@ -39,9 +41,50 @@ interface Student {
   classId?: number;
   className?: string;
   pin?: string;
+  parentName?: string;
+  parentPhone?: string;
+  contactPhone?: string;
+  status?: StudentStatus;
   hideScoresFromStudent?: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface StudentBulkCreateItem {
+  name: string;
+  grade: string;
+  school: string;
+  parentName: string;
+  parentPhone: string;
+  contactPhone?: string;
+}
+
+export interface StudentBulkCreateRequest {
+  classId: number;
+  students: StudentBulkCreateItem[];
+}
+
+export interface StudentBulkCreateResultItem {
+  studentId: number;
+  name: string;
+  parentName: string;
+  parentPhone: string;
+  consentToken: string;
+}
+
+export interface StudentBulkCreateResponse {
+  created: StudentBulkCreateResultItem[];
+}
+
+export interface ConsentInfo {
+  consentVersion: string;
+  studentName: string;
+  parentName: string;
+  parentPhoneMasked: string;
+  academyName?: string;
+  className?: string;
+  alreadyConsented: boolean;
+  expired: boolean;
 }
 
 interface Test {
@@ -213,6 +256,15 @@ export const studentAPI = {
   resetPin: (id: number, pin: string) => client.put(`/students/${id}/reset-pin`, { pin }),
   setScoreVisibility: (id: number, hide: boolean) =>
     client.put<Student>(`/students/${id}/score-visibility`, { hide }),
+  bulkCreate: (data: StudentBulkCreateRequest) =>
+    client.post<StudentBulkCreateResponse>('/students/bulk', data),
+};
+
+// Public consent API (no auth — token-gated)
+export const consentAPI = {
+  get: (token: string) => client.get<ConsentInfo>(`/consents/${token}`),
+  agree: (token: string, parentPhoneLast4: string) =>
+    client.post(`/consents/${token}/agree`, { parentPhoneLast4 }),
 };
 
 // Tests API
