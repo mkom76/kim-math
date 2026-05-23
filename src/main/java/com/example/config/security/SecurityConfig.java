@@ -87,7 +87,13 @@ public class SecurityConfig {
 
     @Bean
     public RoleHierarchy roleHierarchy() {
-        return RoleHierarchyImpl.fromHierarchy("ROLE_ACADEMY_ADMIN > ROLE_TEACHER");
+        // ACADEMY_ADMIN and ASSISTANT both satisfy hasRole('TEACHER') for endpoint
+        // authorization. Effective per-resource scoping (which data they can see,
+        // which mutations they can perform) is enforced at the service layer via
+        // Hibernate filters and AuthorizationService.assertNotAssistant().
+        return RoleHierarchyImpl.fromHierarchy(
+                "ROLE_ACADEMY_ADMIN > ROLE_TEACHER\n" +
+                "ROLE_ASSISTANT > ROLE_TEACHER");
     }
 
     @Bean

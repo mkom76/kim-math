@@ -13,7 +13,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Filter(name = "academyFilter", condition = "submission_id IN (SELECT ss.id FROM student_submissions ss WHERE ss.student_id IN (SELECT s2.id FROM students s2 WHERE s2.academy_id = :academyId))")
-@Filter(name = "ownerFilter",   condition = "submission_id IN (SELECT ss.id FROM student_submissions ss WHERE ss.student_id IN (SELECT s2.id FROM students s2 WHERE s2.class_id IN (SELECT ac.id FROM academy_classes ac WHERE ac.owner_teacher_id = :teacherId)))")
+@Filter(name = "ownerFilter",   condition = "submission_id IN (SELECT ss.id FROM student_submissions ss WHERE ss.student_id IN (SELECT s2.id FROM students s2 WHERE s2.class_id IN (SELECT ac.id FROM academy_classes ac WHERE ac.owner_teacher_id = :teacherId UNION SELECT ca.class_id FROM class_assistants ca WHERE ca.teacher_id = :teacherId)))")
 @Entity
 @Table(name = "student_submission_details")
 @EntityListeners(AuditingEntityListener.class)

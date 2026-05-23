@@ -20,7 +20,7 @@ import java.util.List;
 @Table(name = "academy_classes")
 @EntityListeners(AuditingEntityListener.class)
 @Filter(name = "academyFilter", condition = "academy_id = :academyId")
-@Filter(name = "ownerFilter",   condition = "owner_teacher_id = :teacherId")
+@Filter(name = "ownerFilter",   condition = "(owner_teacher_id = :teacherId OR id IN (SELECT ca.class_id FROM class_assistants ca WHERE ca.teacher_id = :teacherId))")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

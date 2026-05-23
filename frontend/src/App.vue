@@ -169,7 +169,7 @@ watch(() => route.path, () => {
           </el-menu-item>
           <el-menu-item index="/admin/class-owners">
             <el-icon><Avatar /></el-icon>
-            <span>반 담당자 관리</span>
+            <span>반 담당자 / 조교 관리</span>
           </el-menu-item>
         </template>
 

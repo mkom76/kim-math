@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Filter(name = "academyFilter", condition = "class_id IN (SELECT ac.id FROM academy_classes ac WHERE ac.academy_id = :academyId)")
-@Filter(name = "ownerFilter",   condition = "class_id IN (SELECT ac.id FROM academy_classes ac WHERE ac.owner_teacher_id = :teacherId)")
+@Filter(name = "ownerFilter",   condition = "class_id IN (SELECT ac.id FROM academy_classes ac WHERE ac.owner_teacher_id = :teacherId UNION SELECT ca.class_id FROM class_assistants ca WHERE ca.teacher_id = :teacherId)")
 @Entity
 @Table(name = "clinics")
 @EntityListeners(AuditingEntityListener.class)

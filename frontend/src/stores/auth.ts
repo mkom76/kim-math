@@ -10,9 +10,10 @@ export const useAuthStore = defineStore('auth', () => {
   const role = ref<'STUDENT' | 'TEACHER' | null>(null)
   const memberships = ref<Membership[]>([])
   const activeAcademyId = ref<number | null>(null)
-  const activeRole = ref<'TEACHER' | 'ACADEMY_ADMIN' | null>(null)
+  const activeRole = ref<'TEACHER' | 'ACADEMY_ADMIN' | 'ASSISTANT' | null>(null)
 
   const isAdmin = computed(() => activeRole.value === 'ACADEMY_ADMIN')
+  const isAssistant = computed(() => activeRole.value === 'ASSISTANT')
   const activeAcademy = computed(() =>
     memberships.value.find(m => m.academyId === activeAcademyId.value)
   )
@@ -65,7 +66,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   return {
     userId, name, role, memberships, activeAcademyId, activeRole,
-    isAdmin, activeAcademy,
+    isAdmin, isAssistant, activeAcademy,
     loadCurrentUser, ensureActiveAcademy, switchAcademy, logout
   }
 })

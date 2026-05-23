@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { adminTeacherAPI, type AdminTeacherDto, type InviteTeacherRequest } from '@/api/client'
+import { adminTeacherAPI, type AdminTeacherDto, type AdminRole, type InviteTeacherRequest } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
@@ -53,7 +53,7 @@ async function submitInvite() {
   }
 }
 
-async function changeRole(teacher: AdminTeacherDto, newRole: 'TEACHER' | 'ACADEMY_ADMIN') {
+async function changeRole(teacher: AdminTeacherDto, newRole: AdminRole) {
   if (teacher.role === newRole) return
   try {
     await adminTeacherAPI.updateRole(teacher.teacherId, newRole)
@@ -114,10 +114,11 @@ onMounted(loadTeachers)
               :model-value="row.role"
               size="small"
               :disabled="row.teacherId === authStore.userId"
-              @change="(v: 'TEACHER' | 'ACADEMY_ADMIN') => changeRole(row, v)"
+              @change="(v: AdminRole) => changeRole(row, v)"
             >
               <el-option label="선생님" value="TEACHER" />
               <el-option label="관리자" value="ACADEMY_ADMIN" />
+              <el-option label="조교" value="ASSISTANT" />
             </el-select>
           </template>
         </el-table-column>
@@ -152,6 +153,7 @@ onMounted(loadTeachers)
           <el-select v-model="inviteForm.role">
             <el-option label="선생님" value="TEACHER" />
             <el-option label="관리자" value="ACADEMY_ADMIN" />
+            <el-option label="조교" value="ASSISTANT" />
           </el-select>
         </el-form-item>
       </el-form>

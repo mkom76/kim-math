@@ -31,6 +31,8 @@ public class AcademyClassService {
         if (ctx == null) {
             throw new ForbiddenException("인증 컨텍스트가 없습니다");
         }
+        // Assistants operate only on existing classes they are assigned to.
+        authorizationService.assertNotAssistant();
 
         // Force active academy from session — ignore dto.academyId if it differs
         if (dto.getAcademyId() != null && !dto.getAcademyId().equals(ctx.academyId())) {
@@ -69,6 +71,9 @@ public class AcademyClassService {
     }
 
     public AcademyClassDto updateClass(Long id, AcademyClassDto dto) {
+        // Renaming / scheduling a class is owner-or-admin only; assistants are blocked.
+        authorizationService.assertNotAssistant();
+
         AcademyClass academyClass = academyClassRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
 
@@ -93,6 +98,9 @@ public class AcademyClassService {
     }
 
     public void deleteClass(Long id) {
+        // Deleting a class is owner-or-admin only; assistants are blocked.
+        authorizationService.assertNotAssistant();
+
         AcademyClass academyClass = academyClassRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
         authorizationService.assertCanModifyClass(academyClass);

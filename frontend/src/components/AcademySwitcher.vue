@@ -22,6 +22,7 @@ async function onSwitch(academyId: number | string | number[]) {
     >
       {{ authStore.activeAcademy?.academyName ?? authStore.memberships[0].academyName }}
       <el-tag v-if="authStore.isAdmin" size="small" type="warning" style="margin-left: 6px;">관리자</el-tag>
+      <el-tag v-else-if="authStore.isAssistant" size="small" type="info" style="margin-left: 6px;">조교</el-tag>
     </span>
 
     <!-- Multiple memberships: dropdown -->
@@ -33,6 +34,7 @@ async function onSwitch(academyId: number | string | number[]) {
       <span class="academy-switcher clickable">
         {{ authStore.activeAcademy?.academyName ?? '학원 선택' }}
         <el-tag v-if="authStore.isAdmin" size="small" type="warning" style="margin-left: 6px;">관리자</el-tag>
+      <el-tag v-else-if="authStore.isAssistant" size="small" type="info" style="margin-left: 6px;">조교</el-tag>
         <el-icon style="margin-left: 4px;"><ArrowDown /></el-icon>
       </span>
       <template #dropdown>
@@ -51,6 +53,12 @@ async function onSwitch(academyId: number | string | number[]) {
               type="warning"
               style="margin-left: 6px;"
             >관리자</el-tag>
+            <el-tag
+              v-else-if="m.role === 'ASSISTANT'"
+              size="small"
+              type="info"
+              style="margin-left: 6px;"
+            >조교</el-tag>
           </el-dropdown-item>
         </el-dropdown-menu>
       </template>

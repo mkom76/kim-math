@@ -11,6 +11,7 @@ import com.example.entity.TeacherAcademyRole;
 import com.example.entity.Test;
 import com.example.exception.ForbiddenException;
 import com.example.repository.AcademyClassRepository;
+import com.example.repository.ClassAssistantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -26,7 +27,10 @@ import org.springframework.stereotype.Service;
  *   <li>{@code ACADEMY_ADMIN}: full access within their own academy.</li>
  *   <li>{@code STUDENT} (role == null in context): academy match is sufficient;
  *       Hibernate filters constrain the rest.</li>
- *   <li>{@code TEACHER}: must own the class containing the entity.</li>
+ *   <li>{@code TEACHER}: must own the class containing the entity, OR be
+ *       registered as an assistant of that class.</li>
+ *   <li>{@code ASSISTANT}: must be registered as an assistant of the class
+ *       containing the entity. (Assistants own no classes by definition.)</li>
  * </ul>
  */
 @Service
@@ -34,6 +38,7 @@ import org.springframework.stereotype.Service;
 public class AuthorizationService {
 
     private final AcademyClassRepository academyClassRepository;
+    private final ClassAssistantRepository classAssistantRepository;
 
     /**
      * Generic check: caller can access an entity belonging to the given
@@ -61,14 +66,33 @@ public class AuthorizationService {
         if (ctx.role() == null) {
             return;
         }
-        // Teacher: must own the class containing this entity
+        // Teacher / Assistant: must own the class OR be registered as its assistant
         if (entityClassId == null) {
             throw new ForbiddenException("이 리소스에 접근할 수 없습니다");
         }
         AcademyClass clazz = academyClassRepository.findById(entityClassId)
                 .orElseThrow(() -> new ForbiddenException("이 리소스에 접근할 수 없습니다"));
-        if (clazz.getOwnerTeacherId() == null || !ctx.teacherId().equals(clazz.getOwnerTeacherId())) {
-            throw new ForbiddenException("본인이 담당하는 반의 리소스만 접근할 수 있습니다");
+        boolean isOwner = clazz.getOwnerTeacherId() != null
+                && ctx.teacherId().equals(clazz.getOwnerTeacherId());
+        boolean isAssistant = classAssistantRepository
+                .existsByClassIdAndTeacherId(entityClassId, ctx.teacherId());
+        if (!isOwner && !isAssistant) {
+            throw new ForbiddenException("본인이 담당하거나 보조하는 반의 리소스만 접근할 수 있습니다");
+        }
+    }
+
+    /**
+     * Reject ASSISTANT role from operations that create new top-level entities
+     * (a new class, a new student, etc.). Assistants only operate on existing
+     * entities scoped to their assigned classes.
+     */
+    public void assertNotAssistant() {
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null) {
+            throw new ForbiddenException("인증 컨텍스트가 없습니다");
+        }
+        if (ctx.role() == TeacherAcademyRole.ASSISTANT) {
+            throw new ForbiddenException("조교는 이 작업을 수행할 수 없습니다");
         }
     }
 

@@ -9,6 +9,7 @@ import com.example.entity.TeacherAcademy;
 import com.example.entity.TeacherAcademyRole;
 import com.example.exception.ForbiddenException;
 import com.example.repository.AcademyClassRepository;
+import com.example.repository.ClassAssistantRepository;
 import com.example.repository.TeacherAcademyRepository;
 import com.example.repository.TeacherRepository;
 import jakarta.validation.Valid;
@@ -31,6 +32,7 @@ public class AdminTeacherController {
     private final TeacherRepository teacherRepository;
     private final TeacherAcademyRepository teacherAcademyRepository;
     private final AcademyClassRepository academyClassRepository;
+    private final ClassAssistantRepository classAssistantRepository;
 
     @GetMapping
     public List<AdminTeacherDto> listMembers() {
@@ -111,13 +113,24 @@ public class AdminTeacherController {
         TeacherAcademy m = teacherAcademyRepository.findByTeacherIdAndAcademyId(teacherId, academyId)
                 .orElseThrow(() -> new ForbiddenException("멤버가 아닙니다"));
 
-        // Prevent admin from demoting themselves if they are the only admin
-        if (teacherId.equals(adminId) && req.getRole() == TeacherAcademyRole.TEACHER) {
+        // Prevent the last admin from demoting themselves to any non-admin role
+        if (teacherId.equals(adminId) && req.getRole() != TeacherAcademyRole.ACADEMY_ADMIN) {
             long adminCount = teacherAcademyRepository.findByAcademyId(academyId).stream()
                     .filter(ta -> ta.getRole() == TeacherAcademyRole.ACADEMY_ADMIN)
                     .count();
             if (adminCount <= 1) {
                 throw new ForbiddenException("본인은 마지막 관리자이므로 강등할 수 없습니다");
+            }
+        }
+
+        // Cannot demote to ASSISTANT while they still own classes in this academy —
+        // assistants own no classes by definition.
+        if (req.getRole() == TeacherAcademyRole.ASSISTANT) {
+            int ownedCount = academyClassRepository
+                    .countByAcademy_IdAndOwnerTeacherId(academyId, teacherId);
+            if (ownedCount > 0) {
+                throw new ForbiddenException(
+                        "담당 반이 있는 선생님은 조교로 강등할 수 없습니다. 먼저 반 담당자를 변경하세요.");
             }
         }
 
@@ -143,6 +156,10 @@ public class AdminTeacherController {
 
         // Auto-transfer ownership of any classes owned by this teacher to the admin
         academyClassRepository.transferOwnership(academyId, teacherId, adminId);
+
+        // Clean up assistant assignments scoped to this academy only (teacher may
+        // still be active in other academies)
+        classAssistantRepository.deleteByTeacherIdInAcademy(teacherId, academyId);
 
         // Remove membership
         teacherAcademyRepository.deleteByTeacherIdAndAcademyId(teacherId, academyId);

@@ -60,7 +60,10 @@ public class TenantFilterAspect {
         Filter academyFilter = session.enableFilter("academyFilter");
         academyFilter.setParameter("academyId", ctx.academyId());
 
-        if (ctx.role() == TeacherAcademyRole.TEACHER) {
+        // ownerFilter scopes class-bound data to (owner teacher ∪ assistant teacher).
+        // ACADEMY_ADMIN bypasses; STUDENT (role=null) is constrained by other filters.
+        if (ctx.role() == TeacherAcademyRole.TEACHER
+                || ctx.role() == TeacherAcademyRole.ASSISTANT) {
             Filter ownerFilter = session.enableFilter("ownerFilter");
             ownerFilter.setParameter("teacherId", ctx.teacherId());
         }

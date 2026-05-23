@@ -176,7 +176,7 @@ interface LoginDto {
 interface Membership {
   academyId: number;
   academyName: string;
-  role: 'TEACHER' | 'ACADEMY_ADMIN';
+  role: 'TEACHER' | 'ACADEMY_ADMIN' | 'ASSISTANT';
 }
 
 interface AuthResponse {
@@ -185,7 +185,7 @@ interface AuthResponse {
   role?: 'STUDENT' | 'TEACHER';
   memberships?: Membership[];
   activeAcademyId?: number;
-  activeRole?: 'TEACHER' | 'ACADEMY_ADMIN';
+  activeRole?: 'TEACHER' | 'ACADEMY_ADMIN' | 'ASSISTANT';
   message?: string;
 }
 
@@ -432,11 +432,13 @@ export const lessonAPI = {
 };
 
 // Admin API
+export type AdminRole = 'TEACHER' | 'ACADEMY_ADMIN' | 'ASSISTANT'
+
 interface AdminTeacherDto {
   teacherId: number
   name: string
   username: string
-  role: 'TEACHER' | 'ACADEMY_ADMIN'
+  role: AdminRole
   ownedClassCount: number
 }
 
@@ -444,14 +446,14 @@ interface InviteTeacherRequest {
   username: string
   name?: string
   tempPin?: string
-  role?: 'TEACHER' | 'ACADEMY_ADMIN'
+  role?: AdminRole
 }
 
 export const adminTeacherAPI = {
   list: () => client.get<AdminTeacherDto[]>('/admin/teachers'),
   invite: (data: InviteTeacherRequest) =>
     client.post<{ teacherId: number; username: string; role: string }>('/admin/teachers', data),
-  updateRole: (teacherId: number, role: 'TEACHER' | 'ACADEMY_ADMIN') =>
+  updateRole: (teacherId: number, role: AdminRole) =>
     client.patch(`/admin/teachers/${teacherId}/role`, { role }),
   remove: (teacherId: number) =>
     client.delete(`/admin/teachers/${teacherId}`),
@@ -460,6 +462,12 @@ export const adminTeacherAPI = {
 export const adminClassAPI = {
   updateOwner: (classId: number, teacherId: number) =>
     client.patch(`/admin/classes/${classId}/owner`, { teacherId }),
+  listAssistants: () =>
+    client.get<Record<string, number[]>>('/admin/classes/assistants'),
+  addAssistant: (classId: number, teacherId: number) =>
+    client.post(`/admin/classes/${classId}/assistants`, { teacherId }),
+  removeAssistant: (classId: number, teacherId: number) =>
+    client.delete(`/admin/classes/${classId}/assistants/${teacherId}`),
 }
 
 // Auth API
