@@ -348,10 +348,21 @@ export interface TextbookProblem {
   number: number;
   answer?: string | null;
   questionType?: TextbookQuestionType | null;
+  /** Canonical path joined with " › ", e.g. "함수 › 일차함수". */
   topic?: string | null;
+  /** Same path as 1..5 segments — convenient for breadcrumb / filters. */
+  topicLevels?: string[];
   videoLink?: string | null;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface TopicSuggestionsQuery {
+  level: number;
+  l1?: string;
+  l2?: string;
+  l3?: string;
+  l4?: string;
 }
 
 export interface Textbook {
@@ -380,6 +391,9 @@ export const textbookAPI = {
   deleteProblem: (id: number) => client.delete(`/textbook-problems/${id}`),
   bulkCreateProblems: (textbookId: number, items: Array<Partial<TextbookProblem>>) =>
     client.post<TextbookProblem[]>(`/textbooks/${textbookId}/problems/bulk`, items),
+
+  topicSuggestions: (textbookId: number, query: TopicSuggestionsQuery) =>
+    client.get<string[]>(`/textbooks/${textbookId}/topic-suggestions`, { params: query }),
 };
 
 // Lesson Student Stats Types

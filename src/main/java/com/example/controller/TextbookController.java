@@ -57,6 +57,22 @@ public class TextbookController {
         return ResponseEntity.ok(textbookProblemService.listByTextbook(textbookId));
     }
 
+    /**
+     * Distinct values at {@code level} (1..5) across this textbook's problems,
+     * optionally narrowed by selected parent levels (l1, l2, l3, l4).
+     * Used by the {@code TopicCascadeInput} autocomplete.
+     */
+    @GetMapping("/textbooks/{textbookId}/topic-suggestions")
+    public ResponseEntity<List<String>> topicSuggestions(
+            @PathVariable Long textbookId,
+            @RequestParam int level,
+            @RequestParam(required = false) String l1,
+            @RequestParam(required = false) String l2,
+            @RequestParam(required = false) String l3,
+            @RequestParam(required = false) String l4) {
+        return ResponseEntity.ok(textbookProblemService.suggestTopics(textbookId, level, l1, l2, l3, l4));
+    }
+
     @PostMapping("/textbooks/{textbookId}/problems")
     public ResponseEntity<TextbookProblemDto> createProblem(@PathVariable Long textbookId,
                                                             @RequestBody TextbookProblemDto dto) {

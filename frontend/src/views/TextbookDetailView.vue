@@ -9,6 +9,8 @@ import {
   type TextbookQuestionType,
 } from '@/api/client'
 import TextbookProblemsBulkImportDialog from '@/components/TextbookProblemsBulkImportDialog.vue'
+import TopicCascadeInput from '@/components/TopicCascadeInput.vue'
+import { parseTopicPath } from '@/utils/topicPath'
 
 const route = useRoute()
 const router = useRouter()
@@ -182,9 +184,17 @@ onMounted(fetchAll)
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="topic" label="유형(주제)" min-width="160">
+        <el-table-column prop="topic" label="유형(주제)" min-width="200">
           <template #default="{ row }">
-            <span v-if="row.topic" style="color: #409eff">{{ row.topic }}</span>
+            <template v-if="row.topic">
+              <template
+                v-for="(seg, i) in (row.topicLevels && row.topicLevels.length > 0 ? row.topicLevels : parseTopicPath(row.topic))"
+                :key="i"
+              >
+                <span v-if="i > 0" style="color: #c0c4cc; margin: 0 4px;">›</span>
+                <span style="color: #409eff;">{{ seg }}</span>
+              </template>
+            </template>
             <span v-else style="color: #c0c4cc">—</span>
           </template>
         </el-table-column>
@@ -221,8 +231,13 @@ onMounted(fetchAll)
             <el-option v-for="o in typeOptions" :key="o.value" :label="o.label" :value="o.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="유형/주제 (선택)">
-          <el-input v-model="draft.topic" placeholder="예: 일차함수" maxlength="100" show-word-limit />
+        <el-form-item label="유형/주제 (선택, 최대 5단계)">
+          <TopicCascadeInput
+            :model-value="draft.topic ?? ''"
+            :textbook-id="textbookId"
+            placeholder="예: 함수"
+            @update:model-value="(v: string) => (draft.topic = v)"
+          />
         </el-form-item>
         <el-form-item label="답 (선택, 시험 출제 시 사용)">
           <el-input v-model="draft.answer" placeholder="예: 3" maxlength="100" />

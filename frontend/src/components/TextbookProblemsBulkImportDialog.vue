@@ -82,6 +82,7 @@ const typeLabel = (t?: string | null) =>
         </div>
         <div style="margin-top: 6px">
           - 형식은 <code>객관식</code> / <code>주관식</code> / <code>서술형</code> (또는 OBJECTIVE/SUBJECTIVE/ESSAY)
+          <br />- 주제는 <code>함수</code> 또는 <code>함수/일차함수/그래프</code>처럼 <code>/</code>·<code>&gt;</code>로 하위 단계 표현 가능 (최대 5단계, 저장 시 <code>›</code>로 통일)
           <br />- 빈 칸은 그대로 비워두세요. 번호만 필수입니다.
         </div>
       </div>

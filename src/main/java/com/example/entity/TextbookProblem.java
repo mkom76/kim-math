@@ -39,6 +39,21 @@ public class TextbookProblem {
     @Column
     private String topic;
 
+    @Column(name = "topic_l1", length = 100)
+    private String topicL1;
+
+    @Column(name = "topic_l2", length = 100)
+    private String topicL2;
+
+    @Column(name = "topic_l3", length = 100)
+    private String topicL3;
+
+    @Column(name = "topic_l4", length = 100)
+    private String topicL4;
+
+    @Column(name = "topic_l5", length = 100)
+    private String topicL5;
+
     @Column(name = "video_link", length = 1024)
     private String videoLink;
 

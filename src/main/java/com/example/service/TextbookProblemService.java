@@ -29,17 +29,57 @@ public class TextbookProblemService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Distinct non-blank values at the given {@code level} (1..5) across the
+     * textbook's problems, optionally filtered by selected parent levels.
+     * Returned list is sorted lexicographically for stable UI ordering.
+     */
+    @Transactional(readOnly = true)
+    public List<String> suggestTopics(Long textbookId, int level,
+                                      String l1, String l2, String l3, String l4) {
+        if (level < 1 || level > TopicNormalizer.MAX_LEVELS) return List.of();
+        Textbook tb = loadOwnedTextbook(textbookId);
+        return textbookProblemRepository.findByTextbookIdOrderByNumberAsc(tb.getId()).stream()
+                .filter(p -> level <= 1 || java.util.Objects.equals(p.getTopicL1(), nullIfBlank(l1)))
+                .filter(p -> level <= 2 || java.util.Objects.equals(p.getTopicL2(), nullIfBlank(l2)))
+                .filter(p -> level <= 3 || java.util.Objects.equals(p.getTopicL3(), nullIfBlank(l3)))
+                .filter(p -> level <= 4 || java.util.Objects.equals(p.getTopicL4(), nullIfBlank(l4)))
+                .map(p -> levelOf(p, level))
+                .filter(s -> s != null && !s.isBlank())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
+    private static String nullIfBlank(String s) {
+        return (s == null || s.isBlank()) ? null : s;
+    }
+
+    private static String levelOf(TextbookProblem p, int level) {
+        return switch (level) {
+            case 1 -> p.getTopicL1();
+            case 2 -> p.getTopicL2();
+            case 3 -> p.getTopicL3();
+            case 4 -> p.getTopicL4();
+            case 5 -> p.getTopicL5();
+            default -> null;
+        };
+    }
+
     public List<TextbookProblemDto> bulkCreate(Long textbookId, List<TextbookProblemDto> items) {
         Textbook tb = loadOwnedTextbook(textbookId);
         List<TextbookProblem> toSave = items.stream()
-                .map(dto -> TextbookProblem.builder()
-                        .textbook(tb)
-                        .number(dto.getNumber())
-                        .answer(dto.getAnswer())
-                        .questionType(dto.getQuestionType())
-                        .topic(dto.getTopic())
-                        .videoLink(dto.getVideoLink())
-                        .build())
+                .map(dto -> {
+                    TextbookProblem p = TextbookProblem.builder()
+                            .textbook(tb)
+                            .number(dto.getNumber())
+                            .answer(dto.getAnswer())
+                            .questionType(dto.getQuestionType())
+                            .videoLink(dto.getVideoLink())
+                            .build();
+                    applyTopic(p, dto.getTopic());
+                    return p;
+                })
                 .collect(Collectors.toList());
         return textbookProblemRepository.saveAll(toSave).stream()
                 .map(TextbookProblemDto::from)
@@ -53,9 +93,9 @@ public class TextbookProblemService {
                 .number(dto.getNumber())
                 .answer(dto.getAnswer())
                 .questionType(dto.getQuestionType())
-                .topic(dto.getTopic())
                 .videoLink(dto.getVideoLink())
                 .build();
+        applyTopic(p, dto.getTopic());
         return TextbookProblemDto.from(textbookProblemRepository.save(p));
     }
 
@@ -64,9 +104,23 @@ public class TextbookProblemService {
         p.setNumber(dto.getNumber());
         p.setAnswer(dto.getAnswer());
         p.setQuestionType(dto.getQuestionType());
-        p.setTopic(dto.getTopic());
+        applyTopic(p, dto.getTopic());
         p.setVideoLink(dto.getVideoLink());
         return TextbookProblemDto.from(textbookProblemRepository.save(p));
+    }
+
+    /**
+     * Set both the canonical {@code topic} path and the {@code topic_l1..l5}
+     * denormalized columns from whatever raw input the caller provided.
+     */
+    static void applyTopic(TextbookProblem p, String rawTopic) {
+        String[] levels = TopicNormalizer.parse(rawTopic);
+        p.setTopic(TopicNormalizer.format(levels));
+        p.setTopicL1(TopicNormalizer.levelAt(levels, 1));
+        p.setTopicL2(TopicNormalizer.levelAt(levels, 2));
+        p.setTopicL3(TopicNormalizer.levelAt(levels, 3));
+        p.setTopicL4(TopicNormalizer.levelAt(levels, 4));
+        p.setTopicL5(TopicNormalizer.levelAt(levels, 5));
     }
 
     public void delete(Long problemId) {
