@@ -51,3 +51,7 @@ src/main/resources/db/migration/
 
 ### Git Worktrees ###
 .worktrees/
+
+### OMC tooling state ###
+.omc/
+**/.omc/
