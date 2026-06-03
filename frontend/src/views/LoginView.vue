@@ -1,12 +1,17 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { authAPI } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
+import { isNativeApp } from '@/utils/platform'
+import { isBiometricAvailable, verifyBiometric } from '@/utils/biometric'
+import { loadCredential, saveCredential, clearCredential } from '@/utils/credentialStore'
+import { initPushNotifications } from '@/utils/push'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const nativeApp = isNativeApp()
 const activeTab = ref('student')
 const loading = ref(false)
 
@@ -31,25 +36,75 @@ const handleStudentLogin = async () => {
     ElMessage.error('PIN을 입력해주세요')
     return
   }
+  await doStudentLogin(studentForm.value.studentId, studentForm.value.pin, { offerBiometric: true })
+}
 
+/** Centralized login so manual PIN entry and biometric quick-login share one path. */
+async function doStudentLogin(
+  studentId: number,
+  pin: string,
+  opts: { offerBiometric: boolean },
+): Promise<boolean> {
   loading.value = true
   try {
-    const response = await authAPI.studentLogin(studentForm.value.studentId, studentForm.value.pin)
+    const response = await authAPI.studentLogin(studentId, pin)
     const { data } = response
 
-    if (data.userId) {
-      await authStore.loadCurrentUser()
-      ElMessage.success(data.message || '로그인 성공')
-      // Redirect to student dashboard
-      router.push('/student/dashboard')
+    if (!data.userId) return false
+
+    await authStore.loadCurrentUser()
+    ElMessage.success(data.message || '로그인 성공')
+
+    if (opts.offerBiometric && nativeApp) {
+      await maybeOfferBiometric(studentId, pin)
     }
+
+    // Request push permission and register device token (no-op on web).
+    initPushNotifications(router).catch(() => { /* best effort */ })
+
+    router.push('/student/dashboard')
+    return true
   } catch (error: any) {
     const message = error.response?.data?.message || '로그인에 실패했습니다'
     ElMessage.error(message)
+    // Stored creds went bad (PIN reset by teacher etc.) — purge to force manual PIN next time.
+    if (!opts.offerBiometric) {
+      await clearCredential()
+    }
+    return false
   } finally {
     loading.value = false
   }
 }
+
+async function maybeOfferBiometric(studentId: number, pin: string): Promise<void> {
+  if (!(await isBiometricAvailable())) return
+  const existing = await loadCredential()
+  if (existing?.studentId === studentId && existing.pin === pin) return // already saved
+  try {
+    await ElMessageBox.confirm(
+      '이 기기에서 다음부터 생체 인증(Face ID / 지문)으로 빠르게 로그인할까요?',
+      '빠른 로그인 설정',
+      { confirmButtonText: '사용', cancelButtonText: '나중에', type: 'info' },
+    )
+    await saveCredential({ studentId, pin })
+    ElMessage.success('생체 인증이 활성화되었습니다')
+  } catch {
+    /* user dismissed — keep manual PIN flow */
+  }
+}
+
+async function tryBiometricAutoLogin(): Promise<void> {
+  if (!nativeApp) return
+  const cred = await loadCredential()
+  if (!cred) return
+  if (!(await isBiometricAvailable())) return
+  const ok = await verifyBiometric('학생 계정으로 로그인합니다')
+  if (!ok) return
+  await doStudentLogin(cred.studentId, cred.pin, { offerBiometric: false })
+}
+
+onMounted(() => { tryBiometricAutoLogin() })
 
 const handleTeacherLogin = async () => {
   if (!teacherForm.value.username) {
@@ -136,7 +191,7 @@ const handleTeacherLogin = async () => {
           </el-tab-pane>
 
           <!-- Teacher Login Tab -->
-          <el-tab-pane label="선생님 로그인" name="teacher">
+          <el-tab-pane v-if="!nativeApp" label="선생님 로그인" name="teacher">
             <el-form :model="teacherForm"  label-position="left" label-width="60px" style="margin-top: 24px">
               <el-form-item label="아이디">
                 <el-input

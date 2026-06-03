@@ -1,5 +1,11 @@
 import axios from 'axios';
 
+// Dev (emulator) reaches the host backend via `adb reverse tcp:8080 tcp:8080`,
+// which maps the emulator's localhost:8080 to the host machine. We keep
+// `localhost` (rather than the 10.0.2.2 emulator host alias) on purpose: the app
+// origin (http://localhost) and the API are then the *same site*, and the
+// session cookie (JSESSIONID, SameSite=Lax) only rides on same-site requests.
+// Production sets VITE_API_BASE_URL to the live origin.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
 const client = axios.create({
@@ -265,6 +271,14 @@ export const consentAPI = {
   get: (token: string) => client.get<ConsentInfo>(`/consents/${token}`),
   agree: (token: string, parentPhoneLast4: string) =>
     client.post(`/consents/${token}/agree`, { parentPhoneLast4 }),
+};
+
+// Device token registration for push notifications (student-side)
+export const deviceAPI = {
+  register: (data: { token: string; platform: 'android' | 'ios'; appVersion?: string }) =>
+    client.post('/devices/register', data),
+  unregister: (token: string) =>
+    client.delete(`/devices/${encodeURIComponent(token)}`),
 };
 
 // Tests API

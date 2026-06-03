@@ -6,6 +6,7 @@ import { ElMessage } from 'element-plus'
 import { authAPI } from '@/api/client'
 import type { AuthResponse } from '@/api/client'
 import AcademySwitcher from '@/components/AcademySwitcher.vue'
+import StudentBottomNav from '@/components/StudentBottomNav.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -20,6 +21,9 @@ const drawerVisible = ref(false)
 const isLoginPage = computed(() => route.path === '/login')
 const isTeacherRoute = computed(() => currentUser.value.role === 'TEACHER' && !isLoginPage.value)
 const isStudentRoute = computed(() => currentUser.value.role === 'STUDENT')
+// Test-taking screen wants the full viewport; suppress bottom nav there.
+const isTestTaking = computed(() => /^\/student\/tests\/[^/]+$/.test(route.path))
+const showStudentNav = computed(() => isStudentRoute.value && !isTestTaking.value)
 
 const fetchCurrentUser = async () => {
   try {
@@ -183,9 +187,18 @@ watch(() => route.path, () => {
     </el-drawer>
 
     <!-- Main Content -->
-    <el-main :style="{ padding: isLoginPage ? '0' : '24px', backgroundColor: isLoginPage ? '#fff' : '#f5f7fa' }">
+    <el-main
+      :style="{
+        padding: isLoginPage ? '0' : '24px',
+        paddingBottom: showStudentNav ? 'calc(56px + env(safe-area-inset-bottom) + 16px)' : undefined,
+        backgroundColor: isLoginPage ? '#fff' : '#f5f7fa',
+      }"
+    >
       <RouterView />
     </el-main>
+
+    <!-- Student-side bottom navigation (mobile-friendly; native + web). -->
+    <StudentBottomNav v-if="showStudentNav" />
   </el-container>
 </template>
 

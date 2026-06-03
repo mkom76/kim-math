@@ -16,9 +16,17 @@
     "lint": "eslint . --fix --cache",
     "format": "prettier --write src/",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "cap:sync": "vite build && cap sync",
+    "cap:android": "vite build && cap sync android && cap open android"
   },
   "dependencies": {
+    "@aparajita/capacitor-biometric-auth": "^10.0.0",
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/push-notifications": "^8.1.1",
     "@element-plus/icons-vue": "^2.3.2",
     "axios": "^1.13.2",
     "element-plus": "^2.11.8",

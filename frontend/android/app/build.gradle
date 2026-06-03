@@ -1,0 +1,85 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace = "com.kimmath.student.dev"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.kimmath.student.dev"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+// --- Auto-build web assets for emulator/debug runs ---------------------------
+// Android Studio's ▶️ Run (and CLI debug builds) rebuild the Vue app in
+// `development` mode so `.env.development` (http://localhost:8080/api) is baked
+// in; api/client.ts then rewrites localhost -> 10.0.2.2 for the emulator.
+// Skipped for release builds so production URLs are never overwritten.
+def frontendDir = file("${rootProject.projectDir}/..")
+def isReleaseBuild = gradle.startParameter.taskNames.any {
+    it.toLowerCase().contains('release')
+}
+
+tasks.register('buildWebAssets', Exec) {
+    onlyIf { !isReleaseBuild }
+    workingDir frontendDir
+    // Wrap in a login shell so Android Studio (launched from Dock) inherits the
+    // user's PATH and can find node/npx/nvm.
+    commandLine 'bash', '-lc',
+        'npx vite build --mode development && npx cap copy android'
+}
+
+// Tunnel the emulator's localhost:8080 to the host backend so app + API share
+// the `localhost` site (required for the session cookie). Lost on emulator
+// reboot, so re-established on every debug run. No-op / harmless if no device.
+tasks.register('adbReverse', Exec) {
+    onlyIf { !isReleaseBuild }
+    commandLine "${android.getSdkDirectory()}/platform-tools/adb",
+        'reverse', 'tcp:8080', 'tcp:8080'
+    ignoreExitValue true
+}
+
+preBuild.dependsOn 'buildWebAssets', 'adbReverse'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

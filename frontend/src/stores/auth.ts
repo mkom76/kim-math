@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authAPI, type Membership } from '@/api/client'
+import { clearCredential } from '@/utils/credentialStore'
+import { unregisterPushToken } from '@/utils/push'
 
 const LAST_ACADEMY_KEY = 'lastAcademyId'
 
@@ -54,6 +56,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
+    // Unregister push token first while the session is still valid.
+    await unregisterPushToken()
     await authAPI.logout()
     userId.value = null
     name.value = ''
@@ -62,6 +66,9 @@ export const useAuthStore = defineStore('auth', () => {
     activeAcademyId.value = null
     activeRole.value = null
     // localStorage.lastAcademyId는 유지 (다음 로그인 기본값)
+    // Clear stored biometric quick-login credential — logout is the explicit
+    // "switch user / hand off device" signal.
+    await clearCredential()
   }
 
   return {

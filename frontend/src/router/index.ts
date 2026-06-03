@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { isNativeApp } from '@/utils/platform'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -196,6 +197,20 @@ router.beforeEach(async (to, from, next) => {
   const requiresAuth = to.meta.requiresAuth !== false
   const requiresRole = to.meta.requiresRole as string | undefined
   const requiresAdmin = to.meta.requiresAdmin === true
+
+  // Student app (Capacitor build) — block teacher-side routes outright. If
+  // the URL targets a teacher route, send the user back to login (which on
+  // native defaults to the student tab).
+  if (isNativeApp() && requiresRole === 'TEACHER') {
+    next('/login')
+    return
+  }
+  // Default landing for native: skip the / → /students redirect and go to
+  // the student dashboard (or login when unauthenticated).
+  if (isNativeApp() && to.path === '/') {
+    next('/student/dashboard')
+    return
+  }
 
   if (!requiresAuth) {
     next()
