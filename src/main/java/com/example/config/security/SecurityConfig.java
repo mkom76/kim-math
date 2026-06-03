@@ -26,7 +26,10 @@ import java.util.Map;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:*,http://127.0.0.1:*}")
+    // Allowed origins for browser web + Capacitor native shells:
+    //   http(s)://localhost(:*)   — dev web + Android (http://localhost scheme, no port)
+    //   capacitor://localhost     — iOS WKWebView
+    @Value("${app.cors.allowed-origins:http://localhost,http://localhost:5173,http://localhost:*,http://127.0.0.1:*,https://localhost,https://localhost:*,capacitor://localhost}")
     private String allowedOrigins;
 
     @Bean
