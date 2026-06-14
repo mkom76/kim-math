@@ -435,21 +435,36 @@ public class LessonService {
             Long studentId = entry.getKey();
             Long homeworkId = entry.getValue();
 
-            // Validate homework belongs to this lesson
-            if (!validHomeworkIds.contains(homeworkId)) {
-                throw new RuntimeException("Homework " + homeworkId + " is not attached to this lesson");
-            }
-
             Student student = studentRepository.findById(studentId)
                     .orElseThrow(() -> new RuntimeException("Student " + studentId + " not found"));
-            Homework homework = homeworkRepository.findById(homeworkId)
-                    .orElseThrow(() -> new RuntimeException("Homework " + homeworkId + " not found"));
 
             // Get all student's homework assignments for this lesson's homeworks
             List<StudentHomework> existingAssignments = studentHomeworkRepository
                     .findByHomeworkIdIn(lessonHomeworkIds).stream()
                     .filter(sh -> sh.getStudent().getId().equals(studentId))
                     .collect(Collectors.toList());
+
+            if (homeworkId == null) {
+                for (StudentHomework existingAssignment : existingAssignments) {
+                    if (existingAssignment.getIncorrectCount() != null) {
+                        throw new RuntimeException(
+                            "학생 " + student.getName() + "은(는) 이미 숙제 '" +
+                            existingAssignment.getHomework().getTitle() + "'를 제출했습니다. " +
+                            "제출된 숙제는 제외할 수 없습니다."
+                        );
+                    }
+                }
+                studentHomeworkRepository.deleteAll(existingAssignments);
+                continue;
+            }
+
+            // Validate homework belongs to this lesson
+            if (!validHomeworkIds.contains(homeworkId)) {
+                throw new RuntimeException("Homework " + homeworkId + " is not attached to this lesson");
+            }
+
+            Homework homework = homeworkRepository.findById(homeworkId)
+                    .orElseThrow(() -> new RuntimeException("Homework " + homeworkId + " not found"));
 
             if (!existingAssignments.isEmpty()) {
                 StudentHomework existingAssignment = existingAssignments.get(0);

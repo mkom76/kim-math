@@ -498,7 +498,7 @@ export const lessonAPI = {
   removeHomework: (lessonId: number, homeworkId: number) => client.delete(`/lessons/${lessonId}/homeworks/${homeworkId}`),
 
   // 숙제 할당 API
-  assignHomeworks: (lessonId: number, assignments: Record<number, number>) =>
+  assignHomeworks: (lessonId: number, assignments: Record<number, number | null>) =>
     client.post(`/lessons/${lessonId}/assign-homeworks`, assignments),
   getAssignments: (lessonId: number) => client.get<StudentHomeworkAssignment[]>(`/lessons/${lessonId}/assignments`),
 

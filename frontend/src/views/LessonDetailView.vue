@@ -251,7 +251,7 @@ const handleBulkAssign = async () => {
     )
 
     // Create assignments map: studentId -> homeworkId
-    const assignments: Record<number, number> = {}
+    const assignments: Record<number, number | null> = {}
     studentAssignments.value.forEach((assignment) => {
       assignments[assignment.studentId] = bulkAssignHomeworkId.value!
     })
@@ -269,11 +269,9 @@ const handleBulkAssign = async () => {
 const saveAssignments = async () => {
   try {
     // Create assignments map from current studentAssignments
-    const assignments: Record<number, number> = {}
+    const assignments: Record<number, number | null> = {}
     studentAssignments.value.forEach((assignment) => {
-      if (assignment.assignedHomeworkId) {
-        assignments[assignment.studentId] = assignment.assignedHomeworkId
-      }
+      assignments[assignment.studentId] = assignment.assignedHomeworkId ?? null
     })
 
     // Check if there are any unassigned students
