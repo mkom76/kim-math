@@ -617,6 +617,9 @@ export const dailyFeedbackAPI = {
     client.get<DailyFeedback>(`/daily-feedback/student/${studentId}/lesson/${lessonId}`),
   updateInstructorFeedback: (studentId: number, lessonId: number, feedback: string, authorName: string, isAiFeedback?: boolean) =>
     client.put(`/daily-feedback/student/${studentId}/lesson/${lessonId}`, { feedback, authorName, isAiFeedback }),
+  // Push "오늘의 피드백이 도착했어요" to every student in the lesson who has feedback written.
+  notifyLesson: (lessonId: number) =>
+    client.post<{ sentCount: number }>(`/daily-feedback/lesson/${lessonId}/notify`),
 };
 
 // Clinic API

@@ -50,3 +50,13 @@ openai:
 youtube:
   api:
     key: ${YOUTUBE_API_KEY:}
+
+# Push notifications (FCM)
+# enabled=false면 발송 코드는 동작하지 않고 로그만 남김(앱은 정상 부팅).
+# 켜려면 PUSH_ENABLED=true + FCM_CREDENTIALS_PATH(서비스계정 JSON 경로) 지정.
+# 경로를 비워두면 GOOGLE_APPLICATION_CREDENTIALS(ADC)로 폴백.
+app:
+  push:
+    enabled: ${PUSH_ENABLED:false}
+    fcm:
+      credentials-path: ${FCM_CREDENTIALS_PATH:}

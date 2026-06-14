@@ -277,7 +277,11 @@ const getDifficulty = (correctRate: number) => {
 
 const startEditingFeedback = async () => {
   editedFeedback.value = feedback.value?.instructorFeedback || ''
-  editedAuthorName.value = feedback.value?.feedbackAuthor || ''
+  // AI 일괄 생성으로 박힌 'AI' 작성자는 사람이 편집하는 시점에 비우고
+  // 아래에서 현재 로그인 사용자 이름으로 보정한다 (사람이 수정한 피드백이 'AI'로 남는 문제 방지)
+  editedAuthorName.value = feedback.value?.feedbackAuthor === 'AI'
+    ? ''
+    : (feedback.value?.feedbackAuthor || '')
 
   // 작성자 이름이 없으면 현재 사용자 이름 가져오기
   if (!editedAuthorName.value) {

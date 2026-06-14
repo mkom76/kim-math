@@ -3,7 +3,7 @@ import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ChatLineSquare, BellFilled, VideoPlay, Plus, Top, Bottom, Delete, DocumentCopy } from '@element-plus/icons-vue'
-import { lessonAPI, testAPI, homeworkAPI, studentHomeworkAPI, lessonVideoAPI, aiFeedbackAPI, authAPI, type Lesson, type Test, type Homework, type LessonStudentStats, type StudentHomeworkAssignment, type StudentHomework, type LessonVideo, type VideoStats, type AttendanceRecord, type AttendanceRequest } from '../api/client'
+import { lessonAPI, testAPI, homeworkAPI, studentHomeworkAPI, lessonVideoAPI, aiFeedbackAPI, dailyFeedbackAPI, authAPI, type Lesson, type Test, type Homework, type LessonStudentStats, type StudentHomeworkAssignment, type StudentHomework, type LessonVideo, type VideoStats, type AttendanceRecord, type AttendanceRequest } from '../api/client'
 
 const route = useRoute()
 const router = useRouter()
@@ -534,6 +534,9 @@ const removeFollowUpFromSection = async (studentId: number, homeworkId: number |
   }
 }
 
+// 피드백 알림 발송 state
+const notifyLoading = ref(false)
+
 // AI 일괄 피드백 state
 const bulkAiLoading = ref(false)
 const bulkAiProgress = ref('')
@@ -579,6 +582,30 @@ const pollBulkStatus = () => {
       bulkAiProgress.value = ''
     }
   }, 3000)
+}
+
+const notifyDailyFeedback = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '피드백이 작성된 학생들에게 "오늘의 피드백이 도착했어요" 알림을 발송합니다.',
+      '피드백 알림 발송',
+      { confirmButtonText: '발송', cancelButtonText: '취소', type: 'info' }
+    )
+
+    notifyLoading.value = true
+    const { data } = await dailyFeedbackAPI.notifyLesson(lessonId.value)
+    if (data.sentCount > 0) {
+      ElMessage.success(`${data.sentCount}명에게 알림을 발송했습니다.`)
+    } else {
+      ElMessage.info('발송 대상이 없습니다. (피드백이 작성된 학생이 없음)')
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error('알림 발송에 실패했습니다.')
+    }
+  } finally {
+    notifyLoading.value = false
+  }
 }
 
 const generateBulkAiFeedback = async () => {
@@ -903,6 +930,9 @@ onBeforeUnmount(() => {
           </el-select>
           <el-button type="primary" size="small" :loading="bulkAiLoading" @click="generateBulkAiFeedback">
             일괄 생성
+          </el-button>
+          <el-button type="success" size="small" :icon="BellFilled" :loading="notifyLoading" @click="notifyDailyFeedback">
+            피드백 알림 발송
           </el-button>
         </div>
       </div>

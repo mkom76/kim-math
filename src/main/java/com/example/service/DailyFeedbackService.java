@@ -6,9 +6,11 @@ import com.example.entity.*;
 import com.example.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -23,6 +25,7 @@ public class DailyFeedbackService {
     private final StudentSubmissionDetailRepository studentSubmissionDetailRepository;
     private final StudentRepository studentRepository;
     private final AuthorizationService authorizationService;
+    private final PushNotificationService pushNotificationService;
 
     public DailyFeedbackDto getDailyFeedback(Long studentId, Long lessonId) {
         Student student = studentRepository.findById(studentId)
@@ -97,6 +100,34 @@ public class DailyFeedbackService {
         studentLesson.setFeedbackAuthor(authorName);
         studentLesson.setIsAiFeedback(isAiFeedback);
         return StudentLessonDto.from(studentLessonRepository.save(studentLesson));
+    }
+
+    /**
+     * Push a "daily feedback arrived" notification to every student in this lesson
+     * who has an instructor feedback written. Triggered by the teacher's explicit
+     * "발송" button in the lesson detail screen.
+     *
+     * <p>Runs outside the class-level read-only transaction (push delivery does its
+     * own token cleanup writes and we don't want to hold a DB connection during
+     * the FCM network call).
+     *
+     * @return number of students notified (those with feedback)
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public int notifyLessonFeedback(Long lessonId) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("Lesson not found"));
+        authorizationService.assertCanAccessLesson(lesson);
+
+        List<Long> studentIds = studentLessonRepository.findStudentIdsWithFeedbackByLessonId(lessonId);
+        if (studentIds.isEmpty()) return 0;
+
+        pushNotificationService.sendToStudents(
+                studentIds,
+                "오늘의 피드백이 도착했어요",
+                "선생님이 남긴 피드백을 확인해보세요",
+                Map.of("path", "/student/daily-feedback"));
+        return studentIds.size();
     }
 
     private DailyFeedbackDto.HomeworkSummary getHomeworkSummary(Long studentId, Homework homework) {

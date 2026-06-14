@@ -18,6 +18,11 @@ public interface StudentLessonRepository extends JpaRepository<StudentLesson, Lo
 
     List<StudentLesson> findByLessonId(Long lessonId);
 
+    /** Student ids in a lesson that have a non-empty instructor feedback — push recipients. */
+    @Query("SELECT sl.student.id FROM StudentLesson sl WHERE sl.lesson.id = :lessonId " +
+           "AND sl.instructorFeedback IS NOT NULL AND sl.instructorFeedback <> ''")
+    List<Long> findStudentIdsWithFeedbackByLessonId(@Param("lessonId") Long lessonId);
+
     @Query("SELECT sl FROM StudentLesson sl WHERE sl.student.id = :studentId " +
            "AND sl.lesson.lessonDate = :lessonDate")
     Optional<StudentLesson> findByStudentIdAndDate(@Param("studentId") Long studentId,
