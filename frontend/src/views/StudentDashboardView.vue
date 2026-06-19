@@ -3,14 +3,25 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { authAPI, lessonAPI, submissionAPI, studentAPI } from '@/api/client'
-import type { AuthResponse, Test, Submission, Student, Lesson, AttendanceStats } from '@/api/client'
+import type { AuthResponse, Submission, Student, Lesson, AttendanceStats } from '@/api/client'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import { useAuthStore } from '@/stores/auth'
+
+interface DashboardTest {
+  id: number
+  title: string
+  className?: string
+  academyName?: string
+  questionCount?: number
+  lessonDate?: string
+}
 
 const router = useRouter()
+const authStore = useAuthStore()
 const loading = ref(false)
 const currentUser = ref<AuthResponse>({})
 const studentInfo = ref<Student | null>(null)
-const availableTests = ref<Test[]>([])
+const availableTests = ref<DashboardTest[]>([])
 const mySubmissions = ref<Submission[]>([])
 const pastTestsDialogVisible = ref(false)
 const attendanceDialogVisible = ref(false)
@@ -44,7 +55,9 @@ const fetchCurrentUser = async () => {
 
       // Extract tests from lessons that have tests attached
       availableTests.value = lessons
-        .filter(lesson => lesson.testId && lesson.testTitle)
+        .filter((lesson): lesson is Lesson & { testId: number; testTitle: string } =>
+          lesson.testId != null && !!lesson.testTitle
+        )
         .map(lesson => ({
           id: lesson.testId,
           title: lesson.testTitle,
@@ -52,7 +65,7 @@ const fetchCurrentUser = async () => {
           academyName: lesson.academyName,
           // Add lesson date info for display
           lessonDate: lesson.lessonDate
-        } as Test))
+        }))
 
       // Fetch student's submissions
       const submissionsResponse = await submissionAPI.getStudentSubmissions(currentUser.value.userId)
@@ -73,7 +86,8 @@ const fetchCurrentUser = async () => {
 
 const handleLogout = async () => {
   try {
-    await authAPI.logout()
+    await authStore.logout()
+    currentUser.value = {}
     ElMessage.success('로그아웃 되었습니다')
     router.push('/login')
   } catch (error) {
@@ -84,6 +98,10 @@ const handleLogout = async () => {
 
 const getSubmissionForTest = (testId: number) => {
   return mySubmissions.value.find(s => s.testId === testId)
+}
+
+const getPendingEssayCount = (testId: number) => {
+  return getSubmissionForTest(testId)?.pendingEssayCount ?? 0
 }
 
 const handleTakeTest = (testId: number) => {
@@ -98,6 +116,20 @@ const showPastTestsDialog = () => {
 const untakenTestsCount = () => {
   const submittedTestIds = new Set(mySubmissions.value.map(s => s.testId))
   return availableTests.value.filter(t => !submittedTestIds.has(t.id)).length
+}
+
+const parseLocalDate = (dateStr: string) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr)
+  if (!match) return new Date(dateStr)
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+}
+
+const formatLessonDate = (
+  dateStr?: string,
+  opts: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' },
+) => {
+  if (!dateStr) return '-'
+  return parseLocalDate(dateStr).toLocaleDateString('ko-KR', opts)
 }
 
 onMounted(() => {
@@ -239,9 +271,9 @@ onMounted(() => {
         <el-table-column prop="title" label="시험 제목" min-width="200" />
         <el-table-column label="수업 날짜" width="150">
           <template #default="{ row }">
-            {{ row.lessonDate ? new Date(row.lessonDate).toLocaleDateString('ko-KR', {
+            {{ formatLessonDate(row.lessonDate, {
               year: 'numeric', month: 'long', day: 'numeric'
-            }) : '-' }}
+            }) }}
           </template>
         </el-table-column>
         <el-table-column prop="questionCount" label="문제 수" width="120">
@@ -261,12 +293,12 @@ onMounted(() => {
             <div v-if="getSubmissionForTest(row.id)" style="display: flex; flex-direction: column; gap: 4px">
               <span>{{ getSubmissionForTest(row.id)?.totalScore }}점</span>
               <el-tag
-                v-if="getSubmissionForTest(row.id)?.pendingEssayCount > 0"
+                v-if="getPendingEssayCount(row.id) > 0"
                 type="warning"
                 size="small"
                 effect="plain"
               >
-                ⏳ 서술형 채점 대기 ({{ getSubmissionForTest(row.id)?.pendingEssayCount }}문제)
+                ⏳ 서술형 채점 대기 ({{ getPendingEssayCount(row.id) }}문제)
               </el-tag>
             </div>
             <span v-else style="color: #909399">-</span>
@@ -321,9 +353,9 @@ onMounted(() => {
             <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isMobile ? '6px' : '8px', fontSize: bodyFontSize, color: '#606266' }">
               <div :style="{ display: 'flex', alignItems: 'center', gap: isMobile ? '3px' : '4px' }">
                 <el-icon :size="isMobile ? 14 : 16"><Calendar /></el-icon>
-                <span>{{ test.lessonDate ? new Date(test.lessonDate).toLocaleDateString('ko-KR', {
+                <span>{{ formatLessonDate(test.lessonDate, {
                   month: isMobile ? 'numeric' : 'long', day: 'numeric'
-                }) : '-' }}</span>
+                }) }}</span>
               </div>
               <div :style="{ display: 'flex', alignItems: 'center', gap: isMobile ? '3px' : '4px' }">
                 <el-icon :size="isMobile ? 14 : 16"><School /></el-icon>
@@ -339,9 +371,9 @@ onMounted(() => {
                   {{ getSubmissionForTest(test.id)?.totalScore }}점
                 </span>
               </div>
-              <div v-if="getSubmissionForTest(test.id)?.pendingEssayCount > 0" style="grid-column: span 2">
+              <div v-if="getPendingEssayCount(test.id) > 0" style="grid-column: span 2">
                 <el-tag type="warning" size="small" effect="plain">
-                  ⏳ 서술형 채점 대기 ({{ getSubmissionForTest(test.id)?.pendingEssayCount }}문제)
+                  ⏳ 서술형 채점 대기 ({{ getPendingEssayCount(test.id) }}문제)
                 </el-tag>
               </div>
             </div>

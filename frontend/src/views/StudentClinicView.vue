@@ -3,19 +3,22 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { MagicStick, Calendar, Warning, Check, Close, TrophyBase, Right, CaretTop, CaretBottom } from '@element-plus/icons-vue'
 import { clinicAPI, authAPI, type StudentClinicInfo, type AuthResponse, type RecentClinicResult } from '../api/client'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 
 const loading = ref(false)
 const clinicInfo = ref<StudentClinicInfo | null>(null)
 const currentUser = ref<AuthResponse | null>(null)
 const recentResult = ref<RecentClinicResult | null>(null)
 
-const isMobile = ref(false)
+const { isMobile } = useBreakpoint()
 const h1FontSize = computed(() => isMobile.value ? '16px' : '28px')
 const h3FontSize = computed(() => isMobile.value ? '13px' : '18px')
 
 const hasUpcomingClinic = computed(() => {
   return clinicInfo.value?.upcomingClinic != null
 })
+
+const incompleteHomeworks = computed(() => clinicInfo.value?.incompleteHomeworks ?? [])
 
 const isRegistered = computed(() => {
   return clinicInfo.value?.myRegistration != null &&
@@ -61,13 +64,28 @@ const fetchRecentResult = async () => {
   }
 }
 
+const parseLocalDate = (dateStr: string) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr)
+  if (!match) return new Date(dateStr)
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+}
+
 const formatDate = (dateStr: string) => {
-  const date = new Date(dateStr)
+  const date = parseLocalDate(dateStr)
   return date.toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
     weekday: 'long'
+  })
+}
+
+const formatShortDate = (dateStr?: string) => {
+  if (!dateStr) return '-'
+  const date = parseLocalDate(dateStr)
+  return date.toLocaleDateString('ko-KR', {
+    month: 'numeric',
+    day: 'numeric',
   })
 }
 
@@ -144,13 +162,6 @@ const cancelRegistration = async () => {
 }
 
 onMounted(async () => {
-  // Mobile detection
-  const checkMobile = () => {
-    isMobile.value = window.innerWidth < 768
-  }
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
-
   await fetchCurrentUser()
   await fetchClinicInfo()
   await fetchRecentResult()
@@ -242,15 +253,15 @@ onMounted(async () => {
         </el-card>
 
         <!-- Incomplete Homeworks -->
-        <el-card v-if="clinicInfo.incompleteHomeworks.length > 0" shadow="never">
+        <el-card v-if="incompleteHomeworks.length > 0" shadow="never">
           <template #header>
             <h3 :style="{ margin: 0, fontSize: h3FontSize, fontWeight: 600, color: '#e6a23c' }">
               <el-icon style="margin-right: 8px"><Warning /></el-icon>
-              완성도가 낮은 숙제 ({{ clinicInfo.incompleteHomeworks.length }}개)
+              완성도가 낮은 숙제 ({{ incompleteHomeworks.length }}개)
             </h3>
           </template>
 
-          <el-table :data="clinicInfo.incompleteHomeworks" style="width: 100%">
+          <el-table v-if="!isMobile" :data="incompleteHomeworks" style="width: 100%">
             <el-table-column prop="homeworkTitle" label="숙제" width="100" />
             <el-table-column prop="lessonDate" label="수업 날짜" width="90" />
             <el-table-column prop="completion" label="완성도" width="120" align="center">
@@ -261,6 +272,25 @@ onMounted(async () => {
               </template>
             </el-table-column>
           </el-table>
+
+          <div v-else class="mobile-homework-list">
+            <div
+              v-for="homework in incompleteHomeworks"
+              :key="homework.homeworkId"
+              class="mobile-homework-row"
+            >
+              <div class="mobile-homework-main">
+                <div class="mobile-homework-title">{{ homework.homeworkTitle }}</div>
+                <div class="mobile-homework-date">{{ formatShortDate(homework.lessonDate) }} 수업</div>
+              </div>
+              <div
+                class="mobile-homework-completion"
+                :style="{ color: getCompletionColor(homework.completion) }"
+              >
+                {{ homework.completion || 0 }}%
+              </div>
+            </div>
+          </div>
 
           <el-alert
             type="info"
@@ -330,7 +360,7 @@ onMounted(async () => {
             </el-descriptions-item>
           </el-descriptions>
 
-          <el-table :data="recentResult.homeworks" style="width: 100%">
+          <el-table v-if="!isMobile" :data="recentResult.homeworks" style="width: 100%">
             <el-table-column prop="homeworkTitle" label="숙제" width="100" />
             <el-table-column label="오답 변화" width="80" align="center">
               <template #default="{ row }">
@@ -357,8 +387,126 @@ onMounted(async () => {
               </template>
             </el-table-column>
           </el-table>
+
+          <div v-else class="mobile-homework-list">
+            <div
+              v-for="homework in recentResult.homeworks"
+              :key="homework.homeworkId"
+              class="mobile-homework-row mobile-homework-row--stacked"
+            >
+              <div class="mobile-homework-title">{{ homework.homeworkTitle }}</div>
+              <div class="mobile-change-grid">
+                <div>
+                  <div class="mobile-change-label">오답</div>
+                  <div
+                    class="mobile-change-value"
+                    :style="{ color: getChangeColor(homework.incorrectCountChange) }"
+                  >
+                    {{ homework.incorrectCountBefore }}개
+                    <el-icon><Right /></el-icon>
+                    {{ homework.incorrectCountAfter }}개
+                    <span>{{ getChangeText(homework.incorrectCountChange) }}</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="mobile-change-label">안 푼 문제</div>
+                  <div
+                    class="mobile-change-value"
+                    :style="{ color: getChangeColor(homework.unsolvedCountChange) }"
+                  >
+                    {{ homework.unsolvedCountBefore }}개
+                    <el-icon><Right /></el-icon>
+                    {{ homework.unsolvedCountAfter }}개
+                    <span>{{ getChangeText(homework.unsolvedCountChange) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </el-card>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.mobile-homework-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-homework-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.mobile-homework-row:first-child {
+  padding-top: 0;
+}
+
+.mobile-homework-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.mobile-homework-row--stacked {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.mobile-homework-main {
+  min-width: 0;
+}
+
+.mobile-homework-title {
+  color: #303133;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.mobile-homework-date {
+  color: #909399;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.mobile-homework-completion {
+  flex: 0 0 auto;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.mobile-change-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.mobile-change-label {
+  color: #909399;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.mobile-change-value {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 4px;
+  line-height: 1.35;
+}
+
+@media (max-width: 420px) {
+  .mobile-change-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

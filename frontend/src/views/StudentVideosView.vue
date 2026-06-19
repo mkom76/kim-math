@@ -1,18 +1,21 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { studentVideoAPI, authAPI, videoProgressAPI, type StudentLessonVideos, type VideoProgress } from '../api/client'
 import { ElMessage } from 'element-plus'
 import { VideoPlay, CircleCheck } from '@element-plus/icons-vue'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 
 const lessonsWithVideos = ref<StudentLessonVideos[]>([])
 const loading = ref(false)
 const playDialogVisible = ref(false)
 const selectedVideo = ref<any>(null)
 const progressMap = ref<Map<number, VideoProgress>>(new Map())
-const player = ref<any>(null)
-const progressUpdateInterval = ref<any>(null)
+const player = ref<YT.Player | null>(null)
+const progressUpdateInterval = ref<ReturnType<typeof setInterval> | null>(null)
+const videoFrame = ref<HTMLIFrameElement | null>(null)
 const lastCurrentTime = ref(0)
 const currentStudentId = ref<number | null>(null)
+const { isMobile } = useBreakpoint()
 
 const INTERVAL_SEC = 30
 const MAX_ALLOWED = 65 // 30 × 2.0 speed + 5 tolerance
@@ -24,7 +27,7 @@ const embedUrl = computed(() => {
 
 // Load YouTube iframe API
 const loadYouTubeAPI = () => {
-  if (window.YT) return Promise.resolve()
+  if (window.YT?.Player) return Promise.resolve()
 
   return new Promise((resolve) => {
     const tag = document.createElement('script')
@@ -60,19 +63,11 @@ const fetchProgress = async () => {
 }
 
 const updateProgress = async (videoId: number, currentTime: number, duration: number) => {
-  console.log('[DEBUG] updateProgress called:', { videoId, currentTime, duration, studentId: currentStudentId.value })
-
-  if (!currentStudentId.value) {
-    console.warn('[DEBUG] No studentId, skipping update')
-    return
-  }
+  if (!currentStudentId.value) return
 
   // Skip detection: if time difference > 65 seconds, don't update progress
   const timeDiff = currentTime - lastCurrentTime.value
-  console.log('[DEBUG] Time diff:', timeDiff, 'Last time:', lastCurrentTime.value)
-
   if (timeDiff > MAX_ALLOWED) {
-    console.log('Skip detected, not updating progress')
     lastCurrentTime.value = currentTime
     return
   }
@@ -80,45 +75,34 @@ const updateProgress = async (videoId: number, currentTime: number, duration: nu
   lastCurrentTime.value = currentTime
 
   try {
-    console.log('[DEBUG] Calling API to update progress...')
     const response = await videoProgressAPI.updateProgress(currentStudentId.value, videoId, {
       watchedTime: Math.floor(currentTime),
       duration: Math.floor(duration)
     })
-    console.log('[DEBUG] API response:', response.data)
 
     // Update local progress map
     progressMap.value.set(videoId, response.data)
   } catch (error) {
     // Fail silently - don't interrupt user
-    console.error('[DEBUG] Failed to update progress:', error)
+    console.error('Failed to update progress:', error)
   }
 }
 
 const onPlayerReady = (event: any) => {
-  console.log('[DEBUG] onPlayerReady called')
   player.value = event.target
   lastCurrentTime.value = 0
 
   // Start 30-second interval
-  console.log('[DEBUG] Starting interval with INTERVAL_SEC:', INTERVAL_SEC)
   progressUpdateInterval.value = setInterval(() => {
-    console.log('[DEBUG] Interval fired - checking player state')
     if (player.value && selectedVideo.value) {
       const currentTime = player.value.getCurrentTime()
       const duration = player.value.getDuration()
-      console.log('[DEBUG] Player state:', { currentTime, duration, videoId: selectedVideo.value.id })
 
       if (currentTime > 0 && duration > 0) {
         updateProgress(selectedVideo.value.id, currentTime, duration)
-      } else {
-        console.log('[DEBUG] Skipping update - invalid time/duration')
       }
-    } else {
-      console.log('[DEBUG] Player or selectedVideo not available:', { hasPlayer: !!player.value, hasVideo: !!selectedVideo.value })
     }
   }, INTERVAL_SEC * 1000)
-  console.log('[DEBUG] Interval ID:', progressUpdateInterval.value)
 }
 
 const fetchVideos = async () => {
@@ -148,36 +132,28 @@ const fetchVideos = async () => {
 }
 
 const playVideo = async (video: any) => {
-  console.log('[DEBUG] playVideo called for:', video.title)
+  cleanupPlayer()
   selectedVideo.value = video
   playDialogVisible.value = true
 
   // Wait for dialog to render, then initialize YouTube player
-  await new Promise(resolve => setTimeout(resolve, 100))
-
+  await nextTick()
   await loadYouTubeAPI()
+  await nextTick()
 
   // Initialize YouTube player
-  console.log('[DEBUG] Checking for YouTube API:', { hasYT: !!window.YT, hasPlayer: !!(window.YT && window.YT.Player) })
-  if (window.YT && window.YT.Player) {
-    const iframe = document.querySelector('iframe')
-    console.log('[DEBUG] iframe found:', !!iframe, 'src:', iframe?.getAttribute('src'))
-    if (iframe) {
-      player.value = new window.YT.Player(iframe, {
+  if (window.YT?.Player) {
+    if (videoFrame.value) {
+      player.value = new window.YT.Player(videoFrame.value, {
         events: {
           onReady: onPlayerReady
         }
       })
-      console.log('[DEBUG] YouTube player created')
-    } else {
-      console.error('[DEBUG] iframe not found in DOM')
     }
-  } else {
-    console.error('[DEBUG] YouTube API not loaded')
   }
 }
 
-const closeDialog = () => {
+const cleanupPlayer = () => {
   // Cleanup intervals
   if (progressUpdateInterval.value) {
     clearInterval(progressUpdateInterval.value)
@@ -190,6 +166,10 @@ const closeDialog = () => {
   }
   player.value = null
   lastCurrentTime.value = 0
+}
+
+const closeDialog = () => {
+  cleanupPlayer()
 }
 
 // Helper functions
@@ -223,7 +203,11 @@ const formatLastWatched = (lastWatchedAt: string): string => {
 }
 
 const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleDateString('ko-KR', {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr)
+  const date = match
+    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    : new Date(dateStr)
+  return date.toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
@@ -247,6 +231,10 @@ const formatDuration = (duration: string) => {
 onMounted(() => {
   fetchVideos()
 })
+
+onUnmounted(() => {
+  cleanupPlayer()
+})
 </script>
 
 <template>
@@ -254,8 +242,8 @@ onMounted(() => {
     <el-card shadow="never">
       <template #header>
         <div>
-          <h1 style="margin: 0; font-size: 28px; font-weight: 600; color: #303133">
-            <el-icon size="32" color="#409eff" style="margin-right: 12px">
+          <h1 :style="{ margin: 0, fontSize: isMobile ? '18px' : '28px', fontWeight: 600, color: '#303133' }">
+            <el-icon :size="isMobile ? 24 : 32" color="#409eff" style="margin-right: 12px">
               <VideoPlay />
             </el-icon>
             수업 다시보기
@@ -389,13 +377,15 @@ onMounted(() => {
     <el-dialog
       v-model="playDialogVisible"
       :title="selectedVideo?.title"
-      width="90%"
+      :width="isMobile ? '100%' : '90%'"
+      :fullscreen="isMobile"
       :close-on-click-modal="true"
       @close="closeDialog"
     >
       <div style="position: relative; padding-top: 56.25%; background: #000">
         <iframe
           v-if="playDialogVisible && selectedVideo"
+          ref="videoFrame"
           :src="embedUrl"
           style="
             position: absolute;
@@ -418,5 +408,11 @@ onMounted(() => {
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
+}
+
+@media (max-width: 767px) {
+  .student-view {
+    padding: 10px;
+  }
 }
 </style>
