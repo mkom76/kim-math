@@ -297,6 +297,43 @@ public class TestService {
                 .questionStats(questionStats)
                 .build();
     }
+
+    public List<TestSubmissionRosterDto> getSubmissionRoster(Long testId) {
+        Test test = testRepository.findById(testId)
+                .orElseThrow(() -> new RuntimeException("Test not found"));
+        authorizationService.assertCanAccessTest(test);
+
+        Long classId = test.getAcademyClass() != null ? test.getAcademyClass().getId() : null;
+        List<Student> students = studentRepository.findByAcademyClassId(classId).stream()
+                .sorted((a, b) -> a.getName().compareToIgnoreCase(b.getName()))
+                .collect(Collectors.toList());
+
+        Map<Long, StudentSubmission> submissionsByStudentId = studentSubmissionRepository.findByTestId(testId)
+                .stream()
+                .collect(Collectors.toMap(
+                        submission -> submission.getStudent().getId(),
+                        submission -> submission,
+                        (left, right) -> left));
+
+        return students.stream()
+                .map(student -> {
+                    StudentSubmission submission = submissionsByStudentId.get(student.getId());
+                    return TestSubmissionRosterDto.builder()
+                            .studentId(student.getId())
+                            .studentName(student.getName())
+                            .grade(student.getGrade())
+                            .school(student.getSchool())
+                            .submitted(submission != null)
+                            .submissionId(submission != null ? submission.getId() : null)
+                            .score(submission != null ? submission.getTotalScore() : null)
+                            .pendingEssayCount(submission != null
+                                    ? studentSubmissionRepository.countPendingEssays(submission.getId()).intValue()
+                                    : null)
+                            .submittedAt(submission != null ? submission.getSubmittedAt() : null)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
     
     public List<TestQuestionDto> getTestQuestions(Long testId) {
         Test testForAuth = testRepository.findById(testId)

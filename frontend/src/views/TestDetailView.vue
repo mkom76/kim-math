@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { testAPI, submissionAPI, type Test, type Submission, type SubmissionDetail } from '../api/client'
+import { ArrowLeft, EditPen, Refresh, UserFilled } from '@element-plus/icons-vue'
+import {
+  testAPI,
+  submissionAPI,
+  type Test,
+  type SubmissionDetail,
+  type TestSubmissionRoster,
+  type Question,
+} from '../api/client'
 
 const route = useRoute()
 const router = useRouter()
@@ -11,21 +19,21 @@ const testId = route.params.id as string
 const loading = ref(false)
 const recalculating = ref(false)
 const test = ref<Test | null>(null)
-const submissions = ref<Submission[]>([])
+const roster = ref<TestSubmissionRoster[]>([])
 const stats = ref<any>(null)
 
 const fetchTestDetail = async () => {
   loading.value = true
   try {
-    const [testResponse, submissionsResponse, statsResponse] = await Promise.all([
+    const [testResponse, statsResponse, rosterResponse] = await Promise.all([
       testAPI.getTest(Number(testId)),
-      submissionAPI.getByTestId(Number(testId)),
-      testAPI.getTestStats(Number(testId))
+      testAPI.getTestStats(Number(testId)),
+      testAPI.getSubmissionRoster(Number(testId))
     ])
 
     test.value = testResponse.data
-    submissions.value = submissionsResponse.data.content || submissionsResponse.data
     stats.value = statsResponse.data
+    roster.value = rosterResponse.data
   } catch (error) {
     ElMessage.error('시험 정보를 불러오는데 실패했습니다.')
   } finally {
@@ -95,6 +103,107 @@ const handleGradeEssay = async () => {
   } finally {
     grading.value = false
   }
+}
+
+const answerDialogVisible = ref(false)
+const answerLoading = ref(false)
+const answerSaving = ref(false)
+const selectedRoster = ref<TestSubmissionRoster | null>(null)
+const answerQuestions = ref<Question[]>([])
+const answerForm = ref<Record<number, string>>({})
+
+const submittedCount = computed(() => roster.value.filter(row => row.submitted).length)
+const hasEssayQuestions = computed(() =>
+  (stats.value?.questionStats || []).some((row: any) => row.questionType === 'ESSAY'),
+)
+const allRequiredAnswersFilled = computed(() =>
+  answerQuestions.value.every(question => {
+    if (question.questionType === 'ESSAY') return true
+    return answerForm.value[question.number]?.trim() !== ''
+  }),
+)
+
+const openAnswerEntry = async (row: TestSubmissionRoster) => {
+  selectedRoster.value = row
+  answerDialogVisible.value = true
+  answerLoading.value = true
+  answerForm.value = {}
+
+  try {
+    const questionsResponse = await testAPI.getTestQuestions(Number(testId))
+    answerQuestions.value = (questionsResponse.data.data || questionsResponse.data)
+      .sort((a: Question, b: Question) => a.number - b.number)
+
+    const nextAnswers: Record<number, string> = {}
+    answerQuestions.value.forEach(question => {
+      nextAnswers[question.number] = ''
+    })
+
+    if (row.submitted && row.submissionId) {
+      const submissionResponse = await submissionAPI.getSubmissionWithDetails(row.submissionId)
+      const details: SubmissionDetail[] = (submissionResponse.data as any).details || []
+      details.forEach(detail => {
+        nextAnswers[detail.questionNumber] = detail.studentAnswer || ''
+      })
+    }
+
+    answerForm.value = nextAnswers
+  } catch (error) {
+    ElMessage.error('답안 입력 정보를 불러오는데 실패했습니다.')
+    answerDialogVisible.value = false
+  } finally {
+    answerLoading.value = false
+  }
+}
+
+const saveStudentAnswers = async () => {
+  const row = selectedRoster.value
+  if (!row) return
+  if (!allRequiredAnswersFilled.value) {
+    ElMessage.warning('객관식/주관식 답안을 모두 입력해주세요')
+    return
+  }
+
+  try {
+    const isEditing = row.submitted
+    await ElMessageBox.confirm(
+      isEditing
+        ? '기존 답안을 수정하면 점수와 통계가 다시 계산됩니다. 저장하시겠습니까?'
+        : '이 학생의 답안을 저장하시겠습니까?',
+      isEditing ? '답안 수정' : '답안 입력',
+      {
+        confirmButtonText: '저장',
+        cancelButtonText: '취소',
+        type: 'warning',
+      }
+    )
+
+    answerSaving.value = true
+    await submissionAPI.saveAnswersForStudent(
+      row.studentId,
+      Number(testId),
+      answerForm.value,
+    )
+
+    ElMessage.success(isEditing ? '답안이 수정되었습니다' : '답안이 저장되었습니다')
+    answerDialogVisible.value = false
+    await fetchTestDetail()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.response?.data?.message || '답안 저장에 실패했습니다')
+    }
+  } finally {
+    answerSaving.value = false
+  }
+}
+
+const openEssayGradeFromRoster = (row: TestSubmissionRoster) => {
+  if (!row.submissionId) return
+  openEssayGrade({
+    id: row.submissionId,
+    pendingEssayCount: row.pendingEssayCount,
+    student: { name: row.studentName },
+  })
 }
 
 const navigateToAnswers = () => {
@@ -184,7 +293,7 @@ onMounted(() => {
             <div style="text-align: center">
               <div style="margin-bottom: 20px">
                 <div style="font-size: 32px; font-weight: 600; color: #409eff; margin-bottom: 4px">
-                  {{ submissions.length }}
+                  {{ submittedCount }}
                 </div>
                 <div style="color: #909399; font-size: 14px">총 응시자 수</div>
               </div>
@@ -401,86 +510,179 @@ onMounted(() => {
       <!-- Submissions -->
       <el-card shadow="never">
         <template #header>
-          <div style="display: flex; align-items: center; gap: 8px">
-            <el-icon color="#409eff">
-              <User />
-            </el-icon>
-            <span style="font-weight: 600">응시 현황</span>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px">
+            <div style="display: flex; align-items: center; gap: 8px">
+              <el-icon color="#409eff">
+                <User />
+              </el-icon>
+              <span style="font-weight: 600">학생별 답안 입력</span>
+            </div>
+            <el-tag type="primary" effect="plain">
+              {{ submittedCount }} / {{ roster.length }} 제출
+            </el-tag>
           </div>
         </template>
 
         <el-table
-          :data="submissions"
+          :data="roster"
           style="width: 100%"
           stripe
         >
-          <el-table-column prop="student.name" label="학생명" min-width="120">
+          <el-table-column prop="studentName" label="학생명" min-width="120">
             <template #default="{ row }">
               <div style="display: flex; align-items: center; gap: 8px">
                 <el-avatar size="small" :icon="UserFilled" />
-                <span style="font-weight: 500">{{ row.student?.name || '알 수 없음' }}</span>
+                <span style="font-weight: 500">{{ row.studentName }}</span>
               </div>
             </template>
           </el-table-column>
 
-          <el-table-column prop="totalScore" label="점수" width="100" align="center">
+          <el-table-column label="제출 상태" width="110" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="row.submitted" type="success">제출</el-tag>
+              <el-tag v-else type="info">미제출</el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="score" label="점수" width="100" align="center">
             <template #default="{ row }">
               <el-tag
-                :type="row.totalScore >= 80 ? 'success' : row.totalScore >= 60 ? 'warning' : 'danger'"
+                v-if="row.submitted"
+                :type="row.score >= 80 ? 'success' : row.score >= 60 ? 'warning' : 'danger'"
                 size="large"
               >
-                {{ row.totalScore }}점
+                {{ row.score }}점
               </el-tag>
+              <span v-else style="color: #c0c4cc">-</span>
             </template>
           </el-table-column>
 
           <el-table-column label="응시일" width="250">
             <template #default="{ row }">
-              <div style="display: flex; align-items: center; gap: 8px">
+              <div v-if="row.submittedAt" style="display: flex; align-items: center; gap: 8px">
                 <el-icon color="#909399">
                   <Calendar />
                 </el-icon>
-                {{ row.submittedAt ? new Date(row.submittedAt).toLocaleString('ko-KR') : '-' }}
+                {{ new Date(row.submittedAt).toLocaleString('ko-KR') }}
               </div>
+              <span v-else style="color: #c0c4cc">-</span>
             </template>
           </el-table-column>
 
           <el-table-column label="학생 정보" min-width="200">
             <template #default="{ row }">
               <div style="font-size: 13px; color: #606266">
-                <div>🏫 {{ row.student?.school || '-' }}</div>
-                <div style="margin-top: 4px">📚 {{ row.student?.grade || '-' }}</div>
+                <div>🏫 {{ row.school || '-' }}</div>
+                <div style="margin-top: 4px">📚 {{ row.grade || '-' }}</div>
               </div>
             </template>
           </el-table-column>
 
-          <el-table-column label="서술형 채점" width="140" align="center">
+          <el-table-column label="관리" width="320" align="center">
             <template #default="{ row }">
               <el-button
-                v-if="row.pendingEssayCount > 0"
                 size="small"
-                type="warning"
-                @click="openEssayGrade(row)"
+                type="primary"
+                :plain="row.submitted"
+                @click="openAnswerEntry(row)"
               >
-                채점 ({{ row.pendingEssayCount }}문제)
+                {{ row.submitted ? '답안 수정' : '답안 입력' }}
               </el-button>
               <el-button
-                v-else-if="row.pendingEssayCount === 0"
+                v-if="row.submitted"
                 size="small"
                 type="success"
                 plain
-                @click="openEssayGrade(row)"
+                @click="router.push(`/tests/${testId}/students/${row.studentId}/result`)"
               >
-                채점 완료 (수정)
+                결과 보기
               </el-button>
-              <span v-else style="color: #c0c4cc">-</span>
+              <el-button
+                v-if="row.submitted && hasEssayQuestions"
+                size="small"
+                :type="row.pendingEssayCount > 0 ? 'warning' : 'info'"
+                plain
+                @click="openEssayGradeFromRoster(row)"
+              >
+                {{ row.pendingEssayCount > 0 ? `채점 (${row.pendingEssayCount})` : '채점 수정' }}
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
 
-        <el-empty v-if="submissions.length === 0" description="아직 응시한 학생이 없습니다" />
+        <el-empty v-if="roster.length === 0" description="표시할 학생이 없습니다" />
       </el-card>
     </div>
+
+    <!-- 학생별 답안 입력 다이얼로그 -->
+    <el-dialog
+      v-model="answerDialogVisible"
+      :title="`${selectedRoster?.studentName || ''} 답안 ${selectedRoster?.submitted ? '수정' : '입력'}`"
+      width="760px"
+      destroy-on-close
+    >
+      <div v-loading="answerLoading">
+        <el-empty v-if="!answerLoading && answerQuestions.length === 0" description="등록된 문제가 없습니다" />
+
+        <div v-else style="display: flex; flex-direction: column; gap: 12px; max-height: 62vh; overflow: auto; padding-right: 4px">
+          <div
+            v-for="question in answerQuestions"
+            :key="question.id || question.number"
+            style="border: 1px solid #ebeef5; border-radius: 8px; padding: 14px; background: #fff"
+          >
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap">
+              <el-tag type="info" size="large">{{ question.number }}번</el-tag>
+              <el-tag type="success" effect="plain">{{ question.points }}점</el-tag>
+              <el-tag v-if="question.questionType === 'OBJECTIVE'" type="primary" effect="plain">객관식</el-tag>
+              <el-tag v-else-if="question.questionType === 'SUBJECTIVE'" type="warning" effect="plain">주관식</el-tag>
+              <el-tag v-else type="info" effect="plain">서술형</el-tag>
+              <span v-if="question.textbookProblem?.topic" style="font-size: 12px; color: #409eff">
+                {{ question.textbookProblem.topic }}
+              </span>
+            </div>
+
+            <el-radio-group
+              v-if="question.questionType === 'OBJECTIVE'"
+              v-model="answerForm[question.number]"
+            >
+              <el-radio-button label="1">1</el-radio-button>
+              <el-radio-button label="2">2</el-radio-button>
+              <el-radio-button label="3">3</el-radio-button>
+              <el-radio-button label="4">4</el-radio-button>
+              <el-radio-button label="5">5</el-radio-button>
+            </el-radio-group>
+
+            <el-input
+              v-else-if="question.questionType === 'SUBJECTIVE'"
+              v-model="answerForm[question.number]"
+              placeholder="답을 입력하세요"
+            >
+              <template #prepend>답</template>
+            </el-input>
+
+            <el-input
+              v-else
+              v-model="answerForm[question.number]"
+              type="textarea"
+              :rows="3"
+              placeholder="서술형 답안을 입력하세요"
+            />
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="answerDialogVisible = false">취소</el-button>
+        <el-button
+          type="primary"
+          :loading="answerSaving"
+          :disabled="answerLoading || answerQuestions.length === 0"
+          @click="saveStudentAnswers"
+        >
+          저장
+        </el-button>
+      </template>
+    </el-dialog>
 
     <!-- 서술형 채점 다이얼로그 -->
     <el-dialog

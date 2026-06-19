@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,13 +31,51 @@ public class SubmissionService {
     private final TestRepository testRepository;
     private final AuthorizationService authorizationService;
 
+    public StudentSubmissionDto submitMyAnswers(Long testId, Map<Integer, String> answers) {
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null || ctx.role() != null) {
+            throw new ForbiddenException("학생 인증이 필요합니다");
+        }
+        return submitAnswersAsStudent(ctx.teacherId(), testId, answers);
+    }
+
     public StudentSubmissionDto submitAnswers(Long studentId, Long testId, Map<Integer, String> answers) {
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null) {
+            throw new ForbiddenException("인증 컨텍스트가 없습니다");
+        }
+        if (ctx.role() == null) {
+            if (!ctx.teacherId().equals(studentId)) {
+                throw new ForbiddenException("본인 답안만 제출할 수 있습니다");
+            }
+            return submitAnswersAsStudent(studentId, testId, answers);
+        }
+        return saveAnswersForStudent(studentId, testId, answers);
+    }
+
+    private StudentSubmissionDto submitAnswersAsStudent(Long studentId, Long testId, Map<Integer, String> answers) {
+        if (submissionRepository.findByStudentIdAndTestId(studentId, testId).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 제출한 시험은 수정할 수 없습니다");
+        }
+        return saveSubmission(studentId, testId, answers, false);
+    }
+
+    public StudentSubmissionDto saveAnswersForStudent(Long studentId, Long testId, Map<Integer, String> answers) {
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null || ctx.role() == null) {
+            throw new ForbiddenException("선생님 권한이 필요합니다");
+        }
+        return saveSubmission(studentId, testId, answers, true);
+    }
+
+    private StudentSubmissionDto saveSubmission(Long studentId, Long testId, Map<Integer, String> answers, boolean allowExistingUpdate) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
         Test test = testRepository.findById(testId)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
         authorizationService.assertCanAccessTest(test);
+        assertStudentBelongsToTest(student, test);
         
         // 기존 제출 확인
         StudentSubmission submission = submissionRepository.findByStudentIdAndTestId(studentId, testId)
@@ -44,25 +83,48 @@ public class SubmissionService {
                         .student(student)
                         .test(test)
                         .build());
+        if (submission.getId() != null && !allowExistingUpdate) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 제출한 시험은 수정할 수 없습니다");
+        }
+
+        Map<Integer, StudentSubmissionDetail> previousDetails = submission.getDetails().stream()
+                .collect(Collectors.toMap(
+                        detail -> detail.getQuestion().getNumber(),
+                        detail -> detail,
+                        (left, right) -> left));
         
         // 문제 가져오기
         List<TestQuestion> questions = questionRepository.findByTestIdOrderByNumber(testId);
         
         // 답안 저장 및 채점
         List<StudentSubmissionDetail> details = new ArrayList<>();
-        double autoEarnedPoints = 0.0;
+        double earnedPointsTotal = 0.0;
         double totalPoints = 0.0;
 
         for (TestQuestion question : questions) {
             String studentAnswer = answers.get(question.getNumber());
             Boolean isCorrect = null;
             Double earnedPoints = null;
+            String teacherComment = null;
+            QuestionType questionType = question.getQuestionType() != null
+                    ? question.getQuestionType()
+                    : QuestionType.SUBJECTIVE;
+            double maxPoints = question.getPoints() != null ? question.getPoints() : 0.0;
 
-            if (question.getQuestionType() != QuestionType.ESSAY) {
+            if (questionType != QuestionType.ESSAY) {
                 isCorrect = question.getAnswer() != null &&
                             question.getAnswer().equals(studentAnswer);
-                earnedPoints = isCorrect ? question.getPoints() : 0.0;
-                autoEarnedPoints += earnedPoints;
+                earnedPoints = isCorrect ? maxPoints : 0.0;
+                earnedPointsTotal += earnedPoints;
+            } else {
+                StudentSubmissionDetail previous = previousDetails.get(question.getNumber());
+                if (previous != null && Objects.equals(previous.getStudentAnswer(), studentAnswer)) {
+                    earnedPoints = previous.getEarnedPoints();
+                    teacherComment = previous.getTeacherComment();
+                    if (earnedPoints != null) {
+                        earnedPointsTotal += earnedPoints;
+                    }
+                }
             }
 
             StudentSubmissionDetail detail = StudentSubmissionDetail.builder()
@@ -71,14 +133,15 @@ public class SubmissionService {
                     .studentAnswer(studentAnswer)
                     .isCorrect(isCorrect)
                     .earnedPoints(earnedPoints)
+                    .teacherComment(teacherComment)
                     .build();
 
             details.add(detail);
-            totalPoints += question.getPoints();
+            totalPoints += maxPoints;
         }
 
         // 총점 계산 (배점 기반, 반올림)
-        int totalScore = totalPoints == 0 ? 0 : (int) Math.round((autoEarnedPoints / totalPoints) * 100);
+        int totalScore = totalPoints == 0 ? 0 : (int) Math.round((earnedPointsTotal / totalPoints) * 100);
         submission.setTotalScore(totalScore);
         submission.setSubmittedAt(LocalDateTime.now());
 
@@ -94,6 +157,14 @@ public class SubmissionService {
                 .collect(Collectors.toList()));
         
         return dto;
+    }
+
+    private void assertStudentBelongsToTest(Student student, Test test) {
+        Long studentClassId = student.getAcademyClass() != null ? student.getAcademyClass().getId() : null;
+        Long testClassId = test.getAcademyClass() != null ? test.getAcademyClass().getId() : null;
+        if (!Objects.equals(studentClassId, testClassId)) {
+            throw new ForbiddenException("해당 시험 반의 학생만 답안을 제출할 수 있습니다");
+        }
     }
     
     public StudentSubmissionDto getSubmission(Long submissionId) {

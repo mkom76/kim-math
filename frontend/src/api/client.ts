@@ -166,6 +166,18 @@ interface Submission {
   updatedAt?: string;
 }
 
+interface TestSubmissionRoster {
+  studentId: number;
+  studentName: string;
+  grade?: string;
+  school?: string;
+  submitted: boolean;
+  submissionId?: number | null;
+  score?: number | null;
+  pendingEssayCount?: number | null;
+  submittedAt?: string | null;
+}
+
 interface Homework {
   id?: number;
   title: string;
@@ -289,6 +301,8 @@ export const testAPI = {
   updateTest: (id: number, data: Test) => client.put(`/tests/${id}`, data),
   deleteTest: (id: number) => client.delete(`/tests/${id}`),
   getTestStats: (id: number) => client.get(`/tests/${id}/stats`),
+  getSubmissionRoster: (id: number) =>
+    client.get<TestSubmissionRoster[]>(`/tests/${id}/submission-roster`),
   getTestQuestions: (id: number) => client.get(`/tests/${id}/questions`),
   addQuestion: (testId: number, data: Omit<Question, 'id'>) =>
     client.post(`/tests/${testId}/questions`, data),
@@ -305,6 +319,10 @@ export const testAPI = {
 export const submissionAPI = {
   submitAnswers: (studentId: number, testId: number, answers: any) =>
     client.post('/submissions', answers, { params: { studentId, testId } }),
+  submitMyAnswers: (testId: number, answers: any) =>
+    client.post('/submissions/me/test/' + testId, answers),
+  saveAnswersForStudent: (studentId: number, testId: number, answers: any) =>
+    client.put<SubmissionResult>(`/submissions/students/${studentId}/tests/${testId}`, answers),
   getByTestId: (testId: number) => client.get(`/submissions/test/${testId}`),
   getStudentSubmissions: (studentId: number) => client.get(`/submissions/student/${studentId}`),
   gradeEssay: (detailId: number, earnedPoints: number, teacherComment?: string) =>
@@ -895,7 +913,7 @@ export type {
   Test,
   Question,
   Submission,
-  SubmissionDetail,
+  TestSubmissionRoster,
   Homework,
   StudentHomework,
   Lesson,

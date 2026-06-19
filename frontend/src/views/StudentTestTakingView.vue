@@ -82,12 +82,8 @@ const handleSubmit = async () => {
 
     submitting.value = true
 
-    // Submit answers - backend expects Map<Integer, String> (question number -> answer)
-    await submissionAPI.submitAnswers(
-      currentUser.value.userId!,
-      testId.value,
-      answers.value
-    )
+    // Backend expects Map<Integer, String> (question number -> answer)
+    await submissionAPI.submitMyAnswers(testId.value, answers.value)
 
     ElMessage.success('시험이 성공적으로 제출되었습니다')
     router.push('/student/dashboard')
@@ -273,4 +269,3 @@ onMounted(() => {
     </el-card>
   </div>
 </template>
-

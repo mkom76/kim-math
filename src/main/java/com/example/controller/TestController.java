@@ -4,6 +4,7 @@ import com.example.dto.TestAnswersDto;
 import com.example.dto.TestDto;
 import com.example.dto.TestQuestionDto;
 import com.example.dto.TestStatsDto;
+import com.example.dto.TestSubmissionRosterDto;
 import com.example.service.TestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -59,6 +60,12 @@ public class TestController {
     @GetMapping("/{id}/stats")
     public ResponseEntity<TestStatsDto> getTestStats(@PathVariable Long id) {
         return ResponseEntity.ok(testService.getTestStats(id));
+    }
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @GetMapping("/{id}/submission-roster")
+    public ResponseEntity<List<TestSubmissionRosterDto>> getSubmissionRoster(@PathVariable Long id) {
+        return ResponseEntity.ok(testService.getSubmissionRoster(id));
     }
     
     @GetMapping("/{id}/questions")

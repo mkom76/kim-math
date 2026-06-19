@@ -28,6 +28,23 @@ public class SubmissionController {
                 .body(submissionService.submitAnswers(studentId, testId, answers));
     }
 
+    @PostMapping("/me/test/{testId}")
+    public ResponseEntity<StudentSubmissionDto> submitMyAnswers(
+            @PathVariable Long testId,
+            @RequestBody Map<Integer, String> answers) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(submissionService.submitMyAnswers(testId, answers));
+    }
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @PutMapping("/students/{studentId}/tests/{testId}")
+    public ResponseEntity<StudentSubmissionDto> saveAnswersForStudent(
+            @PathVariable Long studentId,
+            @PathVariable Long testId,
+            @RequestBody Map<Integer, String> answers) {
+        return ResponseEntity.ok(submissionService.saveAnswersForStudent(studentId, testId, answers));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<StudentSubmissionDto> getSubmission(@PathVariable Long id) {
         return ResponseEntity.ok(submissionService.getSubmission(id));
