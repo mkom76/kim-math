@@ -35,6 +35,51 @@ npm install
 npm run dev
 ```
 
+## Mobile App Testing
+
+There are two different "mobile" test paths:
+
+### 1. Browser mobile viewport
+
+Use this for layout checks only. Native features such as biometric login and push
+notifications will not run in a normal browser.
+
+```sh
+npm run dev -- --host 127.0.0.1 --port 5173
+```
+
+Open `http://127.0.0.1:5173/login` and switch the browser to a mobile viewport.
+The API client derives the backend host from the frontend host, so this page
+calls `http://127.0.0.1:8080/api`.
+
+### 2. Android native shell
+
+Use this for Capacitor behavior such as student-only routing, biometric login,
+and push permission flows.
+
+Prerequisites:
+
+- Backend running on the Mac: `./gradlew bootRun` from the repository root.
+- Android emulator or a USB device running and visible to adb.
+
+Useful commands:
+
+```sh
+npm run android:devices
+npm run android:reverse
+npm run android:build
+npm run android:install
+```
+
+`android:reverse` maps the emulator/device's `localhost:8080` to the Mac's
+backend. If login fails in the native app, first confirm `npm run
+android:devices` shows a device and then rerun `npm run android:reverse`.
+
+Sample local logins:
+
+- Student: ID `1`, PIN `1111`
+- Teacher: username `suhui`, PIN `123456`
+
 ### Type-Check, Compile and Minify for Production
 
 ```sh

@@ -1,12 +1,16 @@
 import axios from 'axios';
 
 // Dev (emulator) reaches the host backend via `adb reverse tcp:8080 tcp:8080`,
-// which maps the emulator's localhost:8080 to the host machine. We keep
-// `localhost` (rather than the 10.0.2.2 emulator host alias) on purpose: the app
-// origin (http://localhost) and the API are then the *same site*, and the
-// session cookie (JSESSIONID, SameSite=Lax) only rides on same-site requests.
+// which maps the emulator's localhost:8080 to the host machine. For browser
+// dev, use the same hostname the frontend was opened with (localhost vs
+// 127.0.0.1) so the session cookie stays same-site.
 // Production sets VITE_API_BASE_URL to the live origin.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const defaultApiBaseUrl =
+  typeof window !== 'undefined'
+    ? `http://${window.location.hostname}:8080/api`
+    : 'http://localhost:8080/api';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || defaultApiBaseUrl;
 
 const client = axios.create({
   baseURL: API_BASE_URL,

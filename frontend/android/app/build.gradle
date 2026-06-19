@@ -46,8 +46,9 @@ apply from: 'capacitor.build.gradle'
 
 // --- Auto-build web assets for emulator/debug runs ---------------------------
 // Android Studio's ▶️ Run (and CLI debug builds) rebuild the Vue app in
-// `development` mode so `.env.development` (http://localhost:8080/api) is baked
-// in; api/client.ts then rewrites localhost -> 10.0.2.2 for the emulator.
+// `development` mode. api/client.ts derives the API host from the WebView's
+// current host; in the Android emulator that is localhost, so adbReverse below
+// tunnels the emulator's localhost:8080 to the host backend.
 // Skipped for release builds so production URLs are never overwritten.
 def frontendDir = file("${rootProject.projectDir}/..")
 def isReleaseBuild = gradle.startParameter.taskNames.any {
