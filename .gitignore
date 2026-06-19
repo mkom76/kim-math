@@ -42,6 +42,8 @@ application-local.yml
 
 ### Deployment Configuration ###
 .env
+.env.local-mysql-dump
+local-mysql-dumps/
 certbot/
 *.log
 
