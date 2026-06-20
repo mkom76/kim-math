@@ -1,6 +1,10 @@
 package com.example.config.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.repository.StudentRepository;
+import com.example.repository.TeacherRepository;
+import com.example.service.AuthSessionService;
+import com.example.service.RememberMeService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -9,10 +13,14 @@ import org.springframework.security.access.expression.method.DefaultMethodSecuri
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -32,13 +40,20 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins:http://localhost,http://localhost:5173,http://localhost:*,http://127.0.0.1:*,https://localhost,https://localhost:*,capacitor://localhost}")
     private String allowedOrigins;
 
+    @Value("${app.security.csrf.enabled:true}")
+    private boolean csrfEnabled;
+
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           RememberMeService rememberMeService,
+                                           AuthSessionService authSessionService,
+                                           StudentRepository studentRepository,
+                                           TeacherRepository teacherRepository) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
+                    "/api/auth/csrf",
                     "/api/auth/student/login",
                     "/api/auth/teacher/login",
                     "/api/consents/**"
@@ -48,8 +63,14 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/**").hasAnyRole("TEACHER", "ACADEMY_ADMIN")
                 .anyRequest().denyAll()
             )
-            .addFilterBefore(new SessionAuthenticationFilter(),
+            .addFilterBefore(new RememberMeAuthenticationFilter(
+                            rememberMeService,
+                            authSessionService,
+                            studentRepository,
+                            teacherRepository),
                     UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(new SessionAuthenticationFilter(),
+                    RememberMeAuthenticationFilter.class)
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((request, response, authException) -> {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -66,6 +87,13 @@ public class SecurityConfig {
             )
             .formLogin(form -> form.disable())
             .httpBasic(basic -> basic.disable());
+
+        if (csrfEnabled) {
+            http.csrf(csrf -> csrf
+                    .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()));
+        } else {
+            http.csrf(AbstractHttpConfigurer::disable);
+        }
 
         return http.build();
     }
@@ -105,5 +133,10 @@ public class SecurityConfig {
         DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
         handler.setRoleHierarchy(roleHierarchy);
         return handler;
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(12);
     }
 }

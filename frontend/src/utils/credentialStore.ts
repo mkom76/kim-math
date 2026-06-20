@@ -1,13 +1,9 @@
 import { Preferences } from '@capacitor/preferences'
 
 /**
- * Native credential storage for the student app's biometric quick-login.
- *
- * Backed by Capacitor `Preferences` — that is *not* hardware-keystore backed,
- * so this is NOT a place for secrets that would be catastrophic if leaked
- * from a rooted device. For a student-PIN flow whose threat model is "phone
- * left on a desk", it's acceptable. Upgrade path: swap implementation for a
- * Keychain/Keystore-backed plugin without touching callers.
+ * Legacy cleanup for the old biometric quick-login credential.
+ * PIN storage is disabled until it can be backed by Android Keystore /
+ * iOS Keychain instead of Capacitor Preferences.
  */
 
 const KEY = 'student-credential.v1'
@@ -17,22 +13,13 @@ export interface StoredCredential {
   pin: string
 }
 
-export async function saveCredential(c: StoredCredential): Promise<void> {
-  await Preferences.set({ key: KEY, value: JSON.stringify(c) })
+export async function saveCredential(_c: StoredCredential): Promise<void> {
+  await clearCredential()
 }
 
 export async function loadCredential(): Promise<StoredCredential | null> {
-  const { value } = await Preferences.get({ key: KEY })
-  if (!value) return null
-  try {
-    const parsed = JSON.parse(value)
-    if (typeof parsed?.studentId === 'number' && typeof parsed?.pin === 'string') {
-      return parsed as StoredCredential
-    }
-    return null
-  } catch {
-    return null
-  }
+  await clearCredential()
+  return null
 }
 
 export async function clearCredential(): Promise<void> {
@@ -40,5 +27,6 @@ export async function clearCredential(): Promise<void> {
 }
 
 export async function hasCredential(): Promise<boolean> {
-  return (await loadCredential()) !== null
+  await clearCredential()
+  return false
 }

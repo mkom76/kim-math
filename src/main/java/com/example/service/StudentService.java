@@ -23,6 +23,7 @@ public class StudentService {
     private final AcademyRepository academyRepository;
     private final AcademyClassRepository academyClassRepository;
     private final AuthorizationService authorizationService;
+    private final PinCredentialService pinCredentialService;
 
     public Page<StudentDto> getStudents(String name, Pageable pageable) {
         Page<Student> students;
@@ -64,10 +65,10 @@ public class StudentService {
                 .name(dto.getName())
                 .grade(dto.getGrade())
                 .school(dto.getSchool())
-                .pin(dto.getPin())
                 .academy(academy)
                 .academyClass(academyClass)
                 .build();
+        pinCredentialService.setStudentPin(student, dto.getPin());
 
         student = studentRepository.save(student);
         return StudentDto.from(student);
@@ -110,7 +111,7 @@ public class StudentService {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
-        student.setPin(newPin);
+        pinCredentialService.setStudentPin(student, newPin);
         student = studentRepository.save(student);
         return StudentDto.from(student);
     }

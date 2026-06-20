@@ -138,7 +138,8 @@ class StudentBulkConsentTest {
         Student created = studentRepository.findAll().stream()
                 .filter(s -> "김철수".equals(s.getName())).findFirst().orElseThrow();
         assertThat(created.getStatus()).isEqualTo(StudentStatus.PENDING_CONSENT);
-        assertThat(created.getPin()).isEqualTo("5678");
+        assertThat(created.getPin()).isNull();
+        assertThat(created.getPinHash()).isNotBlank();
         assertThat(created.getParentPhone()).isEqualTo("010-1234-5678");
 
         assertThat(studentConsentRepository.findByToken(token)).isPresent();
