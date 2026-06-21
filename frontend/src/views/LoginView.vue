@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { authAPI } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { isNativeApp } from '@/utils/platform'
-import { clearCredential } from '@/utils/credentialStore'
+import { isBiometricAvailable, verifyBiometric } from '@/utils/biometric'
+import { loadCredential, saveCredential, clearCredential } from '@/utils/credentialStore'
 import { initPushNotifications } from '@/utils/push'
 
 const router = useRouter()
@@ -17,15 +18,13 @@ const loading = ref(false)
 // Student login form
 const studentForm = ref({
   studentId: undefined as number | undefined,
-  pin: '',
-  rememberMe: nativeApp
+  pin: ''
 })
 
 // Teacher login form
 const teacherForm = ref({
   username: '',
-  pin: '',
-  rememberMe: false
+  pin: ''
 })
 
 const handleStudentLogin = async () => {
@@ -37,19 +36,28 @@ const handleStudentLogin = async () => {
     ElMessage.error('PIN을 입력해주세요')
     return
   }
-  await doStudentLogin(studentForm.value.studentId, studentForm.value.pin, studentForm.value.rememberMe)
+  await doStudentLogin(studentForm.value.studentId, studentForm.value.pin, { offerBiometric: true })
 }
 
-async function doStudentLogin(studentId: number, pin: string, rememberMe: boolean): Promise<boolean> {
+/** Centralized login so manual PIN entry and biometric quick-login share one path. */
+async function doStudentLogin(
+  studentId: number,
+  pin: string,
+  opts: { offerBiometric: boolean },
+): Promise<boolean> {
   loading.value = true
   try {
-    const response = await authAPI.studentLogin(studentId, pin, rememberMe)
+    const response = await authAPI.studentLogin(studentId, pin)
     const { data } = response
 
     if (!data.userId) return false
 
     await authStore.loadCurrentUser()
     ElMessage.success(data.message || '로그인 성공')
+
+    if (opts.offerBiometric && nativeApp) {
+      await maybeOfferBiometric(studentId, pin)
+    }
 
     // Request push permission and register device token (no-op on web).
     initPushNotifications(router).catch(() => { /* best effort */ })
@@ -59,18 +67,44 @@ async function doStudentLogin(studentId: number, pin: string, rememberMe: boolea
   } catch (error: any) {
     const message = error.response?.data?.message || '로그인에 실패했습니다'
     ElMessage.error(message)
+    // Stored creds went bad (PIN reset by teacher etc.) — purge to force manual PIN next time.
+    if (!opts.offerBiometric) {
+      await clearCredential()
+    }
     return false
   } finally {
     loading.value = false
   }
 }
 
-async function clearLegacyQuickLogin(): Promise<void> {
-  if (!nativeApp) return
-  await clearCredential()
+async function maybeOfferBiometric(studentId: number, pin: string): Promise<void> {
+  if (!(await isBiometricAvailable())) return
+  const existing = await loadCredential()
+  if (existing?.studentId === studentId && existing.pin === pin) return // already saved
+  try {
+    await ElMessageBox.confirm(
+      '이 기기에서 다음부터 생체 인증(Face ID / 지문)으로 빠르게 로그인할까요?',
+      '빠른 로그인 설정',
+      { confirmButtonText: '사용', cancelButtonText: '나중에', type: 'info' },
+    )
+    await saveCredential({ studentId, pin })
+    ElMessage.success('생체 인증이 활성화되었습니다')
+  } catch {
+    /* user dismissed — keep manual PIN flow */
+  }
 }
 
-onMounted(() => { clearLegacyQuickLogin() })
+async function tryBiometricAutoLogin(): Promise<void> {
+  if (!nativeApp) return
+  const cred = await loadCredential()
+  if (!cred) return
+  if (!(await isBiometricAvailable())) return
+  const ok = await verifyBiometric('학생 계정으로 로그인합니다')
+  if (!ok) return
+  await doStudentLogin(cred.studentId, cred.pin, { offerBiometric: false })
+}
+
+onMounted(() => { tryBiometricAutoLogin() })
 
 const handleTeacherLogin = async () => {
   if (!teacherForm.value.username) {
@@ -84,11 +118,7 @@ const handleTeacherLogin = async () => {
 
   loading.value = true
   try {
-    const response = await authAPI.teacherLogin(
-      teacherForm.value.username,
-      teacherForm.value.pin,
-      teacherForm.value.rememberMe,
-    )
+    const response = await authAPI.teacherLogin(teacherForm.value.username, teacherForm.value.pin)
     const { data } = response
 
     if (data.userId) {
@@ -148,11 +178,6 @@ const handleTeacherLogin = async () => {
                 />
               </el-form-item>
               <el-form-item>
-                <el-checkbox v-model="studentForm.rememberMe">
-                  로그인 유지
-                </el-checkbox>
-              </el-form-item>
-              <el-form-item>
                 <el-button
                   type="primary"
                   style="width: 100%"
@@ -183,11 +208,6 @@ const handleTeacherLogin = async () => {
                   show-password
                   @keyup.enter="handleTeacherLogin"
                 />
-              </el-form-item>
-              <el-form-item>
-                <el-checkbox v-model="teacherForm.rememberMe">
-                  로그인 유지
-                </el-checkbox>
               </el-form-item>
               <el-form-item>
                 <el-button

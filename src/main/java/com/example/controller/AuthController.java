@@ -10,24 +10,14 @@ import com.example.entity.Teacher;
 import com.example.entity.TeacherAcademy;
 import com.example.repository.StudentRepository;
 import com.example.repository.TeacherRepository;
-import com.example.service.LoginSecurityService;
 import com.example.service.MembershipService;
-import com.example.service.PinCredentialService;
-import com.example.service.AuthSessionService;
-import com.example.service.RememberMeService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.web.csrf.CsrfToken;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,39 +25,16 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@Slf4j
 public class AuthController {
     private final StudentRepository studentRepository;
     private final TeacherRepository teacherRepository;
     private final MembershipService membershipService;
-    private final PinCredentialService pinCredentialService;
-    private final LoginSecurityService loginSecurityService;
-    private final AuthSessionService authSessionService;
-    private final RememberMeService rememberMeService;
-
-    @GetMapping("/csrf")
-    public ResponseEntity<Map<String, String>> csrf(CsrfToken token) {
-        if (token == null) {
-            return ResponseEntity.ok(Map.of());
-        }
-        return ResponseEntity.ok(Map.of(
-                "headerName", token.getHeaderName(),
-                "parameterName", token.getParameterName(),
-                "token", token.getToken()
-        ));
-    }
 
     @PostMapping("/student/login")
-    @Transactional
-    public ResponseEntity<AuthResponse> studentLogin(@RequestBody LoginDto loginDto,
-                                                     HttpServletRequest request,
-                                                     HttpServletResponse response) {
-        Optional<Student> studentOpt = loginDto.getStudentId() == null
-                ? Optional.empty()
-                : studentRepository.findById(loginDto.getStudentId());
+    public ResponseEntity<AuthResponse> studentLogin(@RequestBody LoginDto loginDto, HttpSession session) {
+        Optional<Student> studentOpt = studentRepository.findByIdAndPin(loginDto.getStudentId(), loginDto.getPin());
 
         if (studentOpt.isEmpty()) {
-            log.warn("[auth] student login failed: unknown id={}", loginDto.getStudentId());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(AuthResponse.builder()
                             .message("학생 ID 또는 PIN이 올바르지 않습니다.")
@@ -75,25 +42,6 @@ public class AuthController {
         }
 
         Student student = studentOpt.get();
-        LocalDateTime now = LocalDateTime.now();
-
-        if (loginSecurityService.isLocked(student, now)) {
-            log.warn("[auth] student login locked: studentId={}", student.getId());
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body(AuthResponse.builder()
-                            .message(loginSecurityService.lockMessage(student.getLockedUntil(), now))
-                            .build());
-        }
-
-        if (!pinCredentialService.verifyStudentPin(student, loginDto.getPin())) {
-            loginSecurityService.recordFailure(student, now);
-            log.warn("[auth] student login failed: studentId={}, failures={}",
-                    student.getId(), student.getFailedLoginCount());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(AuthResponse.builder()
-                            .message("학생 ID 또는 PIN이 올바르지 않습니다.")
-                            .build());
-        }
 
         if (student.getStatus() == StudentStatus.PENDING_CONSENT) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -108,10 +56,23 @@ public class AuthController {
                             .build());
         }
 
-        loginSecurityService.recordSuccess(student, now);
+        Long studentAcademyId = null;
+        if (student.getAcademy() != null) {
+            studentAcademyId = student.getAcademy().getId();
+        } else if (student.getAcademyClass() != null && student.getAcademyClass().getAcademy() != null) {
+            studentAcademyId = student.getAcademyClass().getAcademy().getId();
+        }
 
-        authSessionService.bindStudent(authSessionService.startAuthenticatedSession(request), student);
-        refreshRememberMe(request, response, "STUDENT", student.getId(), loginDto.getRememberMe());
+        // Clear any stale tenant context from a previous session/login
+        session.removeAttribute("activeAcademyId");
+        session.removeAttribute("activeRole");
+        session.removeAttribute("studentAcademyId");
+        session.setAttribute("userId", student.getId());
+        session.setAttribute("userRole", "STUDENT");
+        session.setAttribute("userName", student.getName());
+        if (studentAcademyId != null) {
+            session.setAttribute("studentAcademyId", studentAcademyId);
+        }
 
         return ResponseEntity.ok(AuthResponse.builder()
                 .userId(student.getId())
@@ -122,16 +83,10 @@ public class AuthController {
     }
 
     @PostMapping("/teacher/login")
-    @Transactional
-    public ResponseEntity<AuthResponse> teacherLogin(@RequestBody LoginDto loginDto,
-                                                     HttpServletRequest request,
-                                                     HttpServletResponse response) {
-        Optional<Teacher> teacherOpt = loginDto.getUsername() == null
-                ? Optional.empty()
-                : teacherRepository.findByUsername(loginDto.getUsername());
+    public ResponseEntity<AuthResponse> teacherLogin(@RequestBody LoginDto loginDto, HttpSession session) {
+        Optional<Teacher> teacherOpt = teacherRepository.findByUsernameAndPin(loginDto.getUsername(), loginDto.getPin());
 
         if (teacherOpt.isEmpty()) {
-            log.warn("[auth] teacher login failed: unknown username={}", loginDto.getUsername());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(AuthResponse.builder()
                             .message("아이디 또는 PIN이 올바르지 않습니다.")
@@ -139,26 +94,6 @@ public class AuthController {
         }
 
         Teacher teacher = teacherOpt.get();
-        LocalDateTime now = LocalDateTime.now();
-
-        if (loginSecurityService.isLocked(teacher, now)) {
-            log.warn("[auth] teacher login locked: teacherId={}, username={}",
-                    teacher.getId(), teacher.getUsername());
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body(AuthResponse.builder()
-                            .message(loginSecurityService.lockMessage(teacher.getLockedUntil(), now))
-                            .build());
-        }
-
-        if (!pinCredentialService.verifyTeacherPin(teacher, loginDto.getPin())) {
-            loginSecurityService.recordFailure(teacher, now);
-            log.warn("[auth] teacher login failed: teacherId={}, username={}, failures={}",
-                    teacher.getId(), teacher.getUsername(), teacher.getFailedLoginCount());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(AuthResponse.builder()
-                            .message("아이디 또는 PIN이 올바르지 않습니다.")
-                            .build());
-        }
 
         List<MembershipDto> memberships = membershipService.getMembershipsForTeacher(teacher.getId());
         if (memberships.isEmpty()) {
@@ -168,10 +103,12 @@ public class AuthController {
                             .build());
         }
 
-        loginSecurityService.recordSuccess(teacher, now);
-
-        authSessionService.bindTeacher(authSessionService.startAuthenticatedSession(request), teacher);
-        refreshRememberMe(request, response, "TEACHER", teacher.getId(), loginDto.getRememberMe());
+        // Clear any stale tenant context from a previous session/login
+        session.removeAttribute("activeAcademyId");
+        session.removeAttribute("activeRole");
+        session.setAttribute("userId", teacher.getId());
+        session.setAttribute("userRole", "TEACHER");
+        session.setAttribute("userName", teacher.getName());
 
         return ResponseEntity.ok(AuthResponse.builder()
                 .userId(teacher.getId())
@@ -214,13 +151,8 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletRequest request,
-                                       HttpServletResponse response) {
-        rememberMeService.clear(request, response);
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
+    public ResponseEntity<Void> logout(HttpSession session) {
+        session.invalidate();
         return ResponseEntity.ok().build();
     }
 
@@ -284,16 +216,15 @@ public class AuthController {
                 }
 
                 Student student = studentOpt.get();
-                if (!pinCredentialService.verifyStudentPin(student, currentPin)) {
+                if (!currentPin.equals(student.getPin())) {
                     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                             .body(AuthResponse.builder()
                                     .message("현재 PIN이 올바르지 않습니다")
                                     .build());
                 }
 
-                pinCredentialService.setStudentPin(student, newPin);
+                student.setPin(newPin);
                 studentRepository.save(student);
-                log.info("[auth] student pin changed: studentId={}", student.getId());
             } else if ("TEACHER".equals(userRole)) {
                 Optional<Teacher> teacherOpt = teacherRepository.findById(userId);
                 if (teacherOpt.isEmpty()) {
@@ -304,43 +235,25 @@ public class AuthController {
                 }
 
                 Teacher teacher = teacherOpt.get();
-                if (!pinCredentialService.verifyTeacherPin(teacher, currentPin)) {
+                if (!currentPin.equals(teacher.getPin())) {
                     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                             .body(AuthResponse.builder()
                                     .message("현재 PIN이 올바르지 않습니다")
                                     .build());
                 }
 
-                pinCredentialService.setTeacherPin(teacher, newPin);
+                teacher.setPin(newPin);
                 teacherRepository.save(teacher);
-                log.info("[auth] teacher pin changed: teacherId={}", teacher.getId());
             }
 
             return ResponseEntity.ok(AuthResponse.builder()
                     .message("PIN이 성공적으로 변경되었습니다")
                     .build());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(AuthResponse.builder()
-                            .message(e.getMessage())
-                    .build());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(AuthResponse.builder()
                             .message("PIN 변경에 실패했습니다")
-                    .build());
-        }
-    }
-
-    private void refreshRememberMe(HttpServletRequest request,
-                                   HttpServletResponse response,
-                                   String userRole,
-                                   Long userId,
-                                   Boolean rememberMe) {
-        if (Boolean.TRUE.equals(rememberMe)) {
-            rememberMeService.issue(response, userRole, userId);
-        } else {
-            rememberMeService.clear(request, response);
+                            .build());
         }
     }
 }

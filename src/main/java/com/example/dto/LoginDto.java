@@ -11,5 +11,4 @@ public class LoginDto {
     private String username; // for teacher
     private Long studentId; // for student
     private String pin;
-    private Boolean rememberMe;
 }

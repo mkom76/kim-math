@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { authAPI } from '@/api/client'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
-const authStore = useAuthStore()
 
 const loading = ref(false)
 const pinForm = ref({
@@ -14,7 +12,6 @@ const pinForm = ref({
   newPin: '',
   confirmPin: ''
 })
-const pinLength = computed(() => authStore.role === 'TEACHER' ? 6 : 4)
 
 const handleChangePIN = async () => {
   if (!pinForm.value.currentPin || !pinForm.value.newPin || !pinForm.value.confirmPin) {
@@ -27,9 +24,8 @@ const handleChangePIN = async () => {
     return
   }
 
-  const pinPattern = new RegExp(`^\\d{${pinLength.value}}$`)
-  if (!pinPattern.test(pinForm.value.newPin)) {
-    ElMessage.error(`PIN은 숫자 ${pinLength.value}자리여야 합니다`)
+  if (pinForm.value.newPin.length < 4 || pinForm.value.newPin.length > 6) {
+    ElMessage.error('PIN은 4~6자리여야 합니다')
     return
   }
 
@@ -98,7 +94,7 @@ const handleChangePIN = async () => {
               v-model="pinForm.currentPin"
               type="password"
               placeholder="현재 PIN을 입력하세요"
-              :maxlength="pinLength"
+              maxlength="6"
               show-password
             />
           </el-form-item>
@@ -107,8 +103,8 @@ const handleChangePIN = async () => {
             <el-input
               v-model="pinForm.newPin"
               type="password"
-              :placeholder="`새 PIN을 입력하세요 (${pinLength}자리)`"
-              :maxlength="pinLength"
+              placeholder="새 PIN을 입력하세요 (4~6자리)"
+              maxlength="6"
               show-password
             />
           </el-form-item>
@@ -118,7 +114,7 @@ const handleChangePIN = async () => {
               v-model="pinForm.confirmPin"
               type="password"
               placeholder="새 PIN을 다시 입력하세요"
-              :maxlength="pinLength"
+              maxlength="6"
               show-password
               @keyup.enter="handleChangePIN"
             />

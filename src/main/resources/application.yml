@@ -32,12 +32,6 @@ spring:
 
 server:
   port: 8080
-  servlet:
-    session:
-      timeout: 120m
-      cookie:
-        http-only: true
-        same-site: lax
 
 logging:
   level:
@@ -62,13 +56,6 @@ youtube:
 # 켜려면 PUSH_ENABLED=true + FCM_CREDENTIALS_PATH(서비스계정 JSON 경로) 지정.
 # 경로를 비워두면 GOOGLE_APPLICATION_CREDENTIALS(ADC)로 폴백.
 app:
-  security:
-    csrf:
-      enabled: true
-    remember-me:
-      ttl-days: ${REMEMBER_ME_TTL_DAYS:30}
-      cookie-secure: false
-      same-site: Strict
   push:
     enabled: ${PUSH_ENABLED:false}
     fcm:
