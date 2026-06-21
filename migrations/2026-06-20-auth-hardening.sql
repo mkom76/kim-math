@@ -10,7 +10,6 @@ ALTER TABLE teachers
   ADD COLUMN last_login_at DATETIME NULL;
 
 ALTER TABLE students
-  MODIFY pin VARCHAR(4) NULL,
   ADD COLUMN pin_hash VARCHAR(100) NULL,
   ADD COLUMN failed_login_count INT NOT NULL DEFAULT 0,
   ADD COLUMN locked_until DATETIME NULL,
