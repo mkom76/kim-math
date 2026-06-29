@@ -12,6 +12,7 @@ import com.example.repository.AcademyClassRepository;
 import com.example.repository.ClassAssistantRepository;
 import com.example.repository.TeacherAcademyRepository;
 import com.example.repository.TeacherRepository;
+import com.example.service.PinCredentialService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +34,7 @@ public class AdminTeacherController {
     private final TeacherAcademyRepository teacherAcademyRepository;
     private final AcademyClassRepository academyClassRepository;
     private final ClassAssistantRepository classAssistantRepository;
+    private final PinCredentialService pinCredentialService;
 
     @GetMapping
     public List<AdminTeacherDto> listMembers() {
@@ -80,8 +82,8 @@ public class AdminTeacherController {
             Teacher t = Teacher.builder()
                     .username(req.getUsername())
                     .name(req.getName())
-                    .pin(req.getTempPin())
                     .build();
+            pinCredentialService.setTeacherPin(t, req.getTempPin());
             return teacherRepository.save(t);
         });
 

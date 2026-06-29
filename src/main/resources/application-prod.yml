@@ -25,16 +25,15 @@ spring:
         jdbc:
           time_zone: Asia/Seoul
 
+server:
+  port: 8080
   servlet:
     session:
       timeout: 120m
       cookie:
         http-only: true
-        secure: true  # HTTPS 적용 후 true
-        same-site: strict  # HTTPS 적용 후 strict
-
-server:
-  port: 8080
+        secure: true
+        same-site: strict
   error:
     include-message: always
     include-stacktrace: never  # Don't expose stack traces in production
@@ -52,5 +51,12 @@ logging:
 
 # CORS configuration
 app:
+  security:
+    csrf:
+      enabled: true
+    remember-me:
+      ttl-days: ${REMEMBER_ME_TTL_DAYS:30}
+      cookie-secure: true
+      same-site: Strict
   cors:
     allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}

@@ -2,6 +2,7 @@ package com.example.config;
 
 import com.example.entity.*;
 import com.example.repository.*;
+import com.example.service.PinCredentialService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -20,6 +21,8 @@ import java.util.List;
 @Configuration
 @RequiredArgsConstructor
 public class DataInitializer {
+
+    private final PinCredentialService pinCredentialService;
 
     @Bean
     @Profile("local") // Only run in local environment (NOT in production)
@@ -58,37 +61,37 @@ public class DataInitializer {
             Teacher teacher1 = new Teacher();
             teacher1.setName("수희");
             teacher1.setUsername("suhui");
-            teacher1.setPin("123456");
+            pinCredentialService.setTeacherPin(teacher1, "123456");
             teacher1 = teacherRepository.save(teacher1);
 
             Teacher teacherKim = new Teacher();
             teacherKim.setName("김원장");
             teacherKim.setUsername("kim");
-            teacherKim.setPin("111111");
+            pinCredentialService.setTeacherPin(teacherKim, "111111");
             teacherKim = teacherRepository.save(teacherKim);
 
             Teacher teacherLee = new Teacher();
             teacherLee.setName("이선생");
             teacherLee.setUsername("lee");
-            teacherLee.setPin("222222");
+            pinCredentialService.setTeacherPin(teacherLee, "222222");
             teacherLee = teacherRepository.save(teacherLee);
 
             Teacher teacherPark = new Teacher();
             teacherPark.setName("박원장");
             teacherPark.setUsername("park");
-            teacherPark.setPin("333333");
+            pinCredentialService.setTeacherPin(teacherPark, "333333");
             teacherPark = teacherRepository.save(teacherPark);
 
             Teacher teacherChoi = new Teacher();
             teacherChoi.setName("최선생");
             teacherChoi.setUsername("choi");
-            teacherChoi.setPin("444444");
+            pinCredentialService.setTeacherPin(teacherChoi, "444444");
             teacherChoi = teacherRepository.save(teacherChoi);
 
             Teacher teacherJung = new Teacher();
             teacherJung.setName("정선생");
             teacherJung.setUsername("jung");
-            teacherJung.setPin("555555");
+            pinCredentialService.setTeacherPin(teacherJung, "555555");
             teacherJung = teacherRepository.save(teacherJung);
 
             log.info("Created {} teachers", 6);
@@ -1378,7 +1381,7 @@ public class DataInitializer {
         student.setSchool(school);
         student.setAcademy(academy);
         student.setAcademyClass(academyClass);
-        student.setPin(pin);
+        pinCredentialService.setStudentPin(student, pin);
         return student;
     }
 }

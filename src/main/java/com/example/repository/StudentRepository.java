@@ -12,7 +12,6 @@ import java.util.Optional;
 @Repository
 public interface StudentRepository extends JpaRepository<Student, Long> {
     Page<Student> findByNameContaining(String name, Pageable pageable);
-    Optional<Student> findByIdAndPin(Long id, String pin);
     List<Student> findAllByOrderByCreatedAtDesc();
     List<Student> findByAcademyClassId(Long classId);
 }

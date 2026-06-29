@@ -37,6 +37,7 @@ public class StudentBulkService {
     private final AcademyRepository academyRepository;
     private final AcademyClassRepository academyClassRepository;
     private final AuthorizationService authorizationService;
+    private final PinCredentialService pinCredentialService;
 
     @Value("${app.consent.version:v1}")
     private String currentConsentVersion;
@@ -71,7 +72,6 @@ public class StudentBulkService {
                     .name(it.getName().trim())
                     .grade(it.getGrade().trim())
                     .school(it.getSchool().trim())
-                    .pin(pin)
                     .parentName(it.getParentName().trim())
                     .parentPhone(normalizePhone(it.getParentPhone()))
                     .contactPhone(emptyToNull(normalizePhone(it.getContactPhone())))
@@ -79,6 +79,7 @@ public class StudentBulkService {
                     .academy(academy)
                     .academyClass(clazz)
                     .build();
+            pinCredentialService.setStudentPin(student, pin);
             student = studentRepository.save(student);
 
             String token = generateToken();

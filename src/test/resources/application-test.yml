@@ -18,3 +18,8 @@ spring:
     user:
       name: test
       password: test
+
+app:
+  security:
+    csrf:
+      enabled: false

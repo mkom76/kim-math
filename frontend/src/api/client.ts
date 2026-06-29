@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosHeaders, type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
 // Dev (emulator) reaches the host backend via `adb reverse tcp:8080 tcp:8080`,
 // which maps the emulator's localhost:8080 to the host machine. For browser
@@ -18,6 +18,53 @@ const client = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Enable session cookies
+});
+
+const CSRF_SAFE_METHODS = new Set(['get', 'head', 'options', 'trace']);
+interface CsrfResponse {
+  headerName: string;
+  token: string;
+}
+
+let csrfReady: Promise<CsrfResponse> | null = null;
+
+function isUnsafeMethod(method?: string): boolean {
+  return !CSRF_SAFE_METHODS.has((method || 'get').toLowerCase());
+}
+
+function csrfEndpoint(): string {
+  return `${API_BASE_URL}/auth/csrf`;
+}
+
+async function ensureCsrfToken(): Promise<CsrfResponse | null> {
+  if (typeof window === 'undefined') return null;
+  if (!csrfReady) {
+    csrfReady = axios.get<CsrfResponse>(csrfEndpoint(), { withCredentials: true })
+      .then(response => response.data);
+  }
+  return csrfReady;
+}
+
+client.interceptors.request.use(async config => {
+  if (isUnsafeMethod(config.method)) {
+    const csrf = await ensureCsrfToken();
+    if (csrf?.headerName && csrf.token) {
+      config.headers = AxiosHeaders.from(config.headers);
+      config.headers.set(csrf.headerName, csrf.token);
+    }
+  }
+  return config;
+});
+
+client.interceptors.response.use(undefined, async (error: AxiosError) => {
+  const config = error.config as (InternalAxiosRequestConfig & { _csrfRetry?: boolean }) | undefined;
+  if (error.response?.status === 403 && config && isUnsafeMethod(config.method) && !config._csrfRetry) {
+    config._csrfRetry = true;
+    csrfReady = null;
+    await ensureCsrfToken();
+    return client(config);
+  }
+  throw error;
 });
 
 // Types
@@ -574,10 +621,10 @@ export const adminClassAPI = {
 
 // Auth API
 export const authAPI = {
-  studentLogin: (studentId: number, pin: string) =>
-    client.post<AuthResponse>('/auth/student/login', { studentId, pin }),
-  teacherLogin: (username: string, pin: string) =>
-    client.post<AuthResponse>('/auth/teacher/login', { username, pin }),
+  studentLogin: (studentId: number, pin: string, rememberMe?: boolean) =>
+    client.post<AuthResponse>('/auth/student/login', { studentId, pin, rememberMe }),
+  teacherLogin: (username: string, pin: string, rememberMe?: boolean) =>
+    client.post<AuthResponse>('/auth/teacher/login', { username, pin, rememberMe }),
   logout: () => client.post('/auth/logout'),
   getCurrentUser: () => client.get<AuthResponse>('/auth/me'),
   switchAcademy: (academyId: number) =>

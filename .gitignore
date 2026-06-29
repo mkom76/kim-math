@@ -47,6 +47,12 @@ local-mysql-dumps/
 certbot/
 *.log
 
+### Firebase Local Credentials ###
+frontend/android/app/google-services.json
+firebase-service-account*.json
+fcm-service-account*.json
+*firebase-adminsdk*.json
+
 ### Documentation and Database Migrations ###
 docs/
 src/main/resources/db/migration/
