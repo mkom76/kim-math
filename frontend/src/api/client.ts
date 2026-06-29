@@ -18,6 +18,10 @@ const client = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Enable session cookies
+  // Spring Security 6 exposes a masked CSRF token from /auth/csrf. Axios'
+  // built-in XSRF support reads the raw XSRF-TOKEN cookie later in the adapter
+  // phase and would overwrite the masked token set by our interceptor.
+  withXSRFToken: false,
 });
 
 const CSRF_SAFE_METHODS = new Set(['get', 'head', 'options', 'trace']);
