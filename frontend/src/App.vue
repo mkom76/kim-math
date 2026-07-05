@@ -19,7 +19,8 @@ const currentUser = ref<AuthResponse>({})
 const drawerVisible = ref(false)
 
 const isLoginPage = computed(() => route.path === '/login')
-const isTeacherRoute = computed(() => currentUser.value.role === 'TEACHER' && !isLoginPage.value)
+const isExamTimer = computed(() => route.path === '/exam-timer')
+const isTeacherRoute = computed(() => currentUser.value.role === 'TEACHER' && !isLoginPage.value && !isExamTimer.value)
 const isStudentRoute = computed(() => currentUser.value.role === 'STUDENT')
 // Test-taking screen wants the full viewport; suppress bottom nav there.
 const isTestTaking = computed(() => /^\/student\/tests\/[^/]+$/.test(route.path))
@@ -102,6 +103,10 @@ watch(() => route.path, () => {
 
         <!-- Right: Academy Switcher + User Info + Logout -->
         <div style="display: flex; align-items: center; gap: 12px">
+          <el-button type="primary" plain @click="router.push('/exam-timer')">
+            <el-icon style="margin-right: 6px"><Timer /></el-icon>
+            시험 타이머
+          </el-button>
           <AcademySwitcher />
           <span style="color: #606266; font-size: 14px">{{ currentUser.name }}님</span>
           <el-button type="danger" size="small" @click="handleLogout">
@@ -189,7 +194,7 @@ watch(() => route.path, () => {
     <!-- Main Content -->
     <el-main
       :style="{
-        padding: isLoginPage ? '0' : '24px',
+        padding: isLoginPage || isExamTimer ? '0' : '24px',
         paddingBottom: showStudentNav ? 'calc(56px + env(safe-area-inset-bottom) + 16px)' : undefined,
         backgroundColor: isLoginPage ? '#fff' : '#f5f7fa',
       }"

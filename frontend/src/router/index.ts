@@ -52,6 +52,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresRole: 'TEACHER' }
     },
     {
+      path: '/exam-timer',
+      name: 'exam-timer',
+      component: () => import('../views/ExamTimerView.vue'),
+      meta: { requiresAuth: true, requiresRole: 'TEACHER' }
+    },
+    {
       path: '/tests/:id',
       name: 'test-detail',
       component: () => import('../views/TestDetailView.vue'),
