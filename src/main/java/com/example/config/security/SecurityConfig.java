@@ -56,7 +56,8 @@ public class SecurityConfig {
                     "/api/auth/csrf",
                     "/api/auth/student/login",
                     "/api/auth/teacher/login",
-                    "/api/consents/**"
+                    "/api/consents/**",
+                    "/error"
                 ).permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ACADEMY_ADMIN")
                 .requestMatchers("/api/**").authenticated()

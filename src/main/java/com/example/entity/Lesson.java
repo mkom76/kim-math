@@ -16,7 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "lessons")
+@Table(name = "lessons",
+       uniqueConstraints = @UniqueConstraint(
+               name = "uq_lessons_academy_class_date",
+               columnNames = {"academy_id", "class_id", "lesson_date"}))
 @EntityListeners(AuditingEntityListener.class)
 @Filter(name = "academyFilter", condition = "academy_id = :academyId")
 @Filter(name = "ownerFilter",   condition = "class_id IN (SELECT ac.id FROM academy_classes ac WHERE ac.owner_teacher_id = :teacherId UNION SELECT ca.class_id FROM class_assistants ca WHERE ca.teacher_id = :teacherId)")

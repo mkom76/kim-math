@@ -15,6 +15,7 @@ const academies = ref<Academy[]>([])
 const allClasses = ref<AcademyClass[]>([])
 const searchQuery = ref('')
 const dialogVisible = ref(false)
+const submitting = ref(false)
 const filterAcademyId = ref<number | undefined>(undefined)
 const filterClassId = ref<number | undefined>(undefined)
 const currentLesson = ref<{ academyId?: number; classId?: number; lessonDate?: string }>({
@@ -125,6 +126,18 @@ const handleSubmit = async () => {
     return
   }
 
+  const isDuplicate = lessons.value.some(lesson =>
+    lesson.classId === currentLesson.value.classId &&
+    lesson.lessonDate === currentLesson.value.lessonDate
+  )
+  if (isDuplicate) {
+    ElMessage.warning('해당 반에 선택한 날짜의 수업이 이미 존재합니다.')
+    return
+  }
+
+  if (submitting.value) return
+  submitting.value = true
+
   try {
     await lessonAPI.createLesson({
       academyId: currentLesson.value.academyId,
@@ -140,6 +153,8 @@ const handleSubmit = async () => {
     } else {
       ElMessage.error('수업 생성에 실패했습니다.')
     }
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -345,7 +360,7 @@ onMounted(async () => {
 
       <template #footer>
         <el-button @click="dialogVisible = false">취소</el-button>
-        <el-button type="primary" @click="handleSubmit">생성</el-button>
+        <el-button type="primary" :loading="submitting" :disabled="submitting" @click="handleSubmit">생성</el-button>
       </template>
     </el-dialog>
   </div>

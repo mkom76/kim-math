@@ -14,8 +14,10 @@ import com.example.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -117,8 +119,10 @@ public class LessonService {
         authorizationService.assertCanModifyClass(academyClass);
 
         // Check if lesson already exists for this date/class
-        if (lessonRepository.findByAcademyIdAndClassIdAndLessonDate(academyId, classId, lessonDate).isPresent()) {
-            throw new RuntimeException("Lesson already exists for this date and class");
+        if (lessonRepository.findByAcademyIdAndClassIdAndLessonDate(ctx.academyId(), classId, lessonDate).isPresent()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "해당 반에 선택한 날짜의 수업이 이미 존재합니다");
         }
 
         Lesson lesson = Lesson.builder()
