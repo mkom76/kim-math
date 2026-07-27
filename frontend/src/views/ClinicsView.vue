@@ -40,7 +40,7 @@ const fetchAcademyClasses = async () => {
 
     // Select first class by default
     if (academyClasses.value.length > 0 && !selectedClassId.value) {
-      selectedClassId.value = academyClasses.value[0].id
+      selectedClassId.value = academyClasses.value[0]?.id
       fetchClinics()
     }
   } catch (error) {
@@ -79,6 +79,11 @@ const openCreateDialog = () => {
       'FRIDAY': 5, 'SATURDAY': 6, 'SUNDAY': 0
     }
     const targetDay = dayMap[classInfo.clinicDayOfWeek]
+    if (targetDay == null) {
+      selectedDate.value = null
+      createDialogVisible.value = true
+      return
+    }
     const currentDay = today.getDay()
 
     // 다음 해당 요일 계산
@@ -94,7 +99,7 @@ const openCreateDialog = () => {
 
   // 시간 기본값 설정
   if (classInfo?.clinicTime) {
-    const [hours, minutes] = classInfo.clinicTime.split(':').map(Number)
+    const [hours = 0, minutes = 0] = classInfo.clinicTime.split(':').map(Number)
     const time = new Date()
     time.setHours(hours, minutes, 0, 0)
     selectedTime.value = time

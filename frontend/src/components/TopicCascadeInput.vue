@@ -28,7 +28,7 @@ watch(() => props.modelValue, v => {
 const visibleCount = computed(() => {
   let shown = 1
   for (let i = 0; i < TOPIC_MAX_LEVELS - 1; i++) {
-    if (levels.value[i] && levels.value[i].trim().length > 0) shown = i + 2
+    if (levels.value[i]?.trim()) shown = i + 2
     else break
   }
   return Math.min(shown, TOPIC_MAX_LEVELS)
@@ -39,12 +39,12 @@ function onChange(index: number, value: string) {
   next[index] = value.trim()
   // Trim trailing levels beyond the first blank
   for (let i = next.length - 1; i >= 0; i--) {
-    if (!next[i] || !next[i].trim()) next.pop()
+    if (!next[i]?.trim()) next.pop()
     else break
   }
   // If a middle level got cleared, drop everything after it too
   for (let i = 0; i < next.length; i++) {
-    if (!next[i] || !next[i].trim()) {
+    if (!next[i]?.trim()) {
       next.length = i
       break
     }

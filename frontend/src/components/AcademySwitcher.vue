@@ -20,7 +20,7 @@ async function onSwitch(academyId: number | string | number[]) {
       v-if="authStore.memberships.length === 1"
       class="academy-switcher single"
     >
-      {{ authStore.activeAcademy?.academyName ?? authStore.memberships[0].academyName }}
+      {{ authStore.activeAcademy?.academyName ?? authStore.memberships[0]?.academyName ?? '학원' }}
       <el-tag v-if="authStore.isAdmin" size="small" type="warning" style="margin-left: 6px;">관리자</el-tag>
       <el-tag v-else-if="authStore.isAssistant" size="small" type="info" style="margin-left: 6px;">조교</el-tag>
     </span>

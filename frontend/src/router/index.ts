@@ -18,6 +18,12 @@ const router = createRouter({
       meta: { requiresAuth: false }
     },
     {
+      path: '/privacy',
+      name: 'privacy',
+      component: () => import('../views/PrivacyPolicyView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
       path: '/no-academy',
       name: 'no-academy',
       component: () => import('../views/NoAcademyView.vue'),

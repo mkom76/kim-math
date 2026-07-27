@@ -39,9 +39,11 @@ export const useAuthStore = defineStore('auth', () => {
     const stored = localStorage.getItem(LAST_ACADEMY_KEY)
     const storedId = stored ? Number(stored) : null
 
+    const firstMembership = memberships.value[0]
+    if (!firstMembership) return
     const target = (storedId && memberships.value.find(m => m.academyId === storedId))
       ? storedId
-      : memberships.value[0].academyId
+      : firstMembership.academyId
 
     await switchAcademy(target)
   }

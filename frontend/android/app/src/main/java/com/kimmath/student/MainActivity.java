@@ -1,4 +1,4 @@
-package com.kimmath.student.dev;
+package com.kimmath.student;
 
 import com.getcapacitor.BridgeActivity;
 

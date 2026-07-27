@@ -1,4 +1,4 @@
-package com.getcapacitor.myapp;
+package com.kimmath.student;
 
 import static org.junit.Assert.*;
 

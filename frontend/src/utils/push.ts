@@ -16,11 +16,10 @@ let lastToken: string | null = null
 export async function initPushNotifications(router: Router): Promise<void> {
   if (!isNativeApp() || initialized) return
 
-  // Dev builds ship without google-services.json, so Firebase isn't initialized
-  // and PushNotifications.register() throws a native exception that crashes the
-  // app (it can't be caught from JS). Skip push entirely in development; it's
-  // wired up only for production builds that bundle the Firebase config.
-  if (import.meta.env.DEV) return
+  // PushNotifications.register() requires google-services.json in the native
+  // build. Keep the feature behind an explicit build flag so a release that has
+  // not been provisioned in Firebase never calls the native registration API.
+  if (import.meta.env.DEV || import.meta.env.VITE_PUSH_ENABLED !== 'true') return
 
   // Listeners must be added BEFORE requestPermissions on Android 13+ to catch
   // the registration event reliably.

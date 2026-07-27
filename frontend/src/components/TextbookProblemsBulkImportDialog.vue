@@ -61,6 +61,12 @@ const submit = async () => {
 
 const typeLabel = (t?: string | null) =>
   ({ OBJECTIVE: '객관식', SUBJECTIVE: '주관식', ESSAY: '서술형' } as any)[t ?? ''] ?? '—'
+
+function rowClassName({ row }: { row: ParsedRow }): string {
+  if (!row.ok) return 'row-error'
+  if (row.data?.number != null && dupSet.value.has(row.data.number)) return 'row-warn'
+  return ''
+}
 </script>
 
 <template>
@@ -106,7 +112,7 @@ const typeLabel = (t?: string | null) =>
         </span>
       </div>
 
-      <el-table :data="rows" :max-height="320" :row-class-name="r => !r.row.ok ? 'row-error' : (r.row.data?.number != null && dupSet.has(r.row.data.number) ? 'row-warn' : '')">
+      <el-table :data="rows" :max-height="320" :row-class-name="rowClassName">
         <el-table-column type="index" label="줄" width="50" align="center" />
         <el-table-column label="상태" width="60" align="center">
           <template #default="{ row }">

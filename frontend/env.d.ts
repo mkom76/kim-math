@@ -1,5 +1,14 @@
 /// <reference types="vite/client" />
 
+interface ImportMetaEnv {
+  readonly VITE_PRIVACY_CONTACT_EMAIL?: string
+  readonly VITE_PUSH_ENABLED?: string
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv
+}
+
 // YouTube iframe API types
 interface Window {
   YT: typeof YT

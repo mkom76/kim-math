@@ -53,6 +53,11 @@ firebase-service-account*.json
 fcm-service-account*.json
 *firebase-adminsdk*.json
 
+### Android Release Signing ###
+**/*.jks
+**/*.keystore
+**/keystore.properties
+
 ### Documentation and Database Migrations ###
 docs/
 src/main/resources/db/migration/

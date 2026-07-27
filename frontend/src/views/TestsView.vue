@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, Refresh, Search } from '@element-plus/icons-vue'
 import { testAPI, academyAPI, academyClassAPI, type Test, type Academy, type AcademyClass } from '../api/client'
 import { usePagination } from '../composables/usePagination'
 import { useAuthStore } from '@/stores/auth'

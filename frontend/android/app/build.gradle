@@ -1,14 +1,27 @@
 apply plugin: 'com.android.application'
 
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+def releaseSigningKeys = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword']
+def releaseSigningConfigured = keystorePropertiesFile.exists() &&
+    releaseSigningKeys.every { keystoreProperties.getProperty(it)?.trim() }
+def releaseKeystoreFile = releaseSigningConfigured
+    ? rootProject.file(keystoreProperties.getProperty('storeFile'))
+    : null
+releaseSigningConfigured = releaseSigningConfigured && releaseKeystoreFile.exists()
+
 android {
-    namespace = "com.kimmath.student.dev"
+    namespace = "com.kimmath.student"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.kimmath.student.dev"
+        applicationId "com.kimmath.student"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 3
+        versionName "1.0.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,11 +29,42 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (releaseSigningConfigured) {
+            release {
+                storeFile releaseKeystoreFile
+                storePassword keystoreProperties.getProperty('storePassword')
+                keyAlias keystoreProperties.getProperty('keyAlias')
+                keyPassword keystoreProperties.getProperty('keyPassword')
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (releaseSigningConfigured) {
+                signingConfig signingConfigs.release
+            }
         }
+    }
+}
+
+tasks.register('verifyReleaseSigning') {
+    doLast {
+        if (!releaseSigningConfigured) {
+            throw new GradleException(
+                'Play release signing is not configured. Copy ' +
+                'frontend/android/keystore.properties.example to keystore.properties ' +
+                'and point it at the backed-up upload keystore.'
+            )
+        }
+    }
+}
+
+afterEvaluate {
+    tasks.named('bundleRelease').configure {
+        dependsOn 'verifyReleaseSigning'
     }
 }
 
@@ -44,24 +88,22 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
-// --- Auto-build web assets for emulator/debug runs ---------------------------
-// Android Studio's ▶️ Run (and CLI debug builds) rebuild the Vue app in
-// `development` mode. api/client.ts derives the API host from the WebView's
-// current host; in the Android emulator that is localhost, so adbReverse below
-// tunnels the emulator's localhost:8080 to the host backend.
-// Skipped for release builds so production URLs are never overwritten.
+// --- Auto-build web assets for Android builds --------------------------------
+// Debug runs use the local backend through adb reverse. Release bundles use the
+// dedicated Android mode so the packaged WebView calls the public HTTPS API.
 def frontendDir = file("${rootProject.projectDir}/..")
 def isReleaseBuild = gradle.startParameter.taskNames.any {
     it.toLowerCase().contains('release')
 }
 
 tasks.register('buildWebAssets', Exec) {
-    onlyIf { !isReleaseBuild }
     workingDir frontendDir
     // Wrap in a login shell so Android Studio (launched from Dock) inherits the
     // user's PATH and can find node/npx/nvm.
     commandLine 'bash', '-lc',
-        'npx vite build --mode development && npx cap copy android'
+        isReleaseBuild
+            ? 'npm run build:android && npx cap copy android'
+            : 'npx vite build --mode development && npx cap copy android'
 }
 
 // Tunnel the emulator's localhost:8080 to the host backend so app + API share

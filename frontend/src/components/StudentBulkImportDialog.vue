@@ -37,6 +37,14 @@ const dupCount = computed(() =>
 
 const consentBaseUrl = computed(() => window.location.origin + '/consent/')
 
+function rowClassName({ row }: { row: ParsedStudentRow }): string {
+  if (!row.ok) return 'row-error'
+  if (row.warnings.length > 0 || (row.data && dupSet.value.has(row.data.name))) {
+    return 'row-warn'
+  }
+  return ''
+}
+
 watch(() => props.visible, v => {
   if (!v) {
     inputText.value = ''
@@ -181,7 +189,7 @@ async function copyAll() {
         <el-table
           :data="rows"
           :max-height="320"
-          :row-class-name="(r) => !r.row.ok ? 'row-error' : (r.row.warnings.length > 0 || (r.row.data && dupSet.has(r.row.data.name)) ? 'row-warn' : '')"
+          :row-class-name="rowClassName"
         >
           <el-table-column type="index" label="줄" width="50" align="center" />
           <el-table-column label="상태" width="60" align="center">

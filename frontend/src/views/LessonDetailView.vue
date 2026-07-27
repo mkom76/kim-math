@@ -395,8 +395,8 @@ const expandRange = (input: string): string[] => {
   for (const part of parts) {
     const rangeMatch = part.match(/^(\d+)\s*[~\-]\s*(\d+)$/)
     if (rangeMatch) {
-      const start = parseInt(rangeMatch[1])
-      const end = parseInt(rangeMatch[2])
+      const start = Number(rangeMatch[1])
+      const end = Number(rangeMatch[2])
       const [lo, hi] = start <= end ? [start, end] : [end, start]
       for (let i = lo; i <= hi; i++) results.push(String(i))
     } else if (/^\d+$/.test(part)) {
@@ -1150,7 +1150,7 @@ onBeforeUnmount(() => {
         <el-table-column label="할당된 숙제" min-width="250" align="center">
           <template #default="{ row, $index }">
             <el-select
-              v-model="studentAssignments[$index].assignedHomeworkId"
+              v-model="row.assignedHomeworkId"
               placeholder="숙제를 선택하세요"
               style="width: 100%"
               clearable

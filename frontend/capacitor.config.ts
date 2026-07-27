@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.kimmath.student.dev',
+  appId: 'com.kimmath.student',
   appName: '킴매스 학생',
   webDir: 'dist',
   server: {
@@ -13,6 +13,17 @@ const config: CapacitorConfig = {
     // mixed content during development.
     androidScheme: 'http',
     cleartext: true,
+  },
+  plugins: {
+    // Route absolute API requests through the native networking stack. This
+    // keeps the server's session and CSRF cookies in Capacitor's cookie store
+    // instead of treating them as third-party WebView cookies.
+    CapacitorHttp: {
+      enabled: true,
+    },
+    CapacitorCookies: {
+      enabled: true,
+    },
   },
 };
 

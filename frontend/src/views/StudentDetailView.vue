@@ -2,6 +2,7 @@
 import {computed, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {ElMessage} from 'element-plus'
+import { ArrowLeft, Refresh, UserFilled, ZoomIn } from '@element-plus/icons-vue'
 import {
   type Student,
   studentAPI,
@@ -101,7 +102,7 @@ const chartPoints = computed(() => {
 
   const points = submissions.value.map((s, index) => {
     const testId = s.testId
-    const stats = testStats.value[testId]
+    const stats = testId == null ? undefined : testStats.value[testId]
     const studentScore = s.totalScore
     const academyAverage = stats?.averageScore || 0
 
@@ -255,10 +256,17 @@ const handleMouseUp = () => {
   isDragging.value = false
 }
 
+const setEventTargetColor = (event: MouseEvent, color: string) => {
+  if (event.currentTarget instanceof HTMLElement) {
+    event.currentTarget.style.color = color
+  }
+}
+
 const loadAttendanceStats = async () => {
-  if (!student.value) return
+  const id = student.value?.id
+  if (id == null) return
   try {
-    attendanceStats.value = await lessonAPI.getAttendanceStats(student.value.id)
+    attendanceStats.value = await lessonAPI.getAttendanceStats(id)
   } catch {
     // 통계 로드 실패 시 무시
   }
@@ -313,7 +321,13 @@ const fetchStudentDetail = async () => {
     videoProgress.value = videoProgressRes.data
 
     // 각 시험의 통계 가져오기
-    const testIds = [...new Set(submissions.value.map(s => s.testId).filter(id => id))]
+    const testIds = [
+      ...new Set(
+        submissions.value
+          .map(s => s.testId)
+          .filter((id): id is number => id != null),
+      ),
+    ]
     const statsPromises = testIds.map(async (testId) => {
       try {
         const response = await testAPI.getTestStats(testId)
@@ -635,8 +649,8 @@ onMounted(() => {
                     <div
                       :style="{ color: '#409eff', fontSize: bodyFontSize, cursor: 'pointer', textDecoration: 'underline', transition: 'color 0.3s' }"
                       @click="incompleteHomeworksDialogVisible = true"
-                      @mouseenter="e => e.currentTarget.style.color = '#66b1ff'"
-                      @mouseleave="e => e.currentTarget.style.color = '#409eff'"
+                      @mouseenter="setEventTargetColor($event, '#66b1ff')"
+                      @mouseleave="setEventTargetColor($event, '#409eff')"
                     >
                       미완성 숙제 수
                     </div>

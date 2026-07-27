@@ -59,7 +59,14 @@ export function parseStudentRows(text: string): ParsedStudentRow[] {
         errors: ['열 부족 — 이름·학년·학교·보호자이름·보호자전화 (학생전화는 선택)'],
       }
     }
-    const [name, rawGrade, rawSchool, parentName, rawParentPhone, rawContactPhone = ''] = cols
+    const [
+      name = '',
+      rawGrade = '',
+      rawSchool = '',
+      parentName = '',
+      rawParentPhone = '',
+      rawContactPhone = '',
+    ] = cols
     const errors: string[] = []
     const warnings: string[] = []
 

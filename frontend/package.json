@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "version": "0.0.0",
+  "version": "1.0.2",
   "private": true,
   "type": "module",
   "engines": {
@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:android": "vite build --mode android",
     "build:check": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
@@ -18,10 +19,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "cap:sync": "vite build && cap sync",
-    "cap:android": "vite build && cap sync android && cap open android",
+    "cap:sync:android": "npm run build:android && cap sync android",
+    "cap:android": "npm run cap:sync:android && cap open android",
     "android:devices": "bash -lc '\"${ANDROID_HOME:-$HOME/Library/Android/sdk}/platform-tools/adb\" devices'",
     "android:reverse": "bash -lc '\"${ANDROID_HOME:-$HOME/Library/Android/sdk}/platform-tools/adb\" reverse tcp:8080 tcp:8080'",
     "android:build": "cd android && ./gradlew :app:assembleDebug",
+    "android:bundle": "npm run cap:sync:android && cd android && ./gradlew :app:bundleRelease",
     "android:install": "cd android && ./gradlew :app:installDebug",
     "android:dev": "npm run android:reverse && npm run android:install"
   },

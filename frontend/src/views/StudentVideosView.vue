@@ -22,7 +22,7 @@ const MAX_ALLOWED = 65 // 30 × 2.0 speed + 5 tolerance
 
 const embedUrl = computed(() => {
   if (!selectedVideo.value) return ''
-  return `https://www.youtube.com/embed/${selectedVideo.value.youtubeVideoId}?enablejsapi=1`
+  return `https://www.youtube-nocookie.com/embed/${selectedVideo.value.youtubeVideoId}?enablejsapi=1&playsinline=1`
 })
 
 // Load YouTube iframe API

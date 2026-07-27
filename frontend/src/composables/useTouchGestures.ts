@@ -18,8 +18,9 @@ export function useTouchGestures() {
   const handleTouchStart = (event: TouchEvent) => {
     if (event.touches.length === 2) {
       // Pinch gesture
-      const touch1 = event.touches[0]
-      const touch2 = event.touches[1]
+      const touch1 = event.touches.item(0)
+      const touch2 = event.touches.item(1)
+      if (!touch1 || !touch2) return
       const distance = Math.hypot(
         touch2.clientX - touch1.clientX,
         touch2.clientY - touch1.clientY
@@ -34,7 +35,8 @@ export function useTouchGestures() {
     } else if (event.touches.length === 1) {
       // Pan gesture
       isDragging.value = true
-      const touch = event.touches[0]
+      const touch = event.touches.item(0)
+      if (!touch) return
       touchState.value = {
         startDistance: 0,
         startX: touch.clientX - panX.value,
@@ -50,8 +52,9 @@ export function useTouchGestures() {
 
     if (event.touches.length === 2 && touchState.value) {
       // Pinch zoom
-      const touch1 = event.touches[0]
-      const touch2 = event.touches[1]
+      const touch1 = event.touches.item(0)
+      const touch2 = event.touches.item(1)
+      if (!touch1 || !touch2) return
       const distance = Math.hypot(
         touch2.clientX - touch1.clientX,
         touch2.clientY - touch1.clientY
@@ -62,7 +65,8 @@ export function useTouchGestures() {
       touchState.value.startDistance = distance
     } else if (event.touches.length === 1 && isDragging.value && touchState.value) {
       // Pan
-      const touch = event.touches[0]
+      const touch = event.touches.item(0)
+      if (!touch) return
       panX.value = touch.clientX - touchState.value.startX
       panY.value = touch.clientY - touchState.value.startY
     }

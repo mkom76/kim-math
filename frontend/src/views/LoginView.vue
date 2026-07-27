@@ -203,6 +203,10 @@ const handleTeacherLogin = async () => {
           </el-tab-pane>
         </el-tabs>
       </el-card>
+      <p style="margin: 14px 0 0; text-align: center; font-size: 13px; color: #909399">
+        로그인하면 서비스 이용 정책에 동의한 것으로 간주됩니다.
+        <el-link type="primary" @click="router.push('/privacy')">개인정보처리방침</el-link>
+      </p>
     </div>
   </div>
 </template>

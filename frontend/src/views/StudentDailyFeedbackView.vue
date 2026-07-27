@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import { dailyFeedbackAPI, aiFeedbackAPI, type DailyFeedback, type EssayDetail, authAPI, lessonAPI, type Lesson, studentAPI, studentHomeworkAPI, type StudentHomework } from '../api/client'
 import { useRouter, useRoute } from 'vue-router'
 import { useBreakpoint } from '@/composables/useBreakpoint'
@@ -81,7 +82,9 @@ const fetchLessons = async () => {
     }
 
     // 학생 정보에서 classId 가져오기
-    const studentRes = await studentAPI.getStudent(studentId.value)
+    const resolvedStudentId = studentId.value
+    if (resolvedStudentId == null) return
+    const studentRes = await studentAPI.getStudent(resolvedStudentId)
     studentName.value = studentRes.data.name
     await fetchFollowUps()
     const classId = studentRes.data.classId
@@ -97,9 +100,9 @@ const fetchLessons = async () => {
 
       if (todayLesson?.id) {
         selectedLessonId.value = todayLesson.id
-      } else if (lessons.value.length > 0 && lessons.value[0].id) {
+      } else {
         // 오늘 레슨이 없으면 가장 최근 레슨 선택
-        selectedLessonId.value = lessons.value[0].id
+        selectedLessonId.value = lessons.value[0]?.id ?? null
       }
 
       // 선택된 레슨의 피드백 가져오기

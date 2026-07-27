@@ -82,6 +82,21 @@ const handleChangePIN = async () => {
       </div>
     </el-card>
 
+    <el-card shadow="never" style="margin-bottom: 24px">
+      <template #header>
+        <div style="font-size: 18px; font-weight: 600; color: #303133">개인정보 및 지원</div>
+      </template>
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px">
+        <div>
+          <div style="font-weight: 600">개인정보처리방침</div>
+          <div style="margin-top: 4px; color: #909399; font-size: 13px">
+            수집 정보, 이용 목적, 보유 기간과 삭제 요청 방법을 확인합니다.
+          </div>
+        </div>
+        <el-button @click="router.push('/privacy')">보기</el-button>
+      </div>
+    </el-card>
+
     <!-- PIN Change Card -->
     <el-card shadow="never">
       <template #header>
