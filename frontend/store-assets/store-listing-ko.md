@@ -40,7 +40,7 @@
 
 - 웹사이트: https://kim-math.site
 - 개인정보처리방침: https://kim-math.site/privacy
-- 지원 이메일: 실제 공개 이메일 입력 필요
+- 지원 이메일: mkom76@naver.com
 
 ## 그래픽 자산
 
