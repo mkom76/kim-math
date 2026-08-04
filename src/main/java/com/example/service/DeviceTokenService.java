@@ -43,7 +43,7 @@ public class DeviceTokenService {
     }
 
     /** Called on explicit logout so the device stops receiving pushes. */
-    public void unregister(String token) {
-        deviceTokenRepository.deleteByToken(token);
+    public void unregister(Long studentId, String token) {
+        deviceTokenRepository.deleteByStudentIdAndToken(studentId, token);
     }
 }

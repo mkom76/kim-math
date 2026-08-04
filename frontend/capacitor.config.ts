@@ -24,6 +24,10 @@ const config: CapacitorConfig = {
     CapacitorCookies: {
       enabled: true,
     },
+    // Show a visible system notification even while the app is open.
+    PushNotifications: {
+      presentationOptions: ['alert', 'sound'],
+    },
   },
 };
 

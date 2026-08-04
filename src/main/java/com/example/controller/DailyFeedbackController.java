@@ -3,6 +3,7 @@ package com.example.controller;
 import com.example.dto.DailyFeedbackDto;
 import com.example.dto.StudentLessonDto;
 import com.example.service.DailyFeedbackService;
+import com.example.service.PushNotificationService;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -41,8 +42,11 @@ public class DailyFeedbackController {
     @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/lesson/{lessonId}/notify")
     public ResponseEntity<NotifyResponse> notifyLessonFeedback(@PathVariable Long lessonId) {
-        int count = dailyFeedbackService.notifyLessonFeedback(lessonId);
-        return ResponseEntity.ok(new NotifyResponse(count));
+        PushNotificationService.DeliveryResult result = dailyFeedbackService.notifyLessonFeedback(lessonId);
+        return ResponseEntity.ok(new NotifyResponse(
+                result.targetStudentCount(),
+                result.registeredDeviceCount(),
+                result.sentStudentCount()));
     }
 
     @Data
@@ -55,6 +59,8 @@ public class DailyFeedbackController {
     @Data
     @AllArgsConstructor
     public static class NotifyResponse {
+        private int targetCount;
+        private int registeredDeviceCount;
         private int sentCount;
     }
 }

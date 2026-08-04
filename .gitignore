@@ -52,6 +52,7 @@ frontend/android/app/google-services.json
 firebase-service-account*.json
 fcm-service-account*.json
 *firebase-adminsdk*.json
+secrets/
 
 ### Android Release Signing ###
 **/*.jks
