@@ -21,6 +21,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -36,6 +37,12 @@ class AuthSecurityTest {
     @Autowired TeacherRepository teacherRepository;
     @Autowired TeacherAcademyRepository teacherAcademyRepository;
     @Autowired PasswordEncoder passwordEncoder;
+
+    @Test
+    void health_endpoint_is_public_for_container_healthcheck() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+    }
 
     @Test
     void teacher_login_migrates_legacy_plain_pin_to_hash() throws Exception {

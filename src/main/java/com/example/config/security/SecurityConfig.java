@@ -59,6 +59,7 @@ public class SecurityConfig {
                     "/api/consents/**",
                     "/error"
                 ).permitAll()
+                .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ACADEMY_ADMIN")
                 .requestMatchers("/api/**").authenticated()
                 .requestMatchers("/actuator/**").hasAnyRole("TEACHER", "ACADEMY_ADMIN")
