@@ -594,10 +594,19 @@ const notifyDailyFeedback = async () => {
 
     notifyLoading.value = true
     const { data } = await dailyFeedbackAPI.notifyLesson(lessonId.value)
-    if (data.sentCount > 0) {
-      ElMessage.success(`${data.sentCount}명에게 알림을 발송했습니다.`)
-    } else {
+    const delivery = data as {
+      targetCount: number
+      registeredDeviceCount: number
+      sentCount: number
+    }
+    if (delivery.sentCount > 0) {
+      ElMessage.success(`${delivery.sentCount}명에게 알림을 발송했습니다.`)
+    } else if (delivery.targetCount === 0) {
       ElMessage.info('발송 대상이 없습니다. (피드백이 작성된 학생이 없음)')
+    } else if (delivery.registeredDeviceCount === 0) {
+      ElMessage.warning('알림을 받을 기기가 아직 등록되지 않았습니다. 학생이 새 앱에서 로그인한 뒤 다시 시도해주세요.')
+    } else {
+      ElMessage.error('알림 전송에 실패했습니다. 잠시 후 다시 시도해주세요.')
     }
   } catch (error: any) {
     if (error !== 'cancel') {

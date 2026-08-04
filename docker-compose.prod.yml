@@ -40,6 +40,10 @@ services:
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PUSH_ENABLED=${PUSH_ENABLED:-false}
+      - FCM_CREDENTIALS_PATH=/run/secrets/firebase-adminsdk.json
+    secrets:
+      - firebase_adminsdk
     networks:
       - kim-math-network
     depends_on:
@@ -92,3 +96,7 @@ networks:
 volumes:
   mysql-data:
     driver: local
+
+secrets:
+  firebase_adminsdk:
+    file: ./secrets/firebase-adminsdk.json

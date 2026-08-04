@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Send push notifications to a set of students. This is the contract used by
@@ -43,22 +45,30 @@ public class PushNotificationService {
      * students. Data map is forwarded as the FCM `data` payload — the
      * frontend handler uses it to deep-link (e.g. {@code path: "/student/daily-feedback"}).
      */
-    public void sendToStudents(List<Long> studentIds,
-                               String title,
-                               String body,
-                               Map<String, String> data) {
-        if (studentIds == null || studentIds.isEmpty()) return;
-        List<DeviceToken> tokens = deviceTokenRepository.findByStudentIdIn(studentIds);
-        if (tokens.isEmpty()) return;
-        send(tokens, title, body, data);
+    public DeliveryResult sendToStudents(List<Long> studentIds,
+                                         String title,
+                                         String body,
+                                         Map<String, String> data) {
+        if (studentIds == null || studentIds.isEmpty()) return DeliveryResult.empty();
+
+        List<Long> distinctStudentIds = studentIds.stream().distinct().toList();
+        List<DeviceToken> tokens = deviceTokenRepository.findByStudentIdIn(distinctStudentIds);
+        if (tokens.isEmpty()) {
+            return new DeliveryResult(distinctStudentIds.size(), 0, 0);
+        }
+        return send(distinctStudentIds.size(), tokens, title, body, data);
     }
 
-    private void send(List<DeviceToken> tokens, String title, String body, Map<String, String> data) {
+    private DeliveryResult send(int targetStudentCount,
+                                List<DeviceToken> tokens,
+                                String title,
+                                String body,
+                                Map<String, String> data) {
         FirebaseMessaging messaging = firebaseMessagingProvider.getIfAvailable();
         if (!pushEnabled || messaging == null) {
             log.info("[push:disabled] {} → {}/{} (data={})",
                     tokens.stream().map(DeviceToken::getId).toList(), title, body, data);
-            return;
+            return new DeliveryResult(targetStudentCount, tokens.size(), 0);
         }
 
         List<String> tokenStrings = tokens.stream().map(DeviceToken::getToken).toList();
@@ -71,11 +81,22 @@ public class PushNotificationService {
         try {
             BatchResponse response = messaging.sendEachForMulticast(message);
             reapInvalidTokens(response, tokenStrings);
+            Set<Long> sentStudentIds = successfulStudentIds(response, tokens);
             log.info("[push] sent {}/{} success (title={})",
                     response.getSuccessCount(), tokenStrings.size(), title);
+            return new DeliveryResult(targetStudentCount, tokens.size(), sentStudentIds.size());
         } catch (FirebaseMessagingException e) {
             log.error("[push] multicast send failed (title={})", title, e);
+            return new DeliveryResult(targetStudentCount, tokens.size(), 0);
         }
+    }
+
+    private Set<Long> successfulStudentIds(BatchResponse response, List<DeviceToken> tokens) {
+        List<SendResponse> responses = response.getResponses();
+        return java.util.stream.IntStream.range(0, responses.size())
+                .filter(i -> responses.get(i).isSuccessful())
+                .mapToObj(i -> tokens.get(i).getStudentId())
+                .collect(Collectors.toSet());
     }
 
     /** Delete tokens FCM reports as gone (uninstalled / rotated) so they don't linger. */
@@ -89,6 +110,14 @@ public class PushNotificationService {
                 deviceTokenRepository.deleteByToken(tokenStrings.get(i));
                 log.info("[push] reaped invalid token (code={})", code);
             }
+        }
+    }
+
+    public record DeliveryResult(int targetStudentCount,
+                                 int registeredDeviceCount,
+                                 int sentStudentCount) {
+        public static DeliveryResult empty() {
+            return new DeliveryResult(0, 0, 0);
         }
     }
 }

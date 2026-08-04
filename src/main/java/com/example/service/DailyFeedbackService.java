@@ -111,23 +111,22 @@ public class DailyFeedbackService {
      * own token cleanup writes and we don't want to hold a DB connection during
      * the FCM network call).
      *
-     * @return number of students notified (those with feedback)
+     * @return actual FCM delivery summary for students with feedback
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public int notifyLessonFeedback(Long lessonId) {
+    public PushNotificationService.DeliveryResult notifyLessonFeedback(Long lessonId) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
         authorizationService.assertCanAccessLesson(lesson);
 
         List<Long> studentIds = studentLessonRepository.findStudentIdsWithFeedbackByLessonId(lessonId);
-        if (studentIds.isEmpty()) return 0;
+        if (studentIds.isEmpty()) return PushNotificationService.DeliveryResult.empty();
 
-        pushNotificationService.sendToStudents(
+        return pushNotificationService.sendToStudents(
                 studentIds,
                 "오늘의 피드백이 도착했어요",
                 "선생님이 남긴 피드백을 확인해보세요",
                 Map.of("path", "/student/daily-feedback"));
-        return studentIds.size();
     }
 
     private DailyFeedbackDto.HomeworkSummary getHomeworkSummary(Long studentId, Homework homework) {

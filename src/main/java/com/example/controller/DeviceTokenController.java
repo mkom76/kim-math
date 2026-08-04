@@ -45,7 +45,7 @@ public class DeviceTokenController {
         if (userId == null || !"STUDENT".equals(userRole)) {
             throw new ForbiddenException("학생 로그인이 필요합니다");
         }
-        deviceTokenService.unregister(token);
+        deviceTokenService.unregister(userId, token);
         return ResponseEntity.ok().build();
     }
 }
