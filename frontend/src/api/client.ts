@@ -113,6 +113,21 @@ interface Student {
   updatedAt?: string;
 }
 
+export interface StudentCreateRequest {
+  name: string;
+  grade: string;
+  school: string;
+  academyId?: number;
+  classId: number;
+  parentName: string;
+  parentPhone: string;
+  contactPhone?: string;
+}
+
+export interface StudentCreateResponse extends Student {
+  consentToken: string;
+}
+
 export interface StudentBulkCreateItem {
   name: string;
   grade: string;
@@ -341,7 +356,8 @@ export const academyClassAPI = {
 export const studentAPI = {
   getStudents: (params?: ListQueryParams) => client.get('/students', { params }),
   getStudent: (id: number) => client.get(`/students/${id}`),
-  createStudent: (data: Student) => client.post('/students', data),
+  createStudent: (data: StudentCreateRequest) =>
+    client.post<StudentCreateResponse>('/students', data),
   updateStudent: (id: number, data: Student) => client.put(`/students/${id}`, data),
   deleteStudent: (id: number) => client.delete(`/students/${id}`),
   resetPin: (id: number, pin: string) => client.put(`/students/${id}/reset-pin`, { pin }),

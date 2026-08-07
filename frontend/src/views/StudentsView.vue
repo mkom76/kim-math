@@ -3,7 +3,15 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh, Search, User, UserFilled } from '@element-plus/icons-vue'
-import { studentAPI, academyAPI, academyClassAPI, type Student, type Academy, type AcademyClass } from '../api/client'
+import {
+  studentAPI,
+  academyAPI,
+  academyClassAPI,
+  type Student,
+  type Academy,
+  type AcademyClass,
+  type StudentCreateResponse,
+} from '../api/client'
 import { usePagination } from '../composables/usePagination'
 import { useAuthStore } from '@/stores/auth'
 import StudentBulkImportDialog from '../components/StudentBulkImportDialog.vue'
@@ -18,6 +26,8 @@ const allClasses = ref<AcademyClass[]>([])
 const searchQuery = ref('')
 const dialogVisible = ref(false)
 const bulkDialogVisible = ref(false)
+const consentDialogVisible = ref(false)
+const createdConsent = ref<StudentCreateResponse | null>(null)
 const editMode = ref(false)
 const currentStudent = ref<Student>({ name: '', grade: '', school: '', academyId: undefined, classId: undefined })
 const { currentPage, pageSize } = usePagination('students-view')
@@ -50,6 +60,19 @@ const tableData = computed(() => {
 })
 
 const totalItems = computed(() => filteredData.value.length)
+const consentLink = computed(() =>
+  createdConsent.value
+    ? `${window.location.origin}/consent/${createdConsent.value.consentToken}`
+    : ''
+)
+const canSubmitStudent = computed(() => {
+  const student = currentStudent.value
+  const commonFieldsPresent = Boolean(
+    student.name && student.grade && student.school && student.academyId && student.classId
+  )
+  if (!commonFieldsPresent) return false
+  return editMode.value || Boolean(student.parentName && student.parentPhone)
+})
 
 watch(() => currentStudent.value.academyId, () => {
   currentStudent.value.classId = undefined
@@ -91,6 +114,9 @@ const openAddDialog = () => {
     name: '',
     grade: '',
     school: '',
+    parentName: '',
+    parentPhone: '',
+    contactPhone: '',
     academyId: authStore.activeAcademyId ?? undefined,
     classId: undefined
   }
@@ -109,8 +135,8 @@ const handleSubmit = async () => {
     return
   }
 
-  if (!editMode.value && !currentStudent.value.pin) {
-    ElMessage.error('PIN을 입력해주세요.')
+  if (!editMode.value && (!currentStudent.value.parentName || !currentStudent.value.parentPhone)) {
+    ElMessage.error('보호자 이름과 휴대폰을 입력해주세요.')
     return
   }
 
@@ -130,13 +156,34 @@ const handleSubmit = async () => {
 
       ElMessage.success('학생 정보가 수정되었습니다.')
     } else {
-      await studentAPI.createStudent(currentStudent.value)
-      ElMessage.success('학생이 추가되었습니다.')
+      const response = await studentAPI.createStudent({
+        name: currentStudent.value.name,
+        grade: currentStudent.value.grade,
+        school: currentStudent.value.school,
+        academyId: currentStudent.value.academyId,
+        classId: currentStudent.value.classId!,
+        parentName: currentStudent.value.parentName!,
+        parentPhone: currentStudent.value.parentPhone!.replace(/[^0-9-]/g, ''),
+        contactPhone: currentStudent.value.contactPhone?.replace(/[^0-9-]/g, ''),
+      })
+      createdConsent.value = response.data
+      consentDialogVisible.value = true
+      ElMessage.success('학생이 추가되었습니다. 동의 링크를 보호자에게 전달하세요.')
     }
     dialogVisible.value = false
     fetchStudents()
-  } catch (error) {
-    ElMessage.error('작업을 완료할 수 없습니다.')
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message || '작업을 완료할 수 없습니다.')
+  }
+}
+
+const copyConsentLink = async () => {
+  if (!consentLink.value) return
+  try {
+    await navigator.clipboard.writeText(consentLink.value)
+    ElMessage.success('동의 링크가 클립보드에 복사되었습니다.')
+  } catch {
+    ElMessage.error('복사하지 못했습니다. 링크를 직접 선택해 복사해주세요.')
   }
 }
 
@@ -197,7 +244,7 @@ onMounted(() => {
           >
             일괄 등록
           </el-button>
-          <el-button type="primary" @click="openAddDialog" :icon="Plus" size="large">
+          <el-button v-if="!authStore.isAssistant" type="primary" @click="openAddDialog" :icon="Plus" size="large">
             학생 추가
           </el-button>
         </div>
@@ -394,18 +441,43 @@ onMounted(() => {
           </el-select>
         </el-form-item>
 
-        <el-form-item :label="editMode ? 'PIN (선택)' : 'PIN'" :required="!editMode">
+        <template v-if="!editMode">
+          <el-form-item label="보호자명" required>
+            <el-input
+              v-model="currentStudent.parentName"
+              placeholder="동의할 보호자 이름을 입력하세요"
+            />
+          </el-form-item>
+
+          <el-form-item label="보호자 전화" required>
+            <el-input
+              v-model="currentStudent.parentPhone"
+              placeholder="010-1234-5678"
+            />
+          </el-form-item>
+
+          <el-form-item label="학생 전화">
+            <el-input
+              v-model="currentStudent.contactPhone"
+              placeholder="선택 입력"
+            />
+          </el-form-item>
+
+          <el-alert type="info" :closable="false" style="margin-bottom: 18px">
+            학생은 보호자 동의 완료 후 로그인할 수 있으며, 초기 PIN은 보호자 휴대폰 뒤 4자리입니다.
+          </el-alert>
+        </template>
+
+        <el-form-item v-if="editMode" label="PIN (선택)">
           <el-input
             v-model="currentStudent.pin"
-            :placeholder="editMode ? 'PIN을 변경하려면 입력하세요 (4자리)' : 'PIN 번호를 입력하세요 (4자리)'"
+            placeholder="PIN을 변경하려면 입력하세요 (4자리)"
             maxlength="4"
             show-password
           />
-          <template v-if="editMode">
-            <div style="color: #909399; font-size: 12px; margin-top: 4px">
-              비워두면 PIN이 변경되지 않습니다
-            </div>
-          </template>
+          <div style="color: #909399; font-size: 12px; margin-top: 4px">
+            비워두면 PIN이 변경되지 않습니다
+          </div>
         </el-form-item>
       </el-form>
       
@@ -415,11 +487,30 @@ onMounted(() => {
           <el-button
             type="primary"
             @click="handleSubmit"
-            :disabled="!currentStudent.name || !currentStudent.grade || !currentStudent.school || !currentStudent.academyId || !currentStudent.classId"
+            :disabled="!canSubmitStudent"
           >
             {{ editMode ? '수정' : '추가' }}
           </el-button>
         </span>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="consentDialogVisible"
+      title="보호자 동의 링크"
+      width="560px"
+      @closed="createdConsent = null"
+    >
+      <el-alert type="success" :closable="false" style="margin-bottom: 16px">
+        {{ createdConsent?.name }} 학생이 등록되었습니다. 아래 링크를 보호자에게 전달하세요.
+      </el-alert>
+      <el-input :model-value="consentLink" readonly>
+        <template #append>
+          <el-button @click="copyConsentLink">복사</el-button>
+        </template>
+      </el-input>
+      <template #footer>
+        <el-button type="primary" @click="consentDialogVisible = false">확인</el-button>
       </template>
     </el-dialog>
   </div>

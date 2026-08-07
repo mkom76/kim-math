@@ -2,6 +2,8 @@ package com.example.controller;
 
 import com.example.dto.StudentBulkCreateRequest;
 import com.example.dto.StudentBulkCreateResponse;
+import com.example.dto.StudentCreateRequest;
+import com.example.dto.StudentCreateResponse;
 import com.example.dto.StudentDto;
 import com.example.service.StudentBulkService;
 import com.example.service.StudentService;
@@ -38,7 +40,8 @@ public class StudentController {
     
     @PreAuthorize("hasRole('TEACHER')")
     @PostMapping
-    public ResponseEntity<StudentDto> createStudent(@RequestBody StudentDto dto) {
+    public ResponseEntity<StudentCreateResponse> createStudent(
+            @Valid @RequestBody StudentCreateRequest dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(studentService.createStudent(dto));
     }
