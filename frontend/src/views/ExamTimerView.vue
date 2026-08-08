@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue'
-import { Delete, Plus, VideoPause, VideoPlay } from '@element-plus/icons-vue'
+import { Bell, Delete, Mute, Plus, VideoPause, VideoPlay } from '@element-plus/icons-vue'
 import { useRoute } from 'vue-router'
 import { dueAnnouncements, formatTimer, type TimerAnnouncement } from '@/utils/examTimer'
+import schoolBellUrl from '@/assets/audio/school-bell.mp3'
 
 type TimerState = 'setup' | 'ready' | 'running' | 'paused' | 'finished'
 
@@ -17,9 +18,12 @@ const remainingSeconds = ref(durationMinutes.value * 60)
 const previousSeconds = ref(remainingSeconds.value + 1)
 const activeMessage = ref('')
 const darkMode = ref(false)
+const isMuted = ref(false)
 const endAt = ref(0)
 let nextAnnouncementId = 2
 let intervalId: number | undefined
+const schoolBell = new Audio(schoolBellUrl)
+schoolBell.preload = 'auto'
 
 const timerText = computed(() => formatTimer(remainingSeconds.value))
 const hasHours = computed(() => remainingSeconds.value >= 60 * 60)
@@ -38,6 +42,37 @@ function stopTicker() {
   }
 }
 
+function stopBell() {
+  schoolBell.pause()
+  schoolBell.currentTime = 0
+}
+
+function primeBell() {
+  const shouldRemainMuted = isMuted.value
+  schoolBell.muted = true
+  void schoolBell.play()
+    .then(() => {
+      stopBell()
+      schoolBell.muted = shouldRemainMuted
+    })
+    .catch(() => {
+      schoolBell.muted = shouldRemainMuted
+    })
+}
+
+function playBell() {
+  if (isMuted.value) return
+  stopBell()
+  schoolBell.muted = false
+  void schoolBell.play().catch(() => undefined)
+}
+
+function toggleMute() {
+  isMuted.value = !isMuted.value
+  schoolBell.muted = isMuted.value
+  if (isMuted.value) stopBell()
+}
+
 function tick() {
   if (state.value !== 'running') return
 
@@ -52,6 +87,7 @@ function tick() {
     state.value = 'finished'
     activeMessage.value = '시험이 종료되었습니다.'
     stopTicker()
+    playBell()
   }
 }
 
@@ -65,6 +101,7 @@ function openTimer() {
 }
 
 function start() {
+  primeBell()
   previousSeconds.value = remainingSeconds.value + 1
   endAt.value = Date.now() + remainingSeconds.value * 1000
   state.value = 'running'
@@ -87,6 +124,7 @@ function resume() {
 
 function reset() {
   stopTicker()
+  stopBell()
   state.value = 'setup'
   remainingSeconds.value = durationMinutes.value * 60
   activeMessage.value = ''
@@ -106,7 +144,10 @@ async function toggleFullscreen() {
   else await document.documentElement.requestFullscreen()
 }
 
-onBeforeUnmount(stopTicker)
+onBeforeUnmount(() => {
+  stopTicker()
+  stopBell()
+})
 </script>
 
 <template>
@@ -165,6 +206,14 @@ onBeforeUnmount(stopTicker)
     <template v-else>
       <div class="display-toolbar">
         <button type="button" aria-label="설정으로 돌아가기" @click="reset"><el-icon><ArrowLeft /></el-icon></button>
+        <button
+          type="button"
+          :aria-label="isMuted ? '종소리 켜기' : '종소리 음소거'"
+          :aria-pressed="isMuted"
+          @click="toggleMute"
+        >
+          <el-icon><Mute v-if="isMuted" /><Bell v-else /></el-icon>
+        </button>
         <button type="button" :aria-label="darkMode ? '주간 모드로 전환' : '야간 모드로 전환'" @click="darkMode = !darkMode">
           <el-icon><Sunny v-if="darkMode" /><Moon v-else /></el-icon>
         </button>
@@ -186,6 +235,7 @@ onBeforeUnmount(stopTicker)
         <el-button v-else type="primary" size="large" :icon="VideoPlay" @click="start">시작</el-button>
       </div>
       <div v-else class="timer-controls">
+        <el-button :icon="Bell" :disabled="isMuted" @click="playBell">종소리 다시 듣기</el-button>
         <el-button size="large" @click="reset">새 타이머 설정</el-button>
       </div>
     </template>
@@ -257,7 +307,7 @@ onBeforeUnmount(stopTicker)
 .message-slot p { max-width: 94vw; padding: 20px 40px; border: 3px solid #d8e300; border-radius: 10px; background: #f4ff5e; color: #171a12; font-size: clamp(28px, 4vw, 60px); font-weight: 750; box-shadow: 0 8px 28px rgba(173, 186, 0, .22); }
 .clock-panel--finished .digital-clock { color: #d64b4b; }
 .clock-panel--finished .message-slot p { border-color: #d64b4b; }
-.timer-controls { position: absolute; bottom: 34px; left: 50%; transform: translateX(-50%); }
+.timer-controls { position: absolute; bottom: 34px; left: 50%; display: flex; gap: 12px; transform: translateX(-50%); }
 .timer-controls :deep(.el-button) { min-width: 190px; height: 58px; padding: 0 30px; border-radius: 12px; font-size: 20px; font-weight: 700; }
 
 .exam-timer--dark { background: #10131a; color: #f2f4f8; }
@@ -280,6 +330,7 @@ onBeforeUnmount(stopTicker)
   .display-toolbar button { width: 44px; height: 44px; font-size: 18px; }
   .digital-clock { font-size: clamp(80px, 27vw, 160px); }
   .digital-clock--hours { font-size: clamp(60px, 18vw, 110px); }
+  .timer-controls { width: calc(100% - 32px); justify-content: center; }
   .timer-controls :deep(.el-button) { min-width: 150px; height: 50px; font-size: 17px; }
 }
 </style>
