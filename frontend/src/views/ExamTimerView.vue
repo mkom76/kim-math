@@ -4,7 +4,7 @@ import { Delete, Plus, VideoPause, VideoPlay } from '@element-plus/icons-vue'
 import { useRoute } from 'vue-router'
 import { dueAnnouncements, formatTimer, type TimerAnnouncement } from '@/utils/examTimer'
 
-type TimerState = 'setup' | 'running' | 'paused' | 'finished'
+type TimerState = 'setup' | 'ready' | 'running' | 'paused' | 'finished'
 
 const route = useRoute()
 const durationMinutes = ref(60)
@@ -22,8 +22,10 @@ let nextAnnouncementId = 2
 let intervalId: number | undefined
 
 const timerText = computed(() => formatTimer(remainingSeconds.value))
+const hasHours = computed(() => remainingSeconds.value >= 60 * 60)
 const isDisplayMode = computed(() => state.value !== 'setup')
 const stateLabel = computed(() => {
+  if (state.value === 'ready') return '시작 전'
   if (state.value === 'paused') return '일시정지'
   if (state.value === 'finished') return '시험 종료'
   return '남은 시간'
@@ -53,15 +55,20 @@ function tick() {
   }
 }
 
-function start() {
+function openTimer() {
   const seconds = Math.max(1, Math.round(durationMinutes.value * 60))
   remainingSeconds.value = seconds
   previousSeconds.value = seconds + 1
   activeMessage.value = ''
-  state.value = 'running'
-  endAt.value = Date.now() + seconds * 1000
-  tick()
+  state.value = 'ready'
   stopTicker()
+}
+
+function start() {
+  previousSeconds.value = remainingSeconds.value + 1
+  endAt.value = Date.now() + remainingSeconds.value * 1000
+  state.value = 'running'
+  tick()
   intervalId = window.setInterval(tick, 250)
 }
 
@@ -149,8 +156,8 @@ onBeforeUnmount(stopTicker)
           <div v-else class="empty-message">등록된 안내 문구가 없습니다.</div>
         </div>
 
-        <el-button class="start-button" type="primary" size="large" :disabled="!examTitle.trim()" @click="start">
-          타이머 시작
+        <el-button class="start-button" type="primary" size="large" :disabled="!examTitle.trim()" @click="openTimer">
+          타이머 화면 열기
         </el-button>
       </div>
     </template>
@@ -167,7 +174,7 @@ onBeforeUnmount(stopTicker)
       <main class="clock-panel" :class="{ 'clock-panel--finished': state === 'finished' }">
         <p class="exam-title">{{ examTitle }}</p>
         <p class="state-label">{{ stateLabel }}</p>
-        <div class="digital-clock" role="timer" aria-live="off">{{ timerText }}</div>
+        <div class="digital-clock" :class="{ 'digital-clock--hours': hasHours }" role="timer" aria-live="off">{{ timerText }}</div>
         <div class="message-slot" aria-live="polite">
           <p v-if="activeMessage">{{ activeMessage }}</p>
         </div>
@@ -175,7 +182,8 @@ onBeforeUnmount(stopTicker)
 
       <div v-if="state !== 'finished'" class="timer-controls">
         <el-button v-if="state === 'running'" size="large" :icon="VideoPause" @click="pause">일시정지</el-button>
-        <el-button v-else type="primary" size="large" :icon="VideoPlay" @click="resume">계속하기</el-button>
+        <el-button v-else-if="state === 'paused'" type="primary" size="large" :icon="VideoPlay" @click="resume">계속하기</el-button>
+        <el-button v-else type="primary" size="large" :icon="VideoPlay" @click="start">시작</el-button>
       </div>
       <div v-else class="timer-controls">
         <el-button size="large" @click="reset">새 타이머 설정</el-button>
@@ -234,22 +242,23 @@ onBeforeUnmount(stopTicker)
   z-index: 3000;
   min-height: 100vh;
   min-height: 100dvh;
-  padding: 28px;
+  padding: 24px;
   background: #f8fafc;
 }
 
-.display-toolbar { position: absolute; top: 24px; right: 28px; display: flex; gap: 8px; }
-.display-toolbar button { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid #dfe4ea; border-radius: 50%; background: #fff; color: #5f6b7a; cursor: pointer; font-size: 18px; }
-.clock-panel { width: min(1200px, 94vw); text-align: center; }
-.exam-title { margin-bottom: 14px; color: #4c596b; font-size: clamp(20px, 2vw, 30px); font-weight: 650; }
-.state-label { color: #8a94a3; font-size: clamp(16px, 1.4vw, 22px); letter-spacing: .12em; }
-.digital-clock { margin: 10px 0 18px; color: #151b26; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: clamp(92px, 19vw, 260px); font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -.07em; line-height: 1; }
-.message-slot { min-height: 92px; display: grid; place-items: center; }
-.message-slot p { padding: 16px 32px; border: 2px solid #d8e300; border-radius: 8px; background: #f4ff5e; color: #171a12; font-size: clamp(22px, 3vw, 42px); font-weight: 750; box-shadow: 0 8px 28px rgba(173, 186, 0, .22); }
+.display-toolbar { position: absolute; top: 24px; right: 28px; display: flex; gap: 10px; }
+.display-toolbar button { display: grid; place-items: center; width: 54px; height: 54px; border: 1px solid #dfe4ea; border-radius: 50%; background: #fff; color: #5f6b7a; cursor: pointer; font-size: 22px; }
+.clock-panel { width: 100%; text-align: center; }
+.exam-title { margin-bottom: 16px; color: #4c596b; font-size: clamp(28px, 3vw, 48px); font-weight: 650; }
+.state-label { color: #8a94a3; font-size: clamp(20px, 2vw, 32px); letter-spacing: .12em; }
+.digital-clock { margin: 12px 0 24px; color: #151b26; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: clamp(120px, 28vw, 440px); font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -.07em; line-height: .92; }
+.digital-clock--hours { font-size: clamp(104px, 18vw, 320px); }
+.message-slot { min-height: 120px; display: grid; place-items: center; }
+.message-slot p { max-width: 94vw; padding: 20px 40px; border: 3px solid #d8e300; border-radius: 10px; background: #f4ff5e; color: #171a12; font-size: clamp(28px, 4vw, 60px); font-weight: 750; box-shadow: 0 8px 28px rgba(173, 186, 0, .22); }
 .clock-panel--finished .digital-clock { color: #d64b4b; }
 .clock-panel--finished .message-slot p { border-color: #d64b4b; }
-.timer-controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); }
-.timer-controls :deep(.el-button) { min-width: 140px; }
+.timer-controls { position: absolute; bottom: 34px; left: 50%; transform: translateX(-50%); }
+.timer-controls :deep(.el-button) { min-width: 190px; height: 58px; padding: 0 30px; border-radius: 12px; font-size: 20px; font-weight: 700; }
 
 .exam-timer--dark { background: #10131a; color: #f2f4f8; }
 .exam-timer--dark .display-toolbar button { border-color: #333a48; background: #1c212b; color: #d9dee8; }
@@ -268,6 +277,9 @@ onBeforeUnmount(stopTicker)
   .announcement-row > :deep(.el-input) { order: 3; width: 100%; }
   .header-icon { display: none; }
   .display-toolbar { top: 14px; right: 14px; }
-  .digital-clock { font-size: clamp(72px, 25vw, 140px); }
+  .display-toolbar button { width: 44px; height: 44px; font-size: 18px; }
+  .digital-clock { font-size: clamp(80px, 27vw, 160px); }
+  .digital-clock--hours { font-size: clamp(60px, 18vw, 110px); }
+  .timer-controls :deep(.el-button) { min-width: 150px; height: 50px; font-size: 17px; }
 }
 </style>
