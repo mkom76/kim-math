@@ -60,7 +60,8 @@ secrets/
 **/keystore.properties
 
 ### Documentation and Database Migrations ###
-docs/
+docs/*
+!docs/PROJECT_OVERVIEW.md
 src/main/resources/db/migration/
 
 ### Git Worktrees ###
