@@ -174,6 +174,9 @@ interface Question {
   answer: string;
   points: number;
   questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY';
+  /** Canonical math-topic path, e.g. "함수 › 일차함수". */
+  topic?: string | null;
+  topicLevels?: string[];
   textbookProblem?: TextbookProblemMeta | null;
   createdAt?: string;
   updatedAt?: string;
@@ -366,7 +369,7 @@ export const testAPI = {
   getUnattachedTests: (academyId: number, classId: number) =>
     client.get('/tests/unattached', { params: { academyId, classId } }),
   recalculateScores: (id: number) => client.post(`/tests/${id}/recalculate`),
-  saveTestAnswers: (id: number, answers: Array<{ number: number; answer: string; points: number; questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY' }>) =>
+  saveTestAnswers: (id: number, answers: Array<{ number: number; answer: string; points: number; questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY'; topic?: string | null }>) =>
     client.put(`/tests/${id}/answers`, { testId: id, answers }),
   addQuestionsFromTextbook: (testId: number, items: Array<{ textbookProblemId: number; number: number; points: number }>) =>
     client.post(`/tests/${testId}/questions/from-textbook`, items),

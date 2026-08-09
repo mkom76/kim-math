@@ -98,7 +98,7 @@ class TestQuestionsFromTextbookControllerTest {
     }
 
     @Test
-    void from_textbook_snapshots_answer_and_question_type_and_sets_fk() throws Exception {
+    void from_textbook_snapshots_answer_question_type_and_topic_and_sets_fk() throws Exception {
         String body = "[" +
                 "{\"textbookProblemId\":" + p1.getId() + ",\"number\":1,\"points\":5}," +
                 "{\"textbookProblemId\":" + p2.getId() + ",\"number\":2,\"points\":10}" +
@@ -118,11 +118,14 @@ class TestQuestionsFromTextbookControllerTest {
         assertThat(saved.get(0).getAnswer()).isEqualTo("3");
         assertThat(saved.get(0).getPoints()).isEqualTo(5.0);
         assertThat(saved.get(0).getQuestionType()).isEqualTo(QuestionType.OBJECTIVE);
+        assertThat(saved.get(0).getTopic()).isEqualTo("일차함수");
+        assertThat(saved.get(0).getTopicL1()).isEqualTo("일차함수");
         assertThat(saved.get(0).getTextbookProblem()).isNotNull();
         assertThat(saved.get(0).getTextbookProblem().getId()).isEqualTo(p1.getId());
         // 2번 - p2 스냅샷
         assertThat(saved.get(1).getAnswer()).isEqualTo("x=5");
         assertThat(saved.get(1).getQuestionType()).isEqualTo(QuestionType.SUBJECTIVE);
+        assertThat(saved.get(1).getTopic()).isEqualTo("이차방정식");
     }
 
     @Test
@@ -137,8 +140,51 @@ class TestQuestionsFromTextbookControllerTest {
         mockMvc.perform(get("/api/tests/{id}/questions", test.getId())
                         .session(teacherSession()))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].topic").value("일차함수"))
+                .andExpect(jsonPath("$[0].topicLevels[0]").value("일차함수"))
                 .andExpect(jsonPath("$[0].textbookProblem.topic").value("일차함수"))
                 .andExpect(jsonPath("$[0].textbookProblem.videoLink").value("https://y/p1"));
+    }
+
+    @Test
+    void teacher_can_override_math_topic_for_this_test_only() throws Exception {
+        String addBody = "[{\"textbookProblemId\":" + p1.getId() + ",\"number\":1,\"points\":5}]";
+        mockMvc.perform(post("/api/tests/{id}/questions/from-textbook", test.getId())
+                        .session(teacherSession())
+                        .contentType("application/json")
+                        .content(addBody))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/tests/{id}/answers", test.getId())
+                        .session(teacherSession())
+                        .contentType("application/json")
+                        .content("""
+                                {"answers":[{"number":1,"answer":"3","points":5,
+                                  "questionType":"OBJECTIVE",
+                                  "topic":"미적분 / 미분법 > 초월함수 미분"}]}
+                                """))
+                .andExpect(status().isOk());
+
+        var saved = testQuestionRepository.findByTestIdOrderByNumber(test.getId()).getFirst();
+        assertThat(saved.getTopic()).isEqualTo("미적분 › 미분법 › 초월함수 미분");
+        assertThat(saved.getTopicL1()).isEqualTo("미적분");
+        assertThat(saved.getTopicL2()).isEqualTo("미분법");
+        assertThat(saved.getTopicL3()).isEqualTo("초월함수 미분");
+        assertThat(p1.getTopic()).isEqualTo("일차함수");
+
+        mockMvc.perform(put("/api/tests/{id}/answers", test.getId())
+                        .session(teacherSession())
+                        .contentType("application/json")
+                        .content("""
+                                {"answers":[{"number":1,"answer":"3","points":5,
+                                  "questionType":"OBJECTIVE","topic":""}]}
+                                """))
+                .andExpect(status().isOk());
+
+        var cleared = testQuestionRepository.findByTestIdOrderByNumber(test.getId()).getFirst();
+        assertThat(cleared.getTopic()).isNull();
+        assertThat(cleared.getTopicL1()).isNull();
+        assertThat(p1.getTopic()).isEqualTo("일차함수");
     }
 
     @Test

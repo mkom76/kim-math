@@ -904,6 +904,7 @@ public class DataInitializer {
             for (int i = 0; i < 8; i++) {
                 var qt = test1Questions.get(i).getTextbookProblem().getQuestionType();
                 if (qt != null) test1Questions.get(i).setQuestionType(qt);
+                test1Questions.get(i).setTopic(test1Questions.get(i).getTextbookProblem().getTopic());
             }
             testQuestionRepository.saveAll(test1Questions);
 

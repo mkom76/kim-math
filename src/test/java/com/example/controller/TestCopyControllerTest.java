@@ -86,6 +86,7 @@ class TestCopyControllerTest {
                 .answer("3")
                 .points(40.0)
                 .questionType(QuestionType.OBJECTIVE)
+                .topic("함수 › 일차함수")
                 .build());
         em.persist(TestQuestion.builder()
                 .test(sourceTest)
@@ -93,6 +94,7 @@ class TestCopyControllerTest {
                 .answer("x=2")
                 .points(60.0)
                 .questionType(QuestionType.ESSAY)
+                .topic("미적분 › 미분법 › 초월함수 미분")
                 .build());
         em.flush();
         TenantContext.set(teacher.getId(), academy.getId(), TeacherAcademyRole.TEACHER);
@@ -135,6 +137,9 @@ class TestCopyControllerTest {
                 .containsExactly(40.0, 60.0);
         assertThat(copiedQuestions).extracting(TestQuestion::getQuestionType)
                 .containsExactly(QuestionType.OBJECTIVE, QuestionType.ESSAY);
+        assertThat(copiedQuestions).extracting(TestQuestion::getTopic)
+                .containsExactly("함수 › 일차함수", "미적분 › 미분법 › 초월함수 미분");
+        assertThat(copiedQuestions.get(1).getTopicL3()).isEqualTo("초월함수 미분");
         assertThat(copiedQuestions.get(0).getId()).isNotEqualTo(originalQuestions.get(0).getId());
     }
 

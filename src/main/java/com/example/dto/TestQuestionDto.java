@@ -7,6 +7,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -17,6 +20,8 @@ public class TestQuestionDto {
     private String answer;
     private Double points;
     private QuestionType questionType;
+    private String topic;
+    private List<String> topicLevels;
     private TextbookProblemMetaDto textbookProblem; // null = 수동 출제
 
     public static TestQuestionDto from(TestQuestion question) {
@@ -26,7 +31,22 @@ public class TestQuestionDto {
                 .answer(question.getAnswer())
                 .points(question.getPoints())
                 .questionType(question.getQuestionType())
+                .topic(question.getTopic())
+                .topicLevels(collectLevels(question))
                 .textbookProblem(TextbookProblemMetaDto.fromOrNull(question.getTextbookProblem()))
                 .build();
+    }
+
+    private static List<String> collectLevels(TestQuestion question) {
+        List<String> levels = new ArrayList<>(5);
+        String[] stored = {
+                question.getTopicL1(), question.getTopicL2(), question.getTopicL3(),
+                question.getTopicL4(), question.getTopicL5()
+        };
+        for (String level : stored) {
+            if (level == null || level.isBlank()) break;
+            levels.add(level);
+        }
+        return levels;
     }
 }

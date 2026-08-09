@@ -24,7 +24,8 @@ public class SubmissionDetailDto {
     private String videoLink;
 
     public static SubmissionDetailDto from(StudentSubmissionDetail detail) {
-        var tp = detail.getQuestion().getTextbookProblem();
+        var question = detail.getQuestion();
+        var tp = question.getTextbookProblem();
         return SubmissionDetailDto.builder()
                 .id(detail.getId())
                 .questionNumber(detail.getQuestion().getNumber())
@@ -35,7 +36,7 @@ public class SubmissionDetailDto {
                 .maxPoints(detail.getQuestion().getPoints())
                 .teacherComment(detail.getTeacherComment())
                 .questionType(detail.getQuestion().getQuestionType().name())
-                .topic(tp != null ? tp.getTopic() : null)
+                .topic(question.getTopic())
                 .videoLink(tp != null ? tp.getVideoLink() : null)
                 .build();
     }

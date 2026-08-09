@@ -25,5 +25,6 @@ public class TestAnswersDto {
         private String answer;
         private Double points;
         private QuestionType questionType;
+        private String topic;
     }
 }

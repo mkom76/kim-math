@@ -2,6 +2,30 @@
 
 이 디렉토리의 SQL은 운영자가 직접 실행하는 일회성 마이그레이션입니다. 자동 마이그레이션 도구(예: Flyway, Liquibase)는 사용하지 않습니다.
 
+## 2026-08-10: 시험 문항 수학 유형 스냅샷
+
+시험 문항이 교재의 `topic`을 실시간 참조하지 않고 출제 시점 값을 독립 보관하도록
+`test_questions.topic`, `topic_l1..topic_l5`를 추가합니다. 기존 교재 연결 문항은 현재
+교재 유형으로 백필됩니다.
+
+운영 환경은 `ddl-auto: validate`이므로 **코드 배포 전에** 적용해야 합니다.
+
+```bash
+mysql -u root -p academy < migrations/2026-08-10-01-add-test-question-topic-snapshot.sql
+```
+
+적용 후 확인:
+
+```sql
+SELECT COUNT(*) AS missing_snapshot
+FROM test_questions tq
+JOIN textbook_problems tp ON tp.id = tq.textbook_problem_id
+WHERE tp.topic IS NOT NULL AND tp.topic <> '' AND tq.topic IS NULL;
+```
+
+결과가 `0`이어야 합니다. 롤백 SQL은 새 컬럼과 시험에서 수정한 유형 값을 삭제하므로,
+운영 데이터 입력이 시작된 뒤에는 DB 백업을 복원하는 방식을 우선합니다.
+
 ## 2026-04-11: 선생님/학원 격리 마이그레이션
 
 ### 배경

@@ -98,14 +98,18 @@ public class TestService {
         List<TestQuestion> copiedQuestions = testQuestionRepository
                 .findByTestIdOrderByNumber(sourceTestId)
                 .stream()
-                .map(sourceQuestion -> TestQuestion.builder()
-                        .test(copiedTest)
-                        .number(sourceQuestion.getNumber())
-                        .answer(sourceQuestion.getAnswer())
-                        .points(sourceQuestion.getPoints())
-                        .questionType(sourceQuestion.getQuestionType())
-                        .textbookProblem(sourceQuestion.getTextbookProblem())
-                        .build())
+                .map(sourceQuestion -> {
+                    TestQuestion copiedQuestion = TestQuestion.builder()
+                            .test(copiedTest)
+                            .number(sourceQuestion.getNumber())
+                            .answer(sourceQuestion.getAnswer())
+                            .points(sourceQuestion.getPoints())
+                            .questionType(sourceQuestion.getQuestionType())
+                            .textbookProblem(sourceQuestion.getTextbookProblem())
+                            .build();
+                    applyTopic(copiedQuestion, effectiveTopic(sourceQuestion));
+                    return copiedQuestion;
+                })
                 .collect(Collectors.toList());
 
         testQuestionRepository.saveAll(copiedQuestions);
@@ -178,6 +182,7 @@ public class TestService {
                 question.setAnswer(answer.getAnswer());
                 question.setPoints(points);
                 question.setQuestionType(questionType);
+                applyTopic(question, answer.getTopic());
             } else {
                 // 새 문제 생성
                 question = TestQuestion.builder()
@@ -187,6 +192,7 @@ public class TestService {
                         .points(points)
                         .questionType(questionType)
                         .build();
+                applyTopic(question, answer.getTopic());
             }
             questionsToSave.add(question);
         }
@@ -274,13 +280,11 @@ public class TestService {
         studentSubmissionDetailRepository.getEssayAvgEarnedRatesByTestId(testId)
                 .forEach(arr -> essayAvgEarnedMap.put((Integer) arr[0], (Double) arr[1]));
 
-        // 문제번호 → TextbookProblem 메타 (라이브 참조)
+        // 문제번호 → 시험 문항 스냅샷. 유형은 시험 문항, 해설 영상은 교재 메타를 사용한다.
         List<TestQuestion> questions = testQuestionRepository.findByTestIdOrderByNumber(testId);
-        Map<Integer, TextbookProblem> metaByNumber = new HashMap<>();
+        Map<Integer, TestQuestion> questionByNumber = new HashMap<>();
         for (TestQuestion q : questions) {
-            if (q.getTextbookProblem() != null) {
-                metaByNumber.put(q.getNumber(), q.getTextbookProblem());
-            }
+            questionByNumber.put(q.getNumber(), q);
         }
 
         // 문제별 정답률 및 틀린/미채점 학생 명단
@@ -290,8 +294,9 @@ public class TestService {
                     Integer questionNumber = (Integer) arr[0];
                     Double correctRate = (Double) arr[1];
                     QuestionType questionType = (QuestionType) arr[2];
-                    TextbookProblem meta = metaByNumber.get(questionNumber);
-                    String topic = meta != null ? meta.getTopic() : null;
+                    TestQuestion question = questionByNumber.get(questionNumber);
+                    TextbookProblem meta = question != null ? question.getTextbookProblem() : null;
+                    String topic = question != null ? effectiveTopic(question) : null;
                     String videoLink = meta != null ? meta.getVideoLink() : null;
 
                     if (questionType == QuestionType.ESSAY) {
@@ -421,6 +426,7 @@ public class TestService {
                     .questionType(tp.getQuestionType() != null ? tp.getQuestionType() : QuestionType.SUBJECTIVE)
                     .textbookProblem(tp)
                     .build();
+            applyTopic(q, tp.getTopic());
             q = testQuestionRepository.save(q);
             result.add(TestQuestionDto.from(q));
         }
@@ -444,6 +450,8 @@ public class TestService {
                 .questionType(questionType)
                 .build();
 
+        applyTopic(question, dto.getTopic());
+
         question = testQuestionRepository.save(question);
         return TestQuestionDto.from(question);
     }
@@ -453,5 +461,19 @@ public class TestService {
                 .stream()
                 .map(TestDto::from)
                 .collect(Collectors.toList());
+    }
+
+    private static String effectiveTopic(TestQuestion question) {
+        return question.getTopic();
+    }
+
+    private static void applyTopic(TestQuestion question, String rawTopic) {
+        String[] levels = TopicNormalizer.parse(rawTopic);
+        question.setTopic(TopicNormalizer.format(levels));
+        question.setTopicL1(TopicNormalizer.levelAt(levels, 1));
+        question.setTopicL2(TopicNormalizer.levelAt(levels, 2));
+        question.setTopicL3(TopicNormalizer.levelAt(levels, 3));
+        question.setTopicL4(TopicNormalizer.levelAt(levels, 4));
+        question.setTopicL5(TopicNormalizer.levelAt(levels, 5));
     }
 }
