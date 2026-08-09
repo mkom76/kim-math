@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: |
           VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER))
-          VERSION_NAME="1.0.$((2 + GITHUB_RUN_NUMBER))"
+          VERSION_NAME="1.0.$((1 + GITHUB_RUN_NUMBER))"
           echo "ANDROID_VERSION_CODE=${VERSION_CODE}" >> "$GITHUB_ENV"
           echo "ANDROID_VERSION_NAME=${VERSION_NAME}" >> "$GITHUB_ENV"
           echo "code=${VERSION_CODE}" >> "$GITHUB_OUTPUT"
@@ -94,7 +94,7 @@ jobs:
 
       - name: Sync Capacitor Android project
         working-directory: frontend
-        run: npx cap sync android
+        run: npm run cap:sync:android
 
       - name: Build signed Android App Bundle
         working-directory: frontend/android
