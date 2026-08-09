@@ -353,6 +353,8 @@ export const testAPI = {
   getTests: (params?: any) => client.get('/tests', { params }),
   getTest: (id: number) => client.get(`/tests/${id}`),
   createTest: (data: Test) => client.post('/tests', data),
+  copyTest: (sourceTestId: number, data: { targetClassId: number; title: string }) =>
+    client.post<Test>(`/tests/${sourceTestId}/copy`, data),
   updateTest: (id: number, data: Test) => client.put(`/tests/${id}`, data),
   deleteTest: (id: number) => client.delete(`/tests/${id}`),
   getTestStats: (id: number) => client.get(`/tests/${id}/stats`),

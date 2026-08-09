@@ -69,6 +69,50 @@ public class TestService {
         return TestDto.from(test);
     }
 
+    /**
+     * 담당 반의 기존 시험을 다른 반의 새 시험으로 복사한다.
+     * 문항 설정만 복제하고 수업 연결과 학생 제출/성적은 의도적으로 제외한다.
+     */
+    public TestDto copyTest(Long sourceTestId, CopyTestRequest request) {
+        Test sourceTest = testRepository.findById(sourceTestId)
+                .orElseThrow(() -> new IllegalArgumentException("원본 시험을 찾을 수 없습니다"));
+        authorizationService.assertCanAccessTest(sourceTest);
+
+        AcademyClass targetClass = academyClassRepository.findById(request.targetClassId())
+                .orElseThrow(() -> new IllegalArgumentException("대상 반을 찾을 수 없습니다"));
+        authorizationService.assertCanModifyClass(targetClass);
+
+        Long sourceAcademyId = sourceTest.getAcademy() != null ? sourceTest.getAcademy().getId() : null;
+        Long targetAcademyId = targetClass.getAcademy() != null ? targetClass.getAcademy().getId() : null;
+        if (sourceAcademyId == null || !sourceAcademyId.equals(targetAcademyId)) {
+            throw new ForbiddenException("같은 학원 안에서만 시험을 복사할 수 있습니다");
+        }
+
+        Test copiedTest = testRepository.save(Test.builder()
+                .title(request.title().trim())
+                .academy(sourceTest.getAcademy())
+                .academyClass(targetClass)
+                .lesson(null)
+                .build());
+
+        List<TestQuestion> copiedQuestions = testQuestionRepository
+                .findByTestIdOrderByNumber(sourceTestId)
+                .stream()
+                .map(sourceQuestion -> TestQuestion.builder()
+                        .test(copiedTest)
+                        .number(sourceQuestion.getNumber())
+                        .answer(sourceQuestion.getAnswer())
+                        .points(sourceQuestion.getPoints())
+                        .questionType(sourceQuestion.getQuestionType())
+                        .textbookProblem(sourceQuestion.getTextbookProblem())
+                        .build())
+                .collect(Collectors.toList());
+
+        testQuestionRepository.saveAll(copiedQuestions);
+        copiedTest.getQuestions().addAll(copiedQuestions);
+        return TestDto.from(copiedTest);
+    }
+
     public TestDto updateTest(Long id, TestDto dto) {
         Test test = testRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
