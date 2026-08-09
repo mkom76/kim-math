@@ -7,14 +7,16 @@ import { authAPI } from '@/api/client'
 import type { AuthResponse } from '@/api/client'
 import AcademySwitcher from '@/components/AcademySwitcher.vue'
 import StudentBottomNav from '@/components/StudentBottomNav.vue'
+import StudentBottomNavV2 from '@/components/StudentBottomNavV2.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useStudentUiMode } from '@/composables/useStudentUiMode'
 
 const router = useRouter()
 const route = useRoute()
 
 const authStore = useAuthStore()
+const { mode: studentUiMode } = useStudentUiMode()
 
-const activeIndex = ref('/')
 const currentUser = ref<AuthResponse>({})
 const drawerVisible = ref(false)
 
@@ -22,6 +24,7 @@ const isLoginPage = computed(() => route.path === '/login')
 const isExamTimer = computed(() => route.path === '/exam-timer')
 const isTeacherRoute = computed(() => currentUser.value.role === 'TEACHER' && !isLoginPage.value && !isExamTimer.value)
 const isStudentRoute = computed(() => currentUser.value.role === 'STUDENT')
+const isStudentV2 = computed(() => studentUiMode.value === 'v2' && route.path.startsWith('/student/'))
 // Test-taking screen wants the full viewport; suppress bottom nav there.
 const isTestTaking = computed(() => /^\/student\/tests\/[^/]+$/.test(route.path))
 const showStudentNav = computed(() => isStudentRoute.value && !isTestTaking.value)
@@ -34,7 +37,7 @@ const fetchCurrentUser = async () => {
     if (response.data.userId) {
       await authStore.loadCurrentUser()
     }
-  } catch (error) {
+  } catch {
     // User not logged in
   }
 }
@@ -67,7 +70,11 @@ watch(() => route.path, () => {
 </script>
 
 <template>
-  <el-container style="min-height: 100vh; min-height: 100dvh; background-color: #f5f7fa; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom)">
+  <el-container
+    class="app-shell"
+    :class="{ 'student-ui-v2': isStudentV2 }"
+    style="min-height: 100vh; min-height: 100dvh; background-color: #f5f7fa; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom)"
+  >
     <!-- Header (Teacher only) -->
     <el-header v-if="isTeacherRoute" style="background-color: #fff; border-bottom: 1px solid #dcdfe6; padding: 0 20px">
       <div style="display: flex; align-items: center; justify-content: space-between; height: 100%">
@@ -193,17 +200,22 @@ watch(() => route.path, () => {
 
     <!-- Main Content -->
     <el-main
+      :class="{
+        'student-app-main': isStudentV2,
+        'has-student-nav': isStudentV2 && showStudentNav,
+      }"
       :style="{
-        padding: isLoginPage || isExamTimer ? '0' : '24px',
-        paddingBottom: showStudentNav ? 'calc(56px + env(safe-area-inset-bottom) + 16px)' : undefined,
-        backgroundColor: isLoginPage ? '#fff' : '#f5f7fa',
+        padding: isLoginPage || isExamTimer || isStudentV2 ? '0' : '24px',
+        paddingBottom: showStudentNav && !isStudentV2 ? 'calc(56px + env(safe-area-inset-bottom) + 16px)' : undefined,
+        backgroundColor: isLoginPage ? '#fff' : isStudentV2 ? undefined : '#f5f7fa',
       }"
     >
       <RouterView />
     </el-main>
 
     <!-- Student-side bottom navigation (mobile-friendly; native + web). -->
-    <StudentBottomNav v-if="showStudentNav" />
+    <StudentBottomNavV2 v-if="showStudentNav && isStudentV2" />
+    <StudentBottomNav v-else-if="showStudentNav" />
   </el-container>
 </template>
 

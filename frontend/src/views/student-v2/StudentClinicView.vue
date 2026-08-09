@@ -1,0 +1,530 @@
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { MagicStick, Calendar, Warning, Check, Close, TrophyBase, Right, CaretTop, CaretBottom } from '@element-plus/icons-vue'
+import { clinicAPI, authAPI, type StudentClinicInfo, type AuthResponse, type RecentClinicResult } from '@/api/client'
+import { useBreakpoint } from '@/composables/useBreakpoint'
+
+const loading = ref(false)
+const clinicInfo = ref<StudentClinicInfo | null>(null)
+const currentUser = ref<AuthResponse | null>(null)
+const recentResult = ref<RecentClinicResult | null>(null)
+const getApiMessage = (error: unknown, fallback: string) =>
+  (error as { response?: { data?: { message?: string } } }).response?.data?.message || fallback
+
+const { isMobile } = useBreakpoint()
+const h3FontSize = computed(() => isMobile.value ? '16px' : '18px')
+
+const hasUpcomingClinic = computed(() => {
+  return clinicInfo.value?.upcomingClinic != null
+})
+
+const incompleteHomeworks = computed(() => clinicInfo.value?.incompleteHomeworks ?? [])
+
+const isRegistered = computed(() => {
+  return clinicInfo.value?.myRegistration != null &&
+         clinicInfo.value.myRegistration.status !== 'CANCELLED'
+})
+
+const shouldAttendClinic = computed(() => {
+  return clinicInfo.value?.shouldAttend === true
+})
+
+const fetchCurrentUser = async () => {
+  try {
+    const response = await authAPI.getCurrentUser()
+    currentUser.value = response.data
+  } catch {
+    ElMessage.error('사용자 정보를 불러오는데 실패했습니다.')
+  }
+}
+
+const fetchClinicInfo = async () => {
+  if (!currentUser.value?.userId) return
+
+  loading.value = true
+  try {
+    const response = await clinicAPI.getStudentClinicInfo(currentUser.value.userId)
+    clinicInfo.value = response.data
+  } catch {
+    ElMessage.error('클리닉 정보를 불러오는데 실패했습니다.')
+  } finally {
+    loading.value = false
+  }
+}
+
+const fetchRecentResult = async () => {
+  if (!currentUser.value?.userId) return
+
+  try {
+    const response = await clinicAPI.getRecentClinicResult(currentUser.value.userId)
+    recentResult.value = response.data
+  } catch {
+    // 204 or error - 조용히 실패 (결과 없음은 정상)
+    recentResult.value = null
+  }
+}
+
+const parseLocalDate = (dateStr: string) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr)
+  if (!match) return new Date(dateStr)
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+}
+
+const formatDate = (dateStr: string) => {
+  const date = parseLocalDate(dateStr)
+  return date.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long'
+  })
+}
+
+const formatShortDate = (dateStr?: string) => {
+  if (!dateStr) return '-'
+  const date = parseLocalDate(dateStr)
+  return date.toLocaleDateString('ko-KR', {
+    month: 'numeric',
+    day: 'numeric',
+  })
+}
+
+const formatTime = (timeStr: string) => {
+  return timeStr.substring(0, 5) // HH:mm
+}
+
+const getCompletionColor = (completion?: number) => {
+  if (!completion) return '#909399'
+  if (completion >= 90) return '#67c23a'
+  if (completion >= 70) return '#e6a23c'
+  return '#f56c6c'
+}
+
+const getChangeColor = (change: number) => {
+  // 오답/안 푼 문제는 감소가 좋은 것
+  if (change < 0) return '#67c23a'
+  if (change > 0) return '#f56c6c'
+  return '#909399'
+}
+
+const getChangeText = (change: number) => {
+  if (change === 0) return '변화 없음'
+  return `${Math.abs(change)}개`
+}
+
+const registerForClinic = async () => {
+  if (!currentUser.value?.userId || !clinicInfo.value?.upcomingClinic?.id) return
+
+  try {
+    await ElMessageBox.confirm(
+      '클리닉에 신청하시겠습니까?',
+      '신청 확인',
+      {
+        confirmButtonText: '신청',
+        cancelButtonText: '취소',
+        type: 'info',
+      }
+    )
+
+    await clinicAPI.registerForClinic(clinicInfo.value.upcomingClinic.id, currentUser.value.userId)
+    ElMessage.success('클리닉 신청이 완료되었습니다.')
+    fetchClinicInfo()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(getApiMessage(error, '신청에 실패했습니다.'))
+    }
+  }
+}
+
+const cancelRegistration = async () => {
+  if (!currentUser.value?.userId || !clinicInfo.value?.upcomingClinic?.id) return
+
+  try {
+    await ElMessageBox.confirm(
+      '클리닉 신청을 취소하시겠습니까?',
+      '취소 확인',
+      {
+        confirmButtonText: '취소',
+        cancelButtonText: '돌아가기',
+        type: 'warning',
+      }
+    )
+
+    await clinicAPI.cancelRegistration(clinicInfo.value.upcomingClinic.id, currentUser.value.userId)
+    ElMessage.success('클리닉 신청이 취소되었습니다.')
+    fetchClinicInfo()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('취소에 실패했습니다.')
+    }
+  }
+}
+
+onMounted(async () => {
+  await fetchCurrentUser()
+  await fetchClinicInfo()
+  await fetchRecentResult()
+})
+</script>
+
+<template>
+  <div class="student-page clinic-page">
+    <!-- Header -->
+    <header class="student-page__header clinic-header">
+      <div>
+        <p class="student-page__eyebrow">CLINIC</p>
+        <h1 class="student-page__title">클리닉</h1>
+        <p class="student-page__subtitle">부족한 숙제를 차근차근 완성해요.</p>
+      </div>
+      <span class="clinic-header__icon"><el-icon><MagicStick /></el-icon></span>
+    </header>
+
+    <div v-loading="loading">
+      <!-- No Upcoming Clinic -->
+      <el-card v-if="!hasUpcomingClinic" class="clinic-empty" shadow="never">
+        <el-empty description="예정된 클리닉이 없습니다">
+          <template #image>
+            <el-icon size="80" color="#909399">
+              <Calendar />
+            </el-icon>
+          </template>
+        </el-empty>
+      </el-card>
+
+      <div v-else>
+        <!-- Should Attend Warning -->
+        <el-alert
+          v-if="shouldAttendClinic && !isRegistered"
+          title="클리닉 신청을 권장합니다"
+          type="warning"
+          :closable="false"
+          style="margin-bottom: 24px"
+        >
+          <template #default>
+            <p style="margin: 0">완성도가 90% 미만인 숙제가 있습니다. 클리닉에 참여하여 부족한 부분을 보충하세요!</p>
+          </template>
+        </el-alert>
+
+        <!-- Clinic Info -->
+        <el-card class="clinic-schedule" shadow="never">
+          <template #header>
+            <div style="display: flex; justify-content: space-between; align-items: center">
+              <h3 :style="{ margin: 0, fontSize: h3FontSize, fontWeight: 600 }">
+                다가오는 클리닉
+              </h3>
+              <el-tag v-if="isRegistered" type="success" size="large">신청 완료</el-tag>
+              <el-tag v-else type="info" size="large">미신청</el-tag>
+            </div>
+          </template>
+
+          <el-descriptions :column="1" border>
+            <el-descriptions-item label="날짜">
+              {{ formatDate(clinicInfo!.upcomingClinic!.clinicDate) }}
+            </el-descriptions-item>
+            <el-descriptions-item label="시간">
+              {{ formatTime(clinicInfo!.upcomingClinic!.clinicTime) }}
+            </el-descriptions-item>
+          </el-descriptions>
+
+          <div style="margin-top: 24px; text-align: center">
+            <el-button
+              v-if="!isRegistered"
+              type="primary"
+              size="large"
+              @click="registerForClinic"
+              style="min-width: 200px"
+            >
+              <el-icon style="margin-right: 8px"><Check /></el-icon>
+              클리닉 신청하기
+            </el-button>
+            <el-button
+              v-else
+              type="danger"
+              size="large"
+              @click="cancelRegistration"
+              style="min-width: 200px"
+            >
+              <el-icon style="margin-right: 8px"><Close /></el-icon>
+              신청 취소하기
+            </el-button>
+          </div>
+        </el-card>
+
+        <!-- Incomplete Homeworks -->
+        <el-card v-if="incompleteHomeworks.length > 0" class="clinic-homeworks" shadow="never">
+          <template #header>
+            <h3 :style="{ margin: 0, fontSize: h3FontSize, fontWeight: 600, color: '#e6a23c' }">
+              <el-icon style="margin-right: 8px"><Warning /></el-icon>
+              완성도가 낮은 숙제 ({{ incompleteHomeworks.length }}개)
+            </h3>
+          </template>
+
+          <el-table v-if="!isMobile" :data="incompleteHomeworks" style="width: 100%">
+            <el-table-column prop="homeworkTitle" label="숙제" width="100" />
+            <el-table-column prop="lessonDate" label="수업 날짜" width="90" />
+            <el-table-column prop="completion" label="완성도" width="120" align="center">
+              <template #default="{ row }">
+                <span :style="{ color: getCompletionColor(row.completion), fontWeight: 600, fontSize: h3FontSize }">
+                  {{ row.completion || 0 }}%
+                </span>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <div v-else class="mobile-homework-list">
+            <div
+              v-for="homework in incompleteHomeworks"
+              :key="homework.homeworkId"
+              class="mobile-homework-row"
+            >
+              <div class="mobile-homework-main">
+                <div class="mobile-homework-title">{{ homework.homeworkTitle }}</div>
+                <div class="mobile-homework-date">{{ formatShortDate(homework.lessonDate) }} 수업</div>
+              </div>
+              <div
+                class="mobile-homework-completion"
+                :style="{ color: getCompletionColor(homework.completion) }"
+              >
+                {{ homework.completion || 0 }}%
+              </div>
+            </div>
+          </div>
+
+          <el-alert
+            type="info"
+            :closable="false"
+            style="margin-top: 16px"
+          >
+            <template #default>
+              <p style="margin: 0">클리닉에서 위 숙제들을 집중적으로 복습하고 보충할 예정입니다.</p>
+            </template>
+          </el-alert>
+        </el-card>
+
+        <!-- All Homeworks Complete -->
+        <el-card v-else class="clinic-complete" shadow="never">
+          <el-result icon="success" title="모든 숙제를 잘 완성했습니다!">
+            <template #sub-title>
+              모든 숙제의 완성도가 90% 이상입니다. 계속 열심히 해주세요!
+            </template>
+          </el-result>
+        </el-card>
+
+        <!-- Recent Clinic Result -->
+        <el-card v-if="recentResult" class="clinic-result" shadow="never">
+          <template #header>
+            <div>
+              <h3 :style="{ margin: 0, fontSize: h3FontSize, fontWeight: 600, color: '#67c23a' }">
+                <el-icon style="margin-right: 8px"><TrophyBase /></el-icon>
+                최근 클리닉 결과
+              </h3>
+              <p style="margin: 8px 0 0; color: #909399; font-size: 14px">
+                {{ formatDate(recentResult.clinicDate) }} {{ formatTime(recentResult.clinicTime) }}
+              </p>
+            </div>
+          </template>
+
+          <el-descriptions :column="1" border style="margin-bottom: 16px">
+            <el-descriptions-item label="개선한 숙제">
+              {{ recentResult.improvedHomeworkCount }}개
+            </el-descriptions-item>
+            <el-descriptions-item label="전체 오답 개수">
+              {{ recentResult.totalIncorrectCountBefore }}개
+              <el-icon style="margin: 0 4px"><Right /></el-icon>
+              {{ recentResult.totalIncorrectCountAfter }}개
+              <span :style="{
+                color: getChangeColor(recentResult.totalIncorrectCountChange),
+                fontWeight: 600,
+                marginLeft: '8px'
+              }">
+                {{ getChangeText(recentResult.totalIncorrectCountChange) }}
+                <el-icon v-if="recentResult.totalIncorrectCountChange < 0"><CaretBottom /></el-icon>
+                <el-icon v-else-if="recentResult.totalIncorrectCountChange > 0"><CaretTop /></el-icon>
+              </span>
+            </el-descriptions-item>
+            <el-descriptions-item label="전체 안 푼 문제">
+              {{ recentResult.totalUnsolvedCountBefore }}개
+              <el-icon style="margin: 0 4px"><Right /></el-icon>
+              {{ recentResult.totalUnsolvedCountAfter }}개
+              <span :style="{
+                color: getChangeColor(recentResult.totalUnsolvedCountChange),
+                fontWeight: 600,
+                marginLeft: '8px'
+              }">
+                {{ getChangeText(recentResult.totalUnsolvedCountChange) }}
+                <el-icon v-if="recentResult.totalUnsolvedCountChange < 0"><CaretBottom /></el-icon>
+                <el-icon v-else-if="recentResult.totalUnsolvedCountChange > 0"><CaretTop /></el-icon>
+              </span>
+            </el-descriptions-item>
+          </el-descriptions>
+
+          <el-table v-if="!isMobile" :data="recentResult.homeworks" style="width: 100%">
+            <el-table-column prop="homeworkTitle" label="숙제" width="100" />
+            <el-table-column label="오답 변화" width="80" align="center">
+              <template #default="{ row }">
+                <div :style="{
+                  color: getChangeColor(row.incorrectCountChange),
+                  fontWeight: 600
+                }">
+                  {{ getChangeText(row.incorrectCountChange) }}
+                  <el-icon v-if="row.incorrectCountChange < 0"><CaretBottom /></el-icon>
+                  <el-icon v-else-if="row.incorrectCountChange > 0"><CaretTop /></el-icon>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="안 푼 문제 변화" width="100" align="center">
+              <template #default="{ row }">
+                <div :style="{
+                  color: getChangeColor(row.unsolvedCountChange),
+                  fontWeight: 600
+                }">
+                  {{ getChangeText(row.unsolvedCountChange) }}
+                  <el-icon v-if="row.unsolvedCountChange < 0"><CaretBottom /></el-icon>
+                  <el-icon v-else-if="row.unsolvedCountChange > 0"><CaretTop /></el-icon>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <div v-else class="mobile-homework-list">
+            <div
+              v-for="homework in recentResult.homeworks"
+              :key="homework.homeworkId"
+              class="mobile-homework-row mobile-homework-row--stacked"
+            >
+              <div class="mobile-homework-title">{{ homework.homeworkTitle }}</div>
+              <div class="mobile-change-grid">
+                <div>
+                  <div class="mobile-change-label">오답</div>
+                  <div
+                    class="mobile-change-value"
+                    :style="{ color: getChangeColor(homework.incorrectCountChange) }"
+                  >
+                    {{ homework.incorrectCountBefore }}개
+                    <el-icon><Right /></el-icon>
+                    {{ homework.incorrectCountAfter }}개
+                    <span>{{ getChangeText(homework.incorrectCountChange) }}</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="mobile-change-label">안 푼 문제</div>
+                  <div
+                    class="mobile-change-value"
+                    :style="{ color: getChangeColor(homework.unsolvedCountChange) }"
+                  >
+                    {{ homework.unsolvedCountBefore }}개
+                    <el-icon><Right /></el-icon>
+                    {{ homework.unsolvedCountAfter }}개
+                    <span>{{ getChangeText(homework.unsolvedCountChange) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-card>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.clinic-page { display: grid; gap: 24px; padding-bottom: 24px; }
+.clinic-header__icon { display: grid; flex: 0 0 48px; height: 48px; place-items: center; border-radius: 15px; color: var(--student-success); background: #eaf8f0; font-size: 24px; }
+.clinic-page :deep(.el-card) { border: 1px solid var(--student-border); border-radius: 18px; box-shadow: var(--student-shadow-sm); }
+.clinic-page :deep(.el-card__header) { padding: 17px 18px; border-bottom-color: var(--student-border); }
+.clinic-page :deep(.el-card__body) { padding: 18px; }
+.clinic-page :deep(.el-alert) { border-radius: 14px; }
+.clinic-page :deep(.el-descriptions__label) { width: 78px; color: var(--student-muted); font-weight: 700; background: var(--student-surface-soft); }
+.clinic-schedule { margin-bottom: 20px; border-color: #cbd8fb !important; background: linear-gradient(180deg, #fff, #f8faff); }
+.clinic-schedule :deep(.el-button) { width: 100%; max-width: 360px; }
+.clinic-homeworks { margin-bottom: 20px; }
+.clinic-complete { margin-bottom: 20px; }
+.clinic-result { margin-top: 20px; }
+.clinic-empty { min-height: 280px; }
+.mobile-homework-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-homework-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 64px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--student-border);
+}
+
+.mobile-homework-row:first-child {
+  padding-top: 0;
+}
+
+.mobile-homework-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.mobile-homework-row--stacked {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.mobile-homework-main {
+  min-width: 0;
+}
+
+.mobile-homework-title {
+  color: var(--student-ink);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.mobile-homework-date {
+  color: var(--student-muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.mobile-homework-completion {
+  flex: 0 0 auto;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.mobile-change-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.mobile-change-label {
+  color: #909399;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.mobile-change-value {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 4px;
+  line-height: 1.35;
+}
+
+@media (max-width: 420px) {
+  .mobile-change-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 767px) {
+  .clinic-page :deep(.el-result) { padding: 20px 0; }
+  .clinic-page :deep(.el-result__title p) { font-size: 17px; }
+  .clinic-page :deep(.el-result__subtitle p) { font-size: 13px; line-height: 1.55; }
+}
+</style>

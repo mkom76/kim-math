@@ -6,6 +6,7 @@ import { authAPI, lessonAPI, submissionAPI, studentAPI } from '@/api/client'
 import type { AuthResponse, Submission, Student, Lesson, AttendanceStats } from '@/api/client'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useAuthStore } from '@/stores/auth'
+import StudentUiPreviewBanner from '@/components/StudentUiPreviewBanner.vue'
 
 interface DashboardTest {
   id: number
@@ -29,9 +30,7 @@ const attendanceStats = ref<AttendanceStats | null>(null)
 
 const { isMobile } = useBreakpoint()
 const containerPadding = computed(() => isMobile.value ? '10px' : '24px')
-const cardPadding = computed(() => isMobile.value ? '12px' : '20px')
 const iconSize = computed(() => isMobile.value ? 24 : 32)
-const statIconSize = computed(() => isMobile.value ? 38 : 48)
 const h1FontSize = computed(() => isMobile.value ? '16px' : '28px')
 const h2FontSize = computed(() => isMobile.value ? '14px' : '20px')
 const h3FontSize = computed(() => isMobile.value ? '13px' : '18px')
@@ -139,6 +138,8 @@ onMounted(() => {
 
 <template>
   <div class="student-view" :style="{ padding: containerPadding, maxWidth: '1200px', margin: '0 auto' }">
+    <StudentUiPreviewBanner />
+
     <!-- Top Right Actions -->
     <div :style="{ display: 'flex', justifyContent: 'flex-end', gap: isMobile ? '8px' : '12px', marginBottom: isMobile ? '12px' : '16px' }">
       <el-button @click="$router.push('/settings')" :size="isMobile ? 'small' : 'default'">
