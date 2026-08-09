@@ -22,17 +22,17 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: |
           VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER))
-          VERSION_NAME="1.0.$((3 + GITHUB_RUN_NUMBER))"
+          VERSION_NAME="1.0.$((2 + GITHUB_RUN_NUMBER))"
           echo "ANDROID_VERSION_CODE=${VERSION_CODE}" >> "$GITHUB_ENV"
           echo "ANDROID_VERSION_NAME=${VERSION_NAME}" >> "$GITHUB_ENV"
           echo "code=${VERSION_CODE}" >> "$GITHUB_OUTPUT"
@@ -91,6 +91,10 @@ jobs:
             "keyAlias=${KEY_ALIAS}" \
             "keyPassword=${KEY_PASSWORD}" \
             > keystore.properties
+
+      - name: Sync Capacitor Android project
+        working-directory: frontend
+        run: npx cap sync android
 
       - name: Build signed Android App Bundle
         working-directory: frontend/android
