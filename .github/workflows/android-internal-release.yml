@@ -1,0 +1,114 @@
+name: Android Internal Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/android-internal-release.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: android-internal-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Generate Android version
+        id: version
+        shell: bash
+        run: |
+          VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER))
+          VERSION_NAME="1.0.$((3 + GITHUB_RUN_NUMBER))"
+          echo "ANDROID_VERSION_CODE=${VERSION_CODE}" >> "$GITHUB_ENV"
+          echo "ANDROID_VERSION_NAME=${VERSION_NAME}" >> "$GITHUB_ENV"
+          echo "code=${VERSION_CODE}" >> "$GITHUB_OUTPUT"
+          echo "name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify deployment secrets
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          test -n "$GOOGLE_SERVICES_JSON" || { echo 'Missing GOOGLE_SERVICES_JSON'; exit 1; }
+          test -n "$UPLOAD_KEYSTORE_BASE64" || { echo 'Missing ANDROID_UPLOAD_KEYSTORE_BASE64'; exit 1; }
+          test -n "$KEYSTORE_PASSWORD" || { echo 'Missing ANDROID_KEYSTORE_PASSWORD'; exit 1; }
+          test -n "$KEY_ALIAS" || { echo 'Missing ANDROID_KEY_ALIAS'; exit 1; }
+          test -n "$KEY_PASSWORD" || { echo 'Missing ANDROID_KEY_PASSWORD'; exit 1; }
+          test -n "$PLAY_SERVICE_ACCOUNT_JSON" || { echo 'Missing GOOGLE_PLAY_SERVICE_ACCOUNT_JSON'; exit 1; }
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Restore Firebase configuration
+        working-directory: frontend/android
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+
+      - name: Restore Android upload key
+        working-directory: frontend/android
+        env:
+          UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          mkdir -p keystores
+          printf '%s' "$UPLOAD_KEYSTORE_BASE64" | base64 --decode > keystores/upload.jks
+          printf '%s\n' \
+            'storeFile=keystores/upload.jks' \
+            "storePassword=${KEYSTORE_PASSWORD}" \
+            "keyAlias=${KEY_ALIAS}" \
+            "keyPassword=${KEY_PASSWORD}" \
+            > keystore.properties
+
+      - name: Build signed Android App Bundle
+        working-directory: frontend/android
+        run: ./gradlew --no-daemon :app:bundleRelease
+
+      - name: Save App Bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kim-math-${{ steps.version.outputs.name }}
+          path: frontend/android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 14
+
+      - name: Publish to Google Play internal testing
+        uses: r0adkll/upload-google-play@v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.kimmath.student
+          releaseFiles: frontend/android/app/build/outputs/bundle/release/app-release.aab
+          tracks: internal
+          status: completed
+          releaseName: v${{ steps.version.outputs.name }}
