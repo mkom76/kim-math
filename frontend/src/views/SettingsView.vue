@@ -69,7 +69,13 @@ const handleChangePIN = async () => {
     </el-card>
 
     <!-- AI Feedback Prompt Settings -->
-    <el-card shadow="never" style="margin-bottom: 24px; cursor: pointer" @click="router.push('/settings/feedback-prompt')">
+    <el-card
+      v-if="authStore.role === 'TEACHER'"
+      data-test="feedback-prompt-settings"
+      shadow="never"
+      style="margin-bottom: 24px; cursor: pointer"
+      @click="router.push('/settings/feedback-prompt')"
+    >
       <div style="display: flex; justify-content: space-between; align-items: center">
         <div style="display: flex; align-items: center; gap: 12px">
           <el-icon size="24" color="#409eff"><MagicStick /></el-icon>
