@@ -260,21 +260,6 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column prop="topic" label="수학 유형" min-width="240">
-          <template #default="{ row }">
-            <el-input
-              v-model="row.topic"
-              placeholder="예: 함수 › 일차함수"
-              maxlength="512"
-              clearable
-              @input="handleAnswerChange"
-            />
-            <div v-if="row.textbookProblem" style="margin-top: 4px; font-size: 11px; color: #909399">
-              교재와 별도로 이 시험에 저장됩니다
-            </div>
-          </template>
-        </el-table-column>
-
         <el-table-column prop="questionType" label="답안 방식" width="180" align="center">
           <template #default="{ row }">
             <el-select
@@ -305,7 +290,7 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column prop="answer" label="정답" min-width="200">
+        <el-table-column prop="answer" label="정답" min-width="225">
           <template #default="{ row }">
             <!-- 객관식: 라디오 버튼 -->
             <el-radio-group
@@ -337,6 +322,21 @@ onMounted(() => {
 
             <!-- 서술형: 자동채점 없음 -->
             <el-tag v-else type="info" effect="plain">선생님 직접 채점</el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="topic" label="수학 유형" min-width="240">
+          <template #default="{ row }">
+            <el-input
+              v-model="row.topic"
+              placeholder="예: 함수 › 일차함수"
+              maxlength="512"
+              clearable
+              @input="handleAnswerChange"
+            />
+            <div v-if="row.textbookProblem" style="margin-top: 4px; font-size: 11px; color: #909399">
+              교재와 별도로 이 시험에 저장됩니다
+            </div>
           </template>
         </el-table-column>
 
