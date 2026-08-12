@@ -61,6 +61,7 @@ public class DailyFeedbackDto {
     public static class QuestionAccuracy {
         private Integer questionNumber;
         private Double correctRate;
+        private String topic;
     }
 
     @Data
@@ -69,6 +70,7 @@ public class DailyFeedbackDto {
     @Builder
     public static class EssayDetail {
         private Integer questionNumber;
+        private String topic;
         private Double maxPoints;
         private String studentAnswer;
         private Double earnedPoints;   // null = 미채점

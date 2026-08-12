@@ -668,6 +668,7 @@ export interface HomeworkSummary {
 
 export interface EssayDetail {
   questionNumber: number;
+  topic?: string | null;
   maxPoints: number;
   studentAnswer?: string;
   earnedPoints?: number;    // null = 미채점
@@ -688,6 +689,7 @@ export interface TestFeedback {
 export interface QuestionAccuracy {
   questionNumber: number;
   correctRate: number;
+  topic?: string | null;
 }
 
 export const dailyFeedbackAPI = {
@@ -958,6 +960,8 @@ export const aiFeedbackAPI = {
 }
 
 export const feedbackPromptTemplateAPI = {
+  getDefault: () =>
+    client.get<FeedbackPromptTemplate>('/feedback-prompt-templates/default').then(res => res.data),
   getByTeacher: (teacherId: number) =>
     client.get<FeedbackPromptTemplate>(`/feedback-prompt-templates/teacher/${teacherId}`).then(res => res.data),
   save: (teacherId: number, template: FeedbackPromptTemplate) =>

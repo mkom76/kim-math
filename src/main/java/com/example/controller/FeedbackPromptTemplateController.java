@@ -37,6 +37,11 @@ public class FeedbackPromptTemplateController {
         return ResponseEntity.ok(service.getByTeacherId(teacherId));
     }
 
+    @GetMapping("/default")
+    public ResponseEntity<FeedbackPromptTemplateDto> getDefault() {
+        return ResponseEntity.ok(service.getDefault());
+    }
+
     @PutMapping("/teacher/{teacherId}")
     public ResponseEntity<FeedbackPromptTemplateDto> save(
             @PathVariable Long teacherId,

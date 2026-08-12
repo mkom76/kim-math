@@ -157,6 +157,11 @@ public class DailyFeedbackService {
         StudentSubmission sub = submission.get();
 
         List<StudentSubmissionDetail> details = studentSubmissionDetailRepository.findBySubmissionId(sub.getId());
+        Map<Integer, String> topicByQuestionNumber = details.stream()
+                .collect(Collectors.toMap(
+                        d -> d.getQuestion().getNumber(),
+                        d -> Optional.ofNullable(d.getQuestion().getTopic()).orElse(""),
+                        (left, right) -> left));
 
         // Get incorrect question numbers (객관식/주관식만 - ESSAY 제외)
         List<Integer> incorrectQuestions = details.stream()
@@ -171,6 +176,7 @@ public class DailyFeedbackService {
                 .sorted(java.util.Comparator.comparing(d -> d.getQuestion().getNumber()))
                 .map(d -> DailyFeedbackDto.EssayDetail.builder()
                         .questionNumber(d.getQuestion().getNumber())
+                        .topic(d.getQuestion().getTopic())
                         .maxPoints(d.getQuestion().getPoints())
                         .studentAnswer(d.getStudentAnswer())
                         .earnedPoints(d.getEarnedPoints())
@@ -187,6 +193,7 @@ public class DailyFeedbackService {
                 .map(arr -> DailyFeedbackDto.QuestionAccuracy.builder()
                         .questionNumber((Integer) arr[0])
                         .correctRate((Double) arr[1])
+                        .topic(emptyToNull(topicByQuestionNumber.get((Integer) arr[0])))
                         .build())
                 .collect(Collectors.toList());
 
@@ -223,6 +230,10 @@ public class DailyFeedbackService {
                 .questionAccuracyRates(rates)
                 .essayDetails(essayDetails.isEmpty() ? null : essayDetails)
                 .build();
+    }
+
+    private static String emptyToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     /**
