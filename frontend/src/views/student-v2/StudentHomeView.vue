@@ -2,55 +2,43 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { authAPI, lessonAPI, submissionAPI, studentAPI, studentNotificationAPI } from '@/api/client'
-import type { AttendanceStats, AuthResponse, Lesson, Student, Submission } from '@/api/client'
-import { useBreakpoint } from '@/composables/useBreakpoint'
+import {
+  authAPI,
+  lessonAPI,
+  submissionAPI,
+  studentAPI,
+  studentHomeworkAPI,
+  studentNotificationAPI,
+} from '@/api/client'
+import type { AttendanceStats, AuthResponse, Student, StudentHomework, Submission } from '@/api/client'
 import { useStudentUiMode } from '@/composables/useStudentUiMode'
 
-interface DashboardTest {
-  id: number
-  title: string
-  className?: string
-  questionCount?: number
-  lessonDate?: string
-}
-
 const router = useRouter()
-const { isMobile } = useBreakpoint()
 const { leavePreview } = useStudentUiMode()
 const loading = ref(false)
 const currentUser = ref<AuthResponse>({})
 const studentInfo = ref<Student | null>(null)
-const availableTests = ref<DashboardTest[]>([])
 const mySubmissions = ref<Submission[]>([])
+const homeworks = ref<StudentHomework[]>([])
 const attendanceStats = ref<AttendanceStats | null>(null)
-const pastTestsDialogVisible = ref(false)
 const attendanceDialogVisible = ref(false)
 const unreadNotificationCount = ref(0)
 
-const submittedTestIds = computed(() => new Set(mySubmissions.value.map(submission => submission.testId)))
-const untakenTests = computed(() => availableTests.value.filter(test => !submittedTestIds.value.has(test.id)))
-const primaryTest = computed(() => untakenTests.value[0] ?? null)
 const displayName = computed(() => currentUser.value.name || studentInfo.value?.name || '학생')
 const attendanceRate = computed(() => attendanceStats.value?.attendanceRate ?? null)
-
-const getSubmissionForTest = (testId: number) => mySubmissions.value.find(submission => submission.testId === testId)
-const getPendingEssayCount = (testId: number) => getSubmissionForTest(testId)?.pendingEssayCount ?? 0
-
-const parseLocalDate = (dateStr: string) => {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr)
-  if (!match) return new Date(dateStr)
-  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
-}
-
-const formatLessonDate = (dateStr?: string, options: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric' }) => {
-  if (!dateStr) return '날짜 미정'
-  return parseLocalDate(dateStr).toLocaleDateString('ko-KR', options)
-}
-
-const openTest = (test: DashboardTest) => {
-  router.push(getSubmissionForTest(test.id) ? `/student/tests/${test.id}/result` : `/student/tests/${test.id}`)
-}
+const visibleScores = computed(() => mySubmissions.value.filter(item => typeof item.totalScore === 'number'))
+const averageScore = computed(() => {
+  if (!visibleScores.value.length) return null
+  const total = visibleScores.value.reduce((sum, item) => sum + item.totalScore, 0)
+  return Math.round((total / visibleScores.value.length) * 10) / 10
+})
+const completedHomeworks = computed(() => homeworks.value.filter(item => item.completion != null))
+const averageCompletion = computed(() => {
+  if (!completedHomeworks.value.length) return null
+  const total = completedHomeworks.value.reduce((sum, item) => sum + (item.completion ?? 0), 0)
+  return Math.round(total / completedHomeworks.value.length)
+})
+const recentHomeworks = computed(() => completedHomeworks.value.slice(0, 5))
 
 const returnToLegacyUi = async () => {
   leavePreview()
@@ -74,21 +62,14 @@ const fetchDashboard = async () => {
     if (!currentUser.value.userId) return
 
     const studentId = currentUser.value.userId
-    const [studentResponse, lessonsResponse, submissionsResponse] = await Promise.all([
+    const [studentResponse, submissionsResponse, homeworksResponse] = await Promise.all([
       studentAPI.getStudent(studentId),
-      lessonAPI.getLessonsByStudent(studentId),
       submissionAPI.getStudentSubmissions(studentId),
+      studentHomeworkAPI.getByStudentId(studentId),
     ])
     studentInfo.value = studentResponse.data
-    availableTests.value = (lessonsResponse.data as Lesson[])
-      .filter((lesson): lesson is Lesson & { testId: number; testTitle: string } => lesson.testId != null && !!lesson.testTitle)
-      .map(lesson => ({
-        id: lesson.testId,
-        title: lesson.testTitle,
-        className: lesson.className,
-        lessonDate: lesson.lessonDate,
-      }))
-    mySubmissions.value = submissionsResponse.data
+    mySubmissions.value = submissionsResponse.data.content || submissionsResponse.data
+    homeworks.value = homeworksResponse.data.content || homeworksResponse.data
 
     try {
       attendanceStats.value = await lessonAPI.getAttendanceStats(studentId)
@@ -123,6 +104,10 @@ onBeforeUnmount(() => {
         <p class="student-page__subtitle">
           {{ studentInfo?.academyName || 'KIM MATH' }}<span v-if="studentInfo?.className"> · {{ studentInfo.className }}</span>
         </p>
+        <p v-if="studentInfo?.school || studentInfo?.grade" class="dashboard-student-meta">
+          <span v-if="studentInfo?.school">{{ studentInfo.school }}</span>
+          <span v-if="studentInfo?.grade">{{ studentInfo.grade }}</span>
+        </p>
       </div>
       <div class="dashboard-header__actions">
         <button class="dashboard-preview-exit" @click="returnToLegacyUi">기존 UI</button>
@@ -147,19 +132,11 @@ onBeforeUnmount(() => {
 
     <section class="student-hero dashboard-hero">
       <div class="dashboard-hero__content">
-        <span class="student-hero__label">{{ primaryTest ? '다음 시험' : '오늘의 학습' }}</span>
-        <h2 class="student-hero__title">{{ primaryTest?.title || '오늘 수업을 가볍게 복습해 볼까요?' }}</h2>
-        <p class="student-hero__description">
-          <template v-if="primaryTest">
-            {{ formatLessonDate(primaryTest.lessonDate) }}<span v-if="primaryTest.className"> · {{ primaryTest.className }}</span>
-          </template>
-          <template v-else>피드백과 수업 영상을 확인하고 학습 흐름을 이어가세요.</template>
-        </p>
+        <span class="student-hero__label">오늘의 학습</span>
+        <h2 class="student-hero__title">수업 피드백을 확인해 볼까요?</h2>
+        <p class="student-hero__description">선생님이 남긴 코멘트로 복습할 내용을 확인해 보세요.</p>
       </div>
-      <el-button v-if="primaryTest" class="dashboard-hero__action" @click="openTest(primaryTest)">
-        시험 시작하기 <el-icon><ArrowRight /></el-icon>
-      </el-button>
-      <el-button v-else class="dashboard-hero__action" @click="router.push('/student/daily-feedback')">
+      <el-button class="dashboard-hero__action" @click="router.push('/student/daily-feedback')">
         피드백 확인하기 <el-icon><ArrowRight /></el-icon>
       </el-button>
     </section>
@@ -170,90 +147,59 @@ onBeforeUnmount(() => {
           <p class="student-section-heading__eyebrow">한눈에 보기</p>
           <h2 id="study-status-title" class="student-section-heading__title">나의 학습 현황</h2>
         </div>
-        <button class="student-text-action" @click="router.push('/student/stats')">자세히</button>
       </div>
-      <div class="student-stat-grid">
-        <button class="student-stat-card" @click="primaryTest && openTest(primaryTest)">
-          <span class="student-stat-card__label">미응시 시험</span>
-          <strong class="student-stat-card__value">{{ untakenTests.length }}<small>개</small></strong>
-          <span class="student-stat-card__hint">바로 이어서 풀기</span>
+      <div class="student-stat-grid dashboard-stat-grid">
+        <button class="student-stat-card" @click="router.push('/student/exams')">
+          <span class="student-stat-card__label">평균 점수</span>
+          <strong class="student-stat-card__value">{{ averageScore ?? '-' }}<small v-if="averageScore !== null">점</small></strong>
+          <span class="student-stat-card__hint">시험 결과 보기</span>
         </button>
-        <button class="student-stat-card" @click="pastTestsDialogVisible = true">
-          <span class="student-stat-card__label">완료한 시험</span>
-          <strong class="student-stat-card__value">{{ mySubmissions.length }}<small>개</small></strong>
-          <span class="student-stat-card__hint">지난 결과 보기</span>
-        </button>
-        <button class="student-stat-card" @click="attendanceDialogVisible = true">
+        <div class="student-stat-card">
+          <span class="student-stat-card__label">숙제 완성도</span>
+          <strong class="student-stat-card__value">{{ averageCompletion ?? '-' }}<small v-if="averageCompletion !== null">%</small></strong>
+          <span class="student-stat-card__hint">제출한 숙제 기준</span>
+        </div>
+        <button type="button" class="student-stat-card" @click="attendanceDialogVisible = true">
           <span class="student-stat-card__label">출석률</span>
           <strong class="student-stat-card__value">{{ attendanceRate ?? '-' }}<small v-if="attendanceRate !== null">%</small></strong>
           <span class="student-stat-card__hint">출석 상세 보기</span>
         </button>
-        <button class="student-stat-card" @click="router.push('/student/daily-feedback')">
-          <span class="student-stat-card__label">학습 피드백</span>
-          <strong class="student-stat-card__value student-stat-card__value--icon"><el-icon><ChatDotRound /></el-icon></strong>
-          <span class="student-stat-card__hint">선생님 코멘트</span>
-        </button>
       </div>
     </section>
 
-    <section aria-labelledby="test-list-title">
+    <button type="button" class="dashboard-video-entry" @click="router.push('/student/videos')">
+      <span class="dashboard-video-entry__icon"><el-icon><VideoPlay /></el-icon></span>
+      <span class="dashboard-video-entry__content">
+        <small>LESSON VIDEO</small>
+        <strong>수업 다시보기</strong>
+        <span>지난 수업에서 놓친 부분을 이어서 학습하세요.</span>
+      </span>
+      <el-icon class="dashboard-video-entry__arrow"><ArrowRight /></el-icon>
+    </button>
+
+    <section aria-labelledby="homework-flow-title">
       <div class="student-section-heading">
         <div>
-          <p class="student-section-heading__eyebrow">TEST</p>
-          <h2 id="test-list-title" class="student-section-heading__title">시험 목록</h2>
+          <p class="student-section-heading__eyebrow">HOMEWORK</p>
+          <h2 id="homework-flow-title" class="student-section-heading__title">최근 숙제 흐름</h2>
         </div>
-        <span class="student-section-heading__count">{{ availableTests.length }}</span>
       </div>
 
-      <div v-if="availableTests.length" class="student-surface student-list">
-        <button v-for="test in availableTests" :key="test.id" class="student-list-row" @click="openTest(test)">
-          <span class="student-list-row__icon" :class="{ 'is-complete': getSubmissionForTest(test.id) }">
-            <el-icon><DocumentChecked v-if="getSubmissionForTest(test.id)" /><EditPen v-else /></el-icon>
-          </span>
-          <span class="student-list-row__content">
-            <strong>{{ test.title }}</strong>
-            <small>{{ formatLessonDate(test.lessonDate) }}<span v-if="test.className"> · {{ test.className }}</span></small>
-            <span v-if="getPendingEssayCount(test.id)" class="dashboard-test-row__pending">
-              서술형 {{ getPendingEssayCount(test.id) }}문제 채점 중
-            </span>
-          </span>
-          <span class="student-list-row__trailing">
-            <span v-if="getSubmissionForTest(test.id)?.totalScore != null" class="dashboard-test-row__score">
-              {{ getSubmissionForTest(test.id)?.totalScore }}점
-            </span>
-            <span v-else class="student-pill student-pill--warning">미응시</span>
-            <el-icon><ArrowRight /></el-icon>
-          </span>
-        </button>
+      <div v-if="recentHomeworks.length" class="student-surface homework-list">
+        <div v-for="homework in recentHomeworks" :key="homework.id" class="homework-progress-row">
+          <div class="homework-progress-row__header">
+            <span>{{ homework.homeworkTitle }}</span>
+            <strong>{{ homework.completion ?? 0 }}%</strong>
+          </div>
+          <div class="student-progress-track"><span :style="{ width: `${homework.completion ?? 0}%` }" /></div>
+        </div>
       </div>
       <div v-else class="student-empty-state">
-        <span class="student-empty-state__icon"><el-icon><Document /></el-icon></span>
-        <h3>예정된 시험이 없어요</h3>
-        <p>새 시험이 등록되면 이곳에서 바로 확인할 수 있어요.</p>
+        <span class="student-empty-state__icon"><el-icon><Notebook /></el-icon></span>
+        <h3>표시할 숙제 기록이 없어요</h3>
+        <p>숙제를 제출하면 완성도 흐름이 이곳에 쌓여요.</p>
       </div>
     </section>
-
-    <el-dialog v-model="pastTestsDialogVisible" title="지난 시험" :fullscreen="isMobile" width="680px" class="student-dialog">
-      <div v-if="mySubmissions.length" class="student-surface student-list dialog-list">
-        <button
-          v-for="submission in mySubmissions"
-          :key="submission.id"
-          class="student-list-row"
-          @click="submission.testId && router.push(`/student/tests/${submission.testId}/result`)"
-        >
-          <span class="student-list-row__icon is-complete"><el-icon><Trophy /></el-icon></span>
-          <span class="student-list-row__content">
-            <strong>{{ submission.testTitle || submission.test?.title || '시험 결과' }}</strong>
-            <small>{{ submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString('ko-KR') : '-' }}</small>
-          </span>
-          <span class="student-list-row__trailing">
-            <strong>{{ submission.totalScore == null ? '비공개' : `${submission.totalScore}점` }}</strong>
-            <el-icon><ArrowRight /></el-icon>
-          </span>
-        </button>
-      </div>
-      <div v-else class="student-empty-state student-empty-state--compact"><h3>아직 완료한 시험이 없어요</h3></div>
-    </el-dialog>
 
     <el-dialog v-model="attendanceDialogVisible" title="출석 현황" width="420px" class="student-dialog">
       <div v-if="attendanceStats" class="attendance-detail">
@@ -276,6 +222,8 @@ onBeforeUnmount(() => {
 <style scoped>
 .dashboard-page { display: grid; min-width: 0; gap: 28px; }
 .dashboard-header__actions { display: flex; align-items: center; gap: 8px; }
+.dashboard-student-meta { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+.dashboard-student-meta span { padding: 4px 9px; border-radius: 999px; color: var(--student-primary-strong); background: var(--student-primary-soft); font-size: 11px; font-weight: 750; }
 .dashboard-preview-exit { min-height: 44px; padding: 0 13px; border: 1px solid rgba(255, 255, 255, .55); border-radius: 999px; color: var(--student-primary); background: var(--student-surface); box-shadow: var(--student-shadow-soft); font: inherit; font-size: 12px; font-weight: 800; white-space: nowrap; cursor: pointer; }
 .dashboard-notification-button { position: relative; }
 .dashboard-notification-button__badge { position: absolute; top: -5px; right: -5px; display: grid; min-width: 20px; height: 20px; padding: 0 5px; place-items: center; border: 2px solid var(--student-surface); border-radius: 999px; color: #fff; background: var(--student-danger); font-size: 10px; font-weight: 800; line-height: 1; }
@@ -283,14 +231,24 @@ onBeforeUnmount(() => {
 .dashboard-hero__content { display: grid; min-width: 0; gap: 8px; }
 .dashboard-hero__content > * { min-width: 0; overflow-wrap: anywhere; }
 .dashboard-hero__action { width: fit-content; min-width: 172px; color: var(--student-primary-strong); background: #fff; border: 0; }
-.student-text-action { min-height: 44px; padding: 0 2px; border: 0; background: transparent; color: var(--student-primary); font: inherit; font-weight: 700; cursor: pointer; }
-.student-section-heading__count { display: grid; place-items: center; min-width: 30px; height: 30px; padding: 0 9px; border-radius: 999px; color: var(--student-primary); background: var(--student-primary-soft); font-size: 13px; font-weight: 800; }
-.student-stat-card { text-align: left; cursor: pointer; }
+.student-stat-card { text-align: left; }
+button.student-stat-card { cursor: pointer; }
 .student-stat-card__value small { margin-left: 3px; font-size: 14px; font-weight: 700; }
-.student-stat-card__value--icon { display: flex; align-items: center; font-size: 27px; color: var(--student-primary); }
-.dashboard-test-row__pending { width: fit-content; margin-top: 3px; color: var(--student-warning); font-size: 12px; font-weight: 700; }
-.dashboard-test-row__score { color: var(--student-primary); font-size: 15px; font-weight: 800; white-space: nowrap; }
-.dialog-list { margin-top: 4px; }
+.dashboard-page .dashboard-stat-grid .student-stat-card:last-child { grid-column: 1 / -1; }
+.dashboard-video-entry { display: grid; grid-template-columns: 48px minmax(0, 1fr) 24px; align-items: center; gap: 14px; width: 100%; min-width: 0; padding: 17px 18px; border: 1px solid var(--student-border); border-radius: var(--student-radius-lg); color: inherit; background: var(--student-surface); box-shadow: var(--student-shadow-soft); font: inherit; text-align: left; cursor: pointer; }
+.dashboard-video-entry__icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 15px; color: var(--student-primary); background: var(--student-primary-soft); font-size: 24px; }
+.dashboard-video-entry__content { display: grid; min-width: 0; gap: 3px; }
+.dashboard-video-entry__content small { color: var(--student-primary); font-size: 10px; font-weight: 800; letter-spacing: .07em; }
+.dashboard-video-entry__content strong { color: var(--student-ink); font-size: 16px; font-weight: 800; }
+.dashboard-video-entry__content span { color: var(--student-muted); font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+.dashboard-video-entry__arrow { color: var(--student-muted); font-size: 18px; }
+.dashboard-video-entry:focus-visible { outline: 3px solid color-mix(in srgb, var(--student-primary) 28%, transparent); outline-offset: 3px; }
+.homework-list { overflow: hidden; }
+.homework-progress-row { padding: 16px 18px; border-bottom: 1px solid var(--student-border); }
+.homework-progress-row:last-child { border-bottom: 0; }
+.homework-progress-row__header { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 10px; color: var(--student-ink); font-size: 14px; font-weight: 700; }
+.homework-progress-row__header span { min-width: 0; overflow-wrap: anywhere; }
+.homework-progress-row__header strong { flex: 0 0 auto; color: var(--student-primary); }
 .attendance-detail { display: grid; gap: 18px; }
 .attendance-detail__hero { display: grid; justify-items: center; gap: 3px; padding: 22px; border-radius: 18px; color: #fff; background: linear-gradient(135deg, var(--student-primary), #6d8df4); }
 .attendance-detail__hero strong { font-size: 38px; line-height: 1.1; letter-spacing: -1px; }
@@ -305,4 +263,8 @@ onBeforeUnmount(() => {
   .dashboard-hero__action { width: 100%; min-width: 0; }
 }
 @media (min-width: 680px) { .dashboard-hero { grid-template-columns: 1fr auto; align-items: end; } }
+@media (min-width: 720px) {
+  .dashboard-page .dashboard-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dashboard-page .dashboard-stat-grid .student-stat-card:last-child { grid-column: auto; }
+}
 </style>

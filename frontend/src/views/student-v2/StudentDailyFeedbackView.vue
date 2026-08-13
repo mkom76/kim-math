@@ -362,14 +362,9 @@ onMounted(() => {
       </div>
     </el-card>
 
-    <!-- 공통 헤더 -->
-    <el-card class="feedback-selector" shadow="never" style="margin-bottom: 24px">
-      <div :class="{ 'feedback-selector__content': !isTeacherView }" style="text-align: center">
-        <p v-if="!isTeacherView" class="student-page__eyebrow">DAILY FEEDBACK</p>
-        <h1 v-if="!isTeacherView" class="student-page__title" :style="{ fontSize: h1FontSize }">
-          수업 피드백
-        </h1>
-        <p v-if="!isTeacherView && !feedback" class="student-page__subtitle">수업을 선택해 오늘의 숙제와 코멘트를 확인하세요.</p>
+    <!-- 선생님용 수업 선택 -->
+    <el-card v-if="isTeacherView" class="feedback-selector" shadow="never" style="margin-bottom: 24px">
+      <div style="text-align: center">
         <p v-if="feedback" :style="{ margin: '0 0 16px', color: '#909399', fontSize: labelFontSize }">
           {{ new Date(feedback.lessonDate).toLocaleDateString('ko-KR', {
             year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
@@ -397,6 +392,42 @@ onMounted(() => {
         </div>
       </div>
     </el-card>
+
+    <!-- 학생용 헤더와 수업 선택: 좁은 화면에서 잘리지 않도록 카드 래퍼를 사용하지 않는다. -->
+    <section v-else class="feedback-selector feedback-selector--student" aria-labelledby="student-feedback-title">
+      <header class="student-page__header feedback-page-header">
+        <div>
+          <p class="student-page__eyebrow">DAILY FEEDBACK</p>
+          <h1 id="student-feedback-title" class="student-page__title" :style="{ fontSize: h1FontSize }">
+            수업 피드백
+          </h1>
+          <p v-if="!feedback" class="student-page__subtitle">수업을 선택해 오늘의 숙제와 코멘트를 확인하세요.</p>
+        </div>
+      </header>
+      <p v-if="feedback" class="feedback-selector__date" :style="{ fontSize: labelFontSize }">
+        {{ new Date(feedback.lessonDate).toLocaleDateString('ko-KR', {
+          year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
+        }) }}
+      </p>
+      <div class="feedback-selector__control">
+        <el-select
+          v-model="selectedLessonId"
+          placeholder="수업을 선택하세요"
+          style="width: 100%"
+          @change="onLessonChange"
+          size="large"
+        >
+          <el-option
+            v-for="lesson in lessons"
+            :key="lesson.id"
+            :label="new Date(lesson.lessonDate).toLocaleDateString('ko-KR', {
+              year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
+            })"
+            :value="lesson.id"
+          />
+        </el-select>
+      </div>
+    </section>
 
     <!-- Announcement (공지사항 - 맨 위) -->
     <el-card v-if="selectedLesson?.announcement" shadow="never" style="margin-bottom: 24px">
@@ -844,15 +875,11 @@ onMounted(() => {
 }
 
 .student-feedback { display: grid; gap: 20px; padding-bottom: 28px; }
-.student-feedback .feedback-selector { margin: 0 !important; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
-.student-feedback .feedback-selector :deep(.el-card__body) { padding: 0; }
-.feedback-selector__content { display: grid; justify-items: stretch; text-align: left !important; }
-.feedback-selector__content .student-page__eyebrow,
-.feedback-selector__content .student-page__title,
-.feedback-selector__content .student-page__subtitle { text-align: left; }
-.feedback-selector__content .student-page__title { margin: 0 0 7px !important; }
-.feedback-selector__content > p[style] { margin: 0 0 16px !important; color: var(--student-muted) !important; text-align: left; }
-.feedback-selector__content > div { width: 100%; max-width: none !important; }
+.feedback-selector--student { display: grid; min-width: 0; gap: 16px; }
+.feedback-page-header { margin: 0; }
+.feedback-page-header .student-page__title { margin: 0 0 7px !important; }
+.feedback-selector__date { margin: 0; color: var(--student-muted); }
+.feedback-selector__control { width: 100%; min-width: 0; }
 .student-feedback :deep(.el-select__wrapper) { min-height: 50px; border-radius: 13px; box-shadow: 0 0 0 1px var(--student-border) inset; }
 .student-feedback > .el-card,
 .student-feedback > div > .el-card,

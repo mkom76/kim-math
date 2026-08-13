@@ -8,6 +8,7 @@ const { mode } = useStudentUiMode()
 
 const legacyViews = {
   dashboard: defineAsyncComponent(() => import('@/views/StudentDashboardView.vue')),
+  exams: defineAsyncComponent(() => import('@/views/StudentDashboardView.vue')),
   testTaking: defineAsyncComponent(() => import('@/views/StudentTestTakingView.vue')),
   testResult: defineAsyncComponent(() => import('@/views/TestResultView.vue')),
   dailyFeedback: defineAsyncComponent(() => import('@/views/StudentDailyFeedbackView.vue')),
@@ -18,6 +19,7 @@ const legacyViews = {
 
 const previewViews = {
   dashboard: defineAsyncComponent(() => import('@/views/student-v2/StudentHomeView.vue')),
+  exams: defineAsyncComponent(() => import('@/views/student-v2/StudentExamsView.vue')),
   testTaking: defineAsyncComponent(() => import('@/views/student-v2/StudentTestTakingView.vue')),
   testResult: defineAsyncComponent(() => import('@/views/student-v2/TestResultView.vue')),
   dailyFeedback: defineAsyncComponent(() => import('@/views/student-v2/StudentDailyFeedbackView.vue')),
