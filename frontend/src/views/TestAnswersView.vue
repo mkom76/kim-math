@@ -37,7 +37,8 @@ const handleAddQuestion = () => {
     number: newNumber,
     answer: '',
     points: basePoints,
-    questionType: 'OBJECTIVE'
+    questionType: 'OBJECTIVE',
+    topic: ''
   })
   // 배점 재분배
   redistributePoints()
@@ -102,7 +103,8 @@ const handleSaveAll = async () => {
       number: q.number!,
       answer: q.answer || '',
       points: q.points || 0,
-      questionType: q.questionType || 'SUBJECTIVE'
+      questionType: q.questionType || 'SUBJECTIVE',
+      topic: q.topic || null
     }))
 
     await testAPI.saveTestAnswers(Number(testId), answersToSave)
@@ -245,7 +247,7 @@ onMounted(() => {
                 📚 교재 #{{ row.textbookProblem.number }}
               </el-tag>
               <span v-if="row.textbookProblem?.topic" style="font-size: 11px; color: #409eff">
-                {{ row.textbookProblem.topic }}
+                교재 원본: {{ row.textbookProblem.topic }}
               </span>
               <a
                 v-if="row.textbookProblem?.videoLink"
@@ -258,7 +260,7 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column prop="questionType" label="문제 유형" width="180" align="center">
+        <el-table-column prop="questionType" label="답안 방식" width="180" align="center">
           <template #default="{ row }">
             <el-select
               v-model="row.questionType"
@@ -288,7 +290,7 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column prop="answer" label="정답" min-width="200">
+        <el-table-column prop="answer" label="정답" min-width="225">
           <template #default="{ row }">
             <!-- 객관식: 라디오 버튼 -->
             <el-radio-group
@@ -320,6 +322,21 @@ onMounted(() => {
 
             <!-- 서술형: 자동채점 없음 -->
             <el-tag v-else type="info" effect="plain">선생님 직접 채점</el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="topic" label="수학 유형" min-width="240">
+          <template #default="{ row }">
+            <el-input
+              v-model="row.topic"
+              placeholder="예: 함수 › 일차함수"
+              maxlength="512"
+              clearable
+              @input="handleAnswerChange"
+            />
+            <div v-if="row.textbookProblem" style="margin-top: 4px; font-size: 11px; color: #909399">
+              교재와 별도로 이 시험에 저장됩니다
+            </div>
           </template>
         </el-table-column>
 

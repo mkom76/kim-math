@@ -174,6 +174,9 @@ interface Question {
   answer: string;
   points: number;
   questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY';
+  /** Canonical math-topic path, e.g. "함수 › 일차함수". */
+  topic?: string | null;
+  topicLevels?: string[];
   textbookProblem?: TextbookProblemMeta | null;
   createdAt?: string;
   updatedAt?: string;
@@ -370,6 +373,8 @@ export const testAPI = {
   getTests: (params?: any) => client.get('/tests', { params }),
   getTest: (id: number) => client.get(`/tests/${id}`),
   createTest: (data: Test) => client.post('/tests', data),
+  copyTest: (sourceTestId: number, data: { targetClassId: number; title: string }) =>
+    client.post<Test>(`/tests/${sourceTestId}/copy`, data),
   updateTest: (id: number, data: Test) => client.put(`/tests/${id}`, data),
   deleteTest: (id: number) => client.delete(`/tests/${id}`),
   getTestStats: (id: number) => client.get(`/tests/${id}/stats`),
@@ -381,7 +386,7 @@ export const testAPI = {
   getUnattachedTests: (academyId: number, classId: number) =>
     client.get('/tests/unattached', { params: { academyId, classId } }),
   recalculateScores: (id: number) => client.post(`/tests/${id}/recalculate`),
-  saveTestAnswers: (id: number, answers: Array<{ number: number; answer: string; points: number; questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY' }>) =>
+  saveTestAnswers: (id: number, answers: Array<{ number: number; answer: string; points: number; questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY'; topic?: string | null }>) =>
     client.put(`/tests/${id}/answers`, { testId: id, answers }),
   addQuestionsFromTextbook: (testId: number, items: Array<{ textbookProblemId: number; number: number; points: number }>) =>
     client.post(`/tests/${testId}/questions/from-textbook`, items),
@@ -680,6 +685,7 @@ export interface HomeworkSummary {
 
 export interface EssayDetail {
   questionNumber: number;
+  topic?: string | null;
   maxPoints: number;
   studentAnswer?: string;
   earnedPoints?: number;    // null = 미채점
@@ -700,6 +706,7 @@ export interface TestFeedback {
 export interface QuestionAccuracy {
   questionNumber: number;
   correctRate: number;
+  topic?: string | null;
 }
 
 export const dailyFeedbackAPI = {
@@ -970,6 +977,8 @@ export const aiFeedbackAPI = {
 }
 
 export const feedbackPromptTemplateAPI = {
+  getDefault: () =>
+    client.get<FeedbackPromptTemplate>('/feedback-prompt-templates/default').then(res => res.data),
   getByTeacher: (teacherId: number) =>
     client.get<FeedbackPromptTemplate>(`/feedback-prompt-templates/teacher/${teacherId}`).then(res => res.data),
   save: (teacherId: number, template: FeedbackPromptTemplate) =>

@@ -190,12 +190,12 @@ onMounted(() => {
                 서술형
               </el-tag>
               <el-tag
-                v-if="question.textbookProblem?.topic"
+                v-if="question.topic"
                 type="primary"
                 size="small"
                 effect="plain"
               >
-                🏷 {{ question.textbookProblem.topic }}
+                🏷 {{ question.topic }}
               </el-tag>
               <el-button
                 v-if="question.textbookProblem?.videoLink"

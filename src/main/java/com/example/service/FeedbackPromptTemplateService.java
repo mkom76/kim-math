@@ -40,6 +40,15 @@ public class FeedbackPromptTemplateService {
                         .build());
     }
 
+    public FeedbackPromptTemplateDto getDefault() {
+        return FeedbackPromptTemplateDto.builder()
+                .teacherId(currentTeacherId())
+                .systemPrompt(DefaultFeedbackPrompt.SYSTEM_PROMPT)
+                .fewShotCount(DefaultFeedbackPrompt.DEFAULT_FEW_SHOT_COUNT)
+                .isActive(true)
+                .build();
+    }
+
     @Transactional
     public FeedbackPromptTemplateDto save(FeedbackPromptTemplateDto dto) {
         Long teacherId = currentTeacherId();

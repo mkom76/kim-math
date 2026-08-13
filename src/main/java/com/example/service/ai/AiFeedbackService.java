@@ -22,8 +22,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -140,12 +142,13 @@ public class AiFeedbackService {
         }
 
         // 2. 선생님별 프롬프트 템플릿 조회 (없으면 기본값)
-        String systemPrompt = promptTemplateRepository.findByTeacherId(teacherId)
-                .filter(FeedbackPromptTemplate::getIsActive)
+        var activeTemplate = promptTemplateRepository.findByTeacherId(teacherId)
+                .filter(template -> Boolean.TRUE.equals(template.getIsActive()));
+        String systemPrompt = activeTemplate
                 .map(FeedbackPromptTemplate::getSystemPrompt)
                 .orElse(DefaultFeedbackPrompt.SYSTEM_PROMPT);
 
-        int fewShotCount = promptTemplateRepository.findByTeacherId(teacherId)
+        int fewShotCount = activeTemplate
                 .map(FeedbackPromptTemplate::getFewShotCount)
                 .orElse(DefaultFeedbackPrompt.DEFAULT_FEW_SHOT_COUNT);
 
@@ -188,7 +191,7 @@ public class AiFeedbackService {
         return messages;
     }
 
-    private String buildCurrentStudentData(DailyFeedbackDto feedbackData, Student student) {
+    String buildCurrentStudentData(DailyFeedbackDto feedbackData, Student student) {
         StringBuilder sb = new StringBuilder();
 
         // 시험 데이터
@@ -201,23 +204,28 @@ public class AiFeedbackService {
             sb.append("- 반 평균: ").append(String.format("%.1f", test.getClassAverage())).append("점\n");
             sb.append("- 순위: ").append(test.getRank()).append("등\n\n");
 
-            if (!test.getIncorrectQuestions().isEmpty()) {
-                sb.append("## 오답 문제 (서술형 제외)\n");
-                for (Integer qNum : test.getIncorrectQuestions()) {
-                    test.getQuestionAccuracyRates().stream()
-                            .filter(q -> q.getQuestionNumber().equals(qNum))
-                            .findFirst()
-                            .ifPresent(q -> sb.append("- ").append(qNum).append("번: 반 정답률 ")
-                                    .append(String.format("%.0f", q.getCorrectRate())).append("%\n"));
+            List<Integer> incorrectQuestions = test.getIncorrectQuestions() != null
+                    ? test.getIncorrectQuestions() : List.of();
+            List<DailyFeedbackDto.QuestionAccuracy> questionResults = test.getQuestionAccuracyRates() != null
+                    ? test.getQuestionAccuracyRates() : List.of();
+            Set<Integer> incorrectSet = new HashSet<>(incorrectQuestions);
+
+            if (!questionResults.isEmpty()) {
+                sb.append("## 문항별 결과 (서술형 제외)\n");
+                for (DailyFeedbackDto.QuestionAccuracy question : questionResults) {
+                    sb.append("- ").append(question.getQuestionNumber()).append("번: ")
+                            .append(incorrectSet.contains(question.getQuestionNumber()) ? "오답" : "정답")
+                            .append(" / 유형: ").append(displayTopic(question.getTopic()))
+                            .append(" / 반 정답률: ")
+                            .append(String.format("%.0f", question.getCorrectRate())).append("%\n");
                 }
-            } else {
-                sb.append("## 객관식/주관식 전문항 정답\n");
             }
 
             if (test.getEssayDetails() != null && !test.getEssayDetails().isEmpty()) {
                 sb.append("\n## 서술형\n");
                 for (DailyFeedbackDto.EssayDetail essay : test.getEssayDetails()) {
-                    sb.append("- ").append(essay.getQuestionNumber()).append("번: ");
+                    sb.append("- ").append(essay.getQuestionNumber()).append("번")
+                            .append(" / 유형: ").append(displayTopic(essay.getTopic())).append(": ");
                     sb.append(essay.getEarnedPoints() != null ? essay.getEarnedPoints() : "미채점");
                     sb.append("/").append(essay.getMaxPoints()).append("점");
                     if (essay.getTeacherComment() != null) {
@@ -254,6 +262,10 @@ public class AiFeedbackService {
 
         sb.append("\n위 데이터를 바탕으로 피드백을 작성해주세요.");
         return sb.toString();
+    }
+
+    private static String displayTopic(String topic) {
+        return topic == null || topic.isBlank() ? "유형 미지정" : topic;
     }
 
     private String buildStudentDataSummary(StudentLesson studentLesson) {

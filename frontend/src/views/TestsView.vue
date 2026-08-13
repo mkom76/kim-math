@@ -16,6 +16,10 @@ const allClasses = ref<AcademyClass[]>([])
 const searchQuery = ref('')
 const dialogVisible = ref(false)
 const editMode = ref(false)
+const creationMode = ref<'blank' | 'copy'>('blank')
+const sourceClassId = ref<number>()
+const sourceTestId = ref<number>()
+const submitting = ref(false)
 const currentTest = ref<Test>({ title: '', academyId: undefined, classId: undefined })
 const questionCountInput = ref(10)
 const { currentPage, pageSize } = usePagination('tests-view')
@@ -23,6 +27,16 @@ const { currentPage, pageSize } = usePagination('tests-view')
 const availableClasses = computed(() => {
   if (!currentTest.value.academyId) return []
   return allClasses.value.filter(cls => cls.academyId === currentTest.value.academyId)
+})
+
+const sourceClasses = computed(() => allClasses.value.filter(cls =>
+  cls.academyId === authStore.activeAcademyId &&
+  tests.value.some(test => test.classId === cls.id)
+))
+
+const availableSourceTests = computed(() => {
+  if (!sourceClassId.value) return []
+  return tests.value.filter(test => test.classId === sourceClassId.value)
 })
 
 const filteredData = computed(() => {
@@ -78,6 +92,9 @@ const fetchClasses = async () => {
 
 const openAddDialog = () => {
   editMode.value = false
+  creationMode.value = 'blank'
+  sourceClassId.value = undefined
+  sourceTestId.value = undefined
   currentTest.value = {
     title: '',
     academyId: authStore.activeAcademyId ?? undefined,
@@ -86,6 +103,16 @@ const openAddDialog = () => {
   questionCountInput.value = 10
   dialogVisible.value = true
 }
+
+watch(sourceClassId, () => {
+  sourceTestId.value = undefined
+})
+
+watch(sourceTestId, (id) => {
+  if (!id) return
+  const source = tests.value.find(test => test.id === id)
+  if (source) currentTest.value.title = source.title
+})
 
 const openEditDialog = (test: Test) => {
   editMode.value = true
@@ -99,12 +126,27 @@ const handleSubmit = async () => {
     return
   }
 
+  if (!editMode.value && creationMode.value === 'copy' && !sourceTestId.value) {
+    ElMessage.error('가져올 시험을 선택해주세요.')
+    return
+  }
+
+  submitting.value = true
   try {
     if (editMode.value && currentTest.value.id) {
       await testAPI.updateTest(currentTest.value.id, currentTest.value)
       ElMessage.success('시험 정보가 수정되었습니다.')
       dialogVisible.value = false
       fetchTests()
+    } else if (creationMode.value === 'copy' && sourceTestId.value) {
+      const response = await testAPI.copyTest(sourceTestId.value, {
+        targetClassId: currentTest.value.classId,
+        title: currentTest.value.title
+      })
+      ElMessage.success('시험과 문항을 복사했습니다.')
+      dialogVisible.value = false
+      await fetchTests()
+      router.push(`/tests/${response.data.id}/answers`)
     } else {
       // 시험 생성
       const response = await testAPI.createTest(currentTest.value)
@@ -142,6 +184,8 @@ const handleSubmit = async () => {
     }
   } catch (error) {
     ElMessage.error('작업을 완료할 수 없습니다.')
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -345,6 +389,56 @@ onMounted(() => {
         label-width="100px"
         label-position="left"
       >
+        <el-form-item v-if="!editMode" label="생성 방식">
+          <el-radio-group v-model="creationMode">
+            <el-radio-button value="blank">새로 만들기</el-radio-button>
+            <el-radio-button value="copy">기존 시험 복사</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+
+        <template v-if="!editMode && creationMode === 'copy'">
+          <el-alert
+            title="담당하고 있는 반의 시험에서 문항과 정답, 배점을 가져옵니다. 학생 제출과 성적은 복사되지 않습니다."
+            type="info"
+            :closable="false"
+            show-icon
+            style="margin-bottom: 18px"
+          />
+
+          <el-form-item label="원본 반" required>
+            <el-select
+              v-model="sourceClassId"
+              placeholder="시험을 가져올 반을 선택하세요"
+              filterable
+              style="width: 100%"
+            >
+              <el-option
+                v-for="cls in sourceClasses"
+                :key="cls.id"
+                :label="cls.name"
+                :value="cls.id"
+              />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="원본 시험" required>
+            <el-select
+              v-model="sourceTestId"
+              placeholder="가져올 시험을 선택하세요"
+              :disabled="!sourceClassId"
+              filterable
+              style="width: 100%"
+            >
+              <el-option
+                v-for="test in availableSourceTests"
+                :key="test.id"
+                :label="`${test.title} (${test.questionCount || 0}문제)`"
+                :value="test.id"
+              />
+            </el-select>
+          </el-form-item>
+        </template>
+
         <el-form-item label="시험명" required>
           <el-input
             v-model="currentTest.title"
@@ -368,7 +462,7 @@ onMounted(() => {
           </el-select>
         </el-form-item>
 
-        <el-form-item label="반" required>
+        <el-form-item :label="creationMode === 'copy' && !editMode ? '대상 반' : '반'" required>
           <el-select
             v-model="currentTest.classId"
             placeholder="반을 선택하세요"
@@ -384,7 +478,7 @@ onMounted(() => {
           </el-select>
         </el-form-item>
 
-        <el-form-item v-if="!editMode" label="문제 수" required>
+        <el-form-item v-if="!editMode && creationMode === 'blank'" label="문제 수" required>
           <el-input-number
             v-model="questionCountInput"
             :min="1"
@@ -403,9 +497,10 @@ onMounted(() => {
           <el-button
             type="primary"
             @click="handleSubmit"
-            :disabled="!currentTest.title || !currentTest.academyId || !currentTest.classId"
+            :loading="submitting"
+            :disabled="!currentTest.title || !currentTest.academyId || !currentTest.classId || (!editMode && creationMode === 'copy' && !sourceTestId)"
           >
-            {{ editMode ? '수정' : '추가' }}
+            {{ editMode ? '수정' : creationMode === 'copy' ? '복사하기' : '추가' }}
           </el-button>
         </span>
       </template>

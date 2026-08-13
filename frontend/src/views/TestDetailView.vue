@@ -636,8 +636,8 @@ onMounted(() => {
               <el-tag v-if="question.questionType === 'OBJECTIVE'" type="primary" effect="plain">객관식</el-tag>
               <el-tag v-else-if="question.questionType === 'SUBJECTIVE'" type="warning" effect="plain">주관식</el-tag>
               <el-tag v-else type="info" effect="plain">서술형</el-tag>
-              <span v-if="question.textbookProblem?.topic" style="font-size: 12px; color: #409eff">
-                {{ question.textbookProblem.topic }}
+              <span v-if="question.topic" style="font-size: 12px; color: #409eff">
+                {{ question.topic }}
               </span>
             </div>
 

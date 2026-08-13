@@ -1,11 +1,13 @@
 package com.example.controller;
 
+import com.example.dto.CopyTestRequest;
 import com.example.dto.TestAnswersDto;
 import com.example.dto.TestDto;
 import com.example.dto.TestQuestionDto;
 import com.example.dto.TestStatsDto;
 import com.example.dto.TestSubmissionRosterDto;
 import com.example.service.TestService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +42,15 @@ public class TestController {
     public ResponseEntity<TestDto> createTest(@RequestBody TestDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(testService.createTest(dto));
+    }
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @PostMapping("/{id}/copy")
+    public ResponseEntity<TestDto> copyTest(
+            @PathVariable Long id,
+            @Valid @RequestBody CopyTestRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(testService.copyTest(id, request));
     }
     
     @PreAuthorize("hasRole('TEACHER')")

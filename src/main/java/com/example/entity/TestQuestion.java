@@ -45,6 +45,25 @@ public class TestQuestion {
     @Builder.Default
     private QuestionType questionType = QuestionType.SUBJECTIVE;
 
+    /** Canonical math-topic path snapshot (for example, "함수 › 일차함수 › 그래프"). */
+    @Column(length = 512)
+    private String topic;
+
+    @Column(name = "topic_l1", length = 100)
+    private String topicL1;
+
+    @Column(name = "topic_l2", length = 100)
+    private String topicL2;
+
+    @Column(name = "topic_l3", length = 100)
+    private String topicL3;
+
+    @Column(name = "topic_l4", length = 100)
+    private String topicL4;
+
+    @Column(name = "topic_l5", length = 100)
+    private String topicL5;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "textbook_problem_id")
     @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.SET_NULL)

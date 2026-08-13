@@ -72,8 +72,12 @@ class StudentTestResultControllerTest {
         TestQuestion q1 = TestQuestion.builder()
                 .test(exam).number(1).answer("3").points(50.0)
                 .questionType(QuestionType.OBJECTIVE)
+                .topic("일차함수")
                 .textbookProblem(tp).build();
         em.persist(q1);
+
+        // 시험 문항 유형은 출제 시점 스냅샷이므로 이후 교재 수정에 영향받지 않는다.
+        tp.setTopic("교재에서 변경된 유형");
 
         TestQuestion q2 = TestQuestion.builder()
                 .test(exam).number(2).answer("x=2").points(50.0)

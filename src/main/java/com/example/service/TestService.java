@@ -69,6 +69,54 @@ public class TestService {
         return TestDto.from(test);
     }
 
+    /**
+     * 담당 반의 기존 시험을 다른 반의 새 시험으로 복사한다.
+     * 문항 설정만 복제하고 수업 연결과 학생 제출/성적은 의도적으로 제외한다.
+     */
+    public TestDto copyTest(Long sourceTestId, CopyTestRequest request) {
+        Test sourceTest = testRepository.findById(sourceTestId)
+                .orElseThrow(() -> new IllegalArgumentException("원본 시험을 찾을 수 없습니다"));
+        authorizationService.assertCanAccessTest(sourceTest);
+
+        AcademyClass targetClass = academyClassRepository.findById(request.targetClassId())
+                .orElseThrow(() -> new IllegalArgumentException("대상 반을 찾을 수 없습니다"));
+        authorizationService.assertCanModifyClass(targetClass);
+
+        Long sourceAcademyId = sourceTest.getAcademy() != null ? sourceTest.getAcademy().getId() : null;
+        Long targetAcademyId = targetClass.getAcademy() != null ? targetClass.getAcademy().getId() : null;
+        if (sourceAcademyId == null || !sourceAcademyId.equals(targetAcademyId)) {
+            throw new ForbiddenException("같은 학원 안에서만 시험을 복사할 수 있습니다");
+        }
+
+        Test copiedTest = testRepository.save(Test.builder()
+                .title(request.title().trim())
+                .academy(sourceTest.getAcademy())
+                .academyClass(targetClass)
+                .lesson(null)
+                .build());
+
+        List<TestQuestion> copiedQuestions = testQuestionRepository
+                .findByTestIdOrderByNumber(sourceTestId)
+                .stream()
+                .map(sourceQuestion -> {
+                    TestQuestion copiedQuestion = TestQuestion.builder()
+                            .test(copiedTest)
+                            .number(sourceQuestion.getNumber())
+                            .answer(sourceQuestion.getAnswer())
+                            .points(sourceQuestion.getPoints())
+                            .questionType(sourceQuestion.getQuestionType())
+                            .textbookProblem(sourceQuestion.getTextbookProblem())
+                            .build();
+                    applyTopic(copiedQuestion, effectiveTopic(sourceQuestion));
+                    return copiedQuestion;
+                })
+                .collect(Collectors.toList());
+
+        testQuestionRepository.saveAll(copiedQuestions);
+        copiedTest.getQuestions().addAll(copiedQuestions);
+        return TestDto.from(copiedTest);
+    }
+
     public TestDto updateTest(Long id, TestDto dto) {
         Test test = testRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
@@ -134,6 +182,7 @@ public class TestService {
                 question.setAnswer(answer.getAnswer());
                 question.setPoints(points);
                 question.setQuestionType(questionType);
+                applyTopic(question, answer.getTopic());
             } else {
                 // 새 문제 생성
                 question = TestQuestion.builder()
@@ -143,6 +192,7 @@ public class TestService {
                         .points(points)
                         .questionType(questionType)
                         .build();
+                applyTopic(question, answer.getTopic());
             }
             questionsToSave.add(question);
         }
@@ -230,13 +280,11 @@ public class TestService {
         studentSubmissionDetailRepository.getEssayAvgEarnedRatesByTestId(testId)
                 .forEach(arr -> essayAvgEarnedMap.put((Integer) arr[0], (Double) arr[1]));
 
-        // 문제번호 → TextbookProblem 메타 (라이브 참조)
+        // 문제번호 → 시험 문항 스냅샷. 유형은 시험 문항, 해설 영상은 교재 메타를 사용한다.
         List<TestQuestion> questions = testQuestionRepository.findByTestIdOrderByNumber(testId);
-        Map<Integer, TextbookProblem> metaByNumber = new HashMap<>();
+        Map<Integer, TestQuestion> questionByNumber = new HashMap<>();
         for (TestQuestion q : questions) {
-            if (q.getTextbookProblem() != null) {
-                metaByNumber.put(q.getNumber(), q.getTextbookProblem());
-            }
+            questionByNumber.put(q.getNumber(), q);
         }
 
         // 문제별 정답률 및 틀린/미채점 학생 명단
@@ -246,8 +294,9 @@ public class TestService {
                     Integer questionNumber = (Integer) arr[0];
                     Double correctRate = (Double) arr[1];
                     QuestionType questionType = (QuestionType) arr[2];
-                    TextbookProblem meta = metaByNumber.get(questionNumber);
-                    String topic = meta != null ? meta.getTopic() : null;
+                    TestQuestion question = questionByNumber.get(questionNumber);
+                    TextbookProblem meta = question != null ? question.getTextbookProblem() : null;
+                    String topic = question != null ? effectiveTopic(question) : null;
                     String videoLink = meta != null ? meta.getVideoLink() : null;
 
                     if (questionType == QuestionType.ESSAY) {
@@ -377,6 +426,7 @@ public class TestService {
                     .questionType(tp.getQuestionType() != null ? tp.getQuestionType() : QuestionType.SUBJECTIVE)
                     .textbookProblem(tp)
                     .build();
+            applyTopic(q, tp.getTopic());
             q = testQuestionRepository.save(q);
             result.add(TestQuestionDto.from(q));
         }
@@ -400,6 +450,8 @@ public class TestService {
                 .questionType(questionType)
                 .build();
 
+        applyTopic(question, dto.getTopic());
+
         question = testQuestionRepository.save(question);
         return TestQuestionDto.from(question);
     }
@@ -409,5 +461,19 @@ public class TestService {
                 .stream()
                 .map(TestDto::from)
                 .collect(Collectors.toList());
+    }
+
+    private static String effectiveTopic(TestQuestion question) {
+        return question.getTopic();
+    }
+
+    private static void applyTopic(TestQuestion question, String rawTopic) {
+        String[] levels = TopicNormalizer.parse(rawTopic);
+        question.setTopic(TopicNormalizer.format(levels));
+        question.setTopicL1(TopicNormalizer.levelAt(levels, 1));
+        question.setTopicL2(TopicNormalizer.levelAt(levels, 2));
+        question.setTopicL3(TopicNormalizer.levelAt(levels, 3));
+        question.setTopicL4(TopicNormalizer.levelAt(levels, 4));
+        question.setTopicL5(TopicNormalizer.levelAt(levels, 5));
     }
 }
