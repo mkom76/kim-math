@@ -1,56 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { ElMessage } from 'element-plus'
-import { authAPI } from '@/api/client'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { usePinChange } from '@/composables/usePinChange'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-const loading = ref(false)
-const pinForm = ref({
-  currentPin: '',
-  newPin: '',
-  confirmPin: ''
-})
-const pinLength = computed(() => authStore.role === 'TEACHER' ? 6 : 4)
-
-const handleChangePIN = async () => {
-  if (!pinForm.value.currentPin || !pinForm.value.newPin || !pinForm.value.confirmPin) {
-    ElMessage.error('모든 필드를 입력해주세요')
-    return
-  }
-
-  if (pinForm.value.newPin !== pinForm.value.confirmPin) {
-    ElMessage.error('새 PIN이 일치하지 않습니다')
-    return
-  }
-
-  const pinPattern = new RegExp(`^\\d{${pinLength.value}}$`)
-  if (!pinPattern.test(pinForm.value.newPin)) {
-    ElMessage.error(`PIN은 숫자 ${pinLength.value}자리여야 합니다`)
-    return
-  }
-
-  loading.value = true
-  try {
-    const response = await authAPI.changePin(pinForm.value.currentPin, pinForm.value.newPin)
-    ElMessage.success(response.data.message || 'PIN이 성공적으로 변경되었습니다')
-
-    // 폼 초기화
-    pinForm.value = {
-      currentPin: '',
-      newPin: '',
-      confirmPin: ''
-    }
-  } catch (error: any) {
-    const message = error.response?.data?.message || 'PIN 변경에 실패했습니다'
-    ElMessage.error(message)
-  } finally {
-    loading.value = false
-  }
-}
+const { loading, pinForm, pinLength, handleChangePIN } = usePinChange()
 </script>
 
 <template>

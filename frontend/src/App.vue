@@ -24,7 +24,11 @@ const isLoginPage = computed(() => route.path === '/login')
 const isExamTimer = computed(() => route.path === '/exam-timer')
 const isTeacherRoute = computed(() => currentUser.value.role === 'TEACHER' && !isLoginPage.value && !isExamTimer.value)
 const isStudentRoute = computed(() => currentUser.value.role === 'STUDENT')
-const isStudentV2 = computed(() => studentUiMode.value === 'v2' && route.path.startsWith('/student/'))
+const isStudentV2 = computed(() => (
+  studentUiMode.value === 'v2'
+  && isStudentRoute.value
+  && (route.path.startsWith('/student/') || route.path === '/settings')
+))
 // Test-taking screen wants the full viewport; suppress bottom nav there.
 const isTestTaking = computed(() => /^\/student\/tests\/[^/]+$/.test(route.path))
 const showStudentNav = computed(() => (
