@@ -27,7 +27,11 @@ const isStudentRoute = computed(() => currentUser.value.role === 'STUDENT')
 const isStudentV2 = computed(() => studentUiMode.value === 'v2' && route.path.startsWith('/student/'))
 // Test-taking screen wants the full viewport; suppress bottom nav there.
 const isTestTaking = computed(() => /^\/student\/tests\/[^/]+$/.test(route.path))
-const showStudentNav = computed(() => isStudentRoute.value && !isTestTaking.value)
+const showStudentNav = computed(() => (
+  isStudentRoute.value
+  && route.path.startsWith('/student/')
+  && !isTestTaking.value
+))
 
 const fetchCurrentUser = async () => {
   try {
@@ -38,7 +42,8 @@ const fetchCurrentUser = async () => {
       await authStore.loadCurrentUser()
     }
   } catch {
-    // User not logged in
+    // Do not leave stale role state behind after logout or session expiry.
+    currentUser.value = {}
   }
 }
 
