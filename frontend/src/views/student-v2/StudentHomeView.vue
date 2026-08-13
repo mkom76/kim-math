@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { authAPI, lessonAPI, submissionAPI, studentAPI } from '@/api/client'
+import { authAPI, lessonAPI, submissionAPI, studentAPI, studentNotificationAPI } from '@/api/client'
 import type { AttendanceStats, AuthResponse, Lesson, Student, Submission } from '@/api/client'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useStudentUiMode } from '@/composables/useStudentUiMode'
@@ -26,6 +26,7 @@ const mySubmissions = ref<Submission[]>([])
 const attendanceStats = ref<AttendanceStats | null>(null)
 const pastTestsDialogVisible = ref(false)
 const attendanceDialogVisible = ref(false)
+const unreadNotificationCount = ref(0)
 
 const submittedTestIds = computed(() => new Set(mySubmissions.value.map(submission => submission.testId)))
 const untakenTests = computed(() => availableTests.value.filter(test => !submittedTestIds.value.has(test.id)))
@@ -54,6 +55,15 @@ const openTest = (test: DashboardTest) => {
 const returnToLegacyUi = async () => {
   leavePreview()
   await router.replace('/student/dashboard')
+}
+
+const fetchUnreadCount = async () => {
+  try {
+    const response = await studentNotificationAPI.getUnreadCount()
+    unreadNotificationCount.value = response.data.count
+  } catch {
+    unreadNotificationCount.value = 0
+  }
 }
 
 const fetchDashboard = async () => {
@@ -85,6 +95,7 @@ const fetchDashboard = async () => {
     } catch {
       attendanceStats.value = null
     }
+    await fetchUnreadCount()
   } catch (error) {
     console.error('Failed to fetch student dashboard:', error)
     ElMessage.error('학습 정보를 불러오지 못했습니다')
@@ -93,7 +104,14 @@ const fetchDashboard = async () => {
   }
 }
 
-onMounted(fetchDashboard)
+onMounted(() => {
+  fetchDashboard()
+  window.addEventListener('student-notifications-changed', fetchUnreadCount)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('student-notifications-changed', fetchUnreadCount)
+})
 </script>
 
 <template>
@@ -108,6 +126,19 @@ onMounted(fetchDashboard)
       </div>
       <div class="dashboard-header__actions">
         <button class="dashboard-preview-exit" @click="returnToLegacyUi">기존 UI</button>
+        <button
+          class="student-icon-button dashboard-notification-button"
+          :aria-label="unreadNotificationCount ? `알림 ${unreadNotificationCount}개 확인하기` : '알림 확인하기'"
+          @click="router.push('/student/notifications')"
+        >
+          <el-icon><Bell /></el-icon>
+          <span
+            v-if="unreadNotificationCount"
+            class="dashboard-notification-button__badge"
+            role="status"
+            aria-atomic="true"
+          >{{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}</span>
+        </button>
         <button class="student-icon-button" aria-label="설정 열기" @click="router.push('/settings')">
           <el-icon><Setting /></el-icon>
         </button>
@@ -246,6 +277,8 @@ onMounted(fetchDashboard)
 .dashboard-page { display: grid; min-width: 0; gap: 28px; }
 .dashboard-header__actions { display: flex; align-items: center; gap: 8px; }
 .dashboard-preview-exit { min-height: 44px; padding: 0 13px; border: 1px solid rgba(255, 255, 255, .55); border-radius: 999px; color: var(--student-primary); background: var(--student-surface); box-shadow: var(--student-shadow-soft); font: inherit; font-size: 12px; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.dashboard-notification-button { position: relative; }
+.dashboard-notification-button__badge { position: absolute; top: -5px; right: -5px; display: grid; min-width: 20px; height: 20px; padding: 0 5px; place-items: center; border: 2px solid var(--student-surface); border-radius: 999px; color: #fff; background: var(--student-danger); font-size: 10px; font-weight: 800; line-height: 1; }
 .dashboard-hero { display: grid; min-width: 0; gap: 22px; }
 .dashboard-hero__content { display: grid; min-width: 0; gap: 8px; }
 .dashboard-hero__content > * { min-width: 0; overflow-wrap: anywhere; }

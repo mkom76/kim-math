@@ -36,6 +36,7 @@ public class PushNotificationService {
 
     private final DeviceTokenRepository deviceTokenRepository;
     private final ObjectProvider<FirebaseMessaging> firebaseMessagingProvider;
+    private final StudentNotificationService studentNotificationService;
 
     @Value("${app.push.enabled:false}")
     private boolean pushEnabled;
@@ -49,14 +50,30 @@ public class PushNotificationService {
                                          String title,
                                          String body,
                                          Map<String, String> data) {
+        return sendToStudents(studentIds, title, body, data, null);
+    }
+
+    public DeliveryResult sendToStudents(List<Long> studentIds,
+                                         String title,
+                                         String body,
+                                         Map<String, String> data,
+                                         String sourceKey) {
         if (studentIds == null || studentIds.isEmpty()) return DeliveryResult.empty();
 
         List<Long> distinctStudentIds = studentIds.stream().distinct().toList();
+        Map<String, String> safeData = data == null ? Map.of() : data;
+        studentNotificationService.createForStudents(
+                distinctStudentIds,
+                safeData.get("type"),
+                title,
+                body,
+                safeData.get("path"),
+                sourceKey);
         List<DeviceToken> tokens = deviceTokenRepository.findByStudentIdIn(distinctStudentIds);
         if (tokens.isEmpty()) {
             return new DeliveryResult(distinctStudentIds.size(), 0, 0);
         }
-        return send(distinctStudentIds.size(), tokens, title, body, data);
+        return send(distinctStudentIds.size(), tokens, title, body, safeData);
     }
 
     private DeliveryResult send(int targetStudentCount,

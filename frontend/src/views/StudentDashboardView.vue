@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onBeforeUnmount, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { authAPI, lessonAPI, submissionAPI, studentAPI } from '@/api/client'
+import { authAPI, lessonAPI, submissionAPI, studentAPI, studentNotificationAPI } from '@/api/client'
 import type { AuthResponse, Submission, Student, Lesson, AttendanceStats } from '@/api/client'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useAuthStore } from '@/stores/auth'
@@ -27,6 +27,7 @@ const mySubmissions = ref<Submission[]>([])
 const pastTestsDialogVisible = ref(false)
 const attendanceDialogVisible = ref(false)
 const attendanceStats = ref<AttendanceStats | null>(null)
+const unreadNotificationCount = ref(0)
 
 const { isMobile } = useBreakpoint()
 const containerPadding = computed(() => isMobile.value ? '10px' : '24px')
@@ -37,6 +38,15 @@ const h3FontSize = computed(() => isMobile.value ? '13px' : '18px')
 const statFontSize = computed(() => isMobile.value ? '22px' : '32px')
 const bodyFontSize = computed(() => isMobile.value ? '11px' : '14px')
 const tableFontSize = computed(() => isMobile.value ? '10px' : '14px')
+
+const fetchUnreadCount = async () => {
+  try {
+    const response = await studentNotificationAPI.getUnreadCount()
+    unreadNotificationCount.value = response.data.count
+  } catch {
+    unreadNotificationCount.value = 0
+  }
+}
 
 const fetchCurrentUser = async () => {
   try {
@@ -76,6 +86,7 @@ const fetchCurrentUser = async () => {
       } catch {
         // 실패 시 무시
       }
+      await fetchUnreadCount()
     }
   } catch (error) {
     console.error('Failed to fetch user data:', error)
@@ -133,6 +144,11 @@ const formatLessonDate = (
 
 onMounted(() => {
   fetchCurrentUser()
+  window.addEventListener('student-notifications-changed', fetchUnreadCount)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('student-notifications-changed', fetchUnreadCount)
 })
 </script>
 
@@ -142,6 +158,12 @@ onMounted(() => {
 
     <!-- Top Right Actions -->
     <div :style="{ display: 'flex', justifyContent: 'flex-end', gap: isMobile ? '8px' : '12px', marginBottom: isMobile ? '12px' : '16px' }">
+      <el-badge :value="unreadNotificationCount" :hidden="!unreadNotificationCount" :max="99">
+        <el-button @click="$router.push('/student/notifications')" :size="isMobile ? 'small' : 'default'">
+          <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><Bell /></el-icon>
+          알림
+        </el-button>
+      </el-badge>
       <el-button @click="$router.push('/settings')" :size="isMobile ? 'small' : 'default'">
         <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><Setting /></el-icon>
         설정

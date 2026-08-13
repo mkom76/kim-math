@@ -49,6 +49,7 @@ export async function initPushNotifications(router: Router): Promise<void> {
       // foreground delivery is observable in device logs as well.
       // eslint-disable-next-line no-console
       console.info('[push] notification received:', notification.id)
+      window.dispatchEvent(new CustomEvent('student-notifications-changed'))
     })
 
     await PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {

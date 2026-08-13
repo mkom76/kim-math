@@ -126,7 +126,8 @@ public class DailyFeedbackService {
                 studentIds,
                 "오늘의 피드백이 도착했어요",
                 "선생님이 남긴 피드백을 확인해보세요",
-                Map.of("path", "/student/daily-feedback"));
+                Map.of("path", "/student/daily-feedback", "type", "FEEDBACK"),
+                "lesson-feedback:" + lessonId);
     }
 
     private DailyFeedbackDto.HomeworkSummary getHomeworkSummary(Long studentId, Homework homework) {

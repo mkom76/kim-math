@@ -348,6 +348,23 @@ export const deviceAPI = {
     client.delete(`/devices/${encodeURIComponent(token)}`),
 };
 
+export interface StudentNotification {
+  id: number;
+  type: 'FEEDBACK' | 'TEST' | 'CLINIC' | 'VIDEO' | 'GENERAL' | string;
+  title: string;
+  body: string;
+  targetPath?: string;
+  readAt?: string;
+  createdAt: string;
+}
+
+export const studentNotificationAPI = {
+  getInbox: () => client.get<StudentNotification[]>('/student-notifications'),
+  getUnreadCount: () => client.get<{ count: number }>('/student-notifications/unread-count'),
+  markRead: (id: number) => client.patch<StudentNotification>(`/student-notifications/${id}/read`),
+  markAllRead: () => client.patch<{ updated: number }>('/student-notifications/read-all'),
+};
+
 // Tests API
 export const testAPI = {
   getTests: (params?: any) => client.get('/tests', { params }),

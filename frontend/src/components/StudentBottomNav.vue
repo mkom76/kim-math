@@ -15,7 +15,7 @@ interface Tab {
 }
 
 const tabs: Tab[] = [
-  { label: '홈',     path: '/student/dashboard',      icon: House,     matchPrefix: ['/student/dashboard', '/student/daily-feedback', '/student/tests'] },
+  { label: '홈',     path: '/student/dashboard',      icon: House,     matchPrefix: ['/student/dashboard', '/student/daily-feedback', '/student/notifications', '/student/tests'] },
   { label: '영상',    path: '/student/videos',         icon: VideoPlay, matchPrefix: ['/student/videos'] },
   { label: '클리닉',  path: '/student/clinic',         icon: Service,   matchPrefix: ['/student/clinic'] },
   { label: '내 정보', path: '/student/stats',          icon: User,      matchPrefix: ['/student/stats'] },

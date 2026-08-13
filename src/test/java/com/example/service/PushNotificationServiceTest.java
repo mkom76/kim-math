@@ -24,13 +24,16 @@ class PushNotificationServiceTest {
 
     private DeviceTokenRepository deviceTokenRepository;
     private ObjectProvider<FirebaseMessaging> firebaseMessagingProvider;
+    private StudentNotificationService studentNotificationService;
     private PushNotificationService service;
 
     @BeforeEach
     void setUp() {
         deviceTokenRepository = mock(DeviceTokenRepository.class);
         firebaseMessagingProvider = mock(ObjectProvider.class);
-        service = new PushNotificationService(deviceTokenRepository, firebaseMessagingProvider);
+        studentNotificationService = mock(StudentNotificationService.class);
+        service = new PushNotificationService(
+                deviceTokenRepository, firebaseMessagingProvider, studentNotificationService);
     }
 
     @Test
@@ -52,6 +55,8 @@ class PushNotificationServiceTest {
         assertThat(result.targetStudentCount()).isEqualTo(2);
         assertThat(result.registeredDeviceCount()).isZero();
         assertThat(result.sentStudentCount()).isZero();
+        verify(studentNotificationService).createForStudents(
+                List.of(10L, 20L), null, "title", "body", null, null);
     }
 
     @Test
