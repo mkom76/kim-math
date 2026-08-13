@@ -574,6 +574,13 @@
   border-radius: 22px;
 }
 
+/* Element Plus teleports dialogs to body, outside .student-ui-v2. Constrain
+   student dialogs explicitly so fixed desktop widths cannot clip on phones. */
+.student-dialog.el-dialog {
+  max-width: calc(100vw - 24px);
+  border-radius: 22px;
+}
+
 .student-ui-v2 .student-app-main .el-message-box {
   max-width: calc(100vw - 32px);
   border-radius: 20px;

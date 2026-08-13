@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
-import { studentVideoAPI, authAPI, videoProgressAPI, type LessonVideo, type StudentLessonVideos, type VideoProgress } from '@/api/client'
+import {
+  studentVideoAPI,
+  authAPI,
+  videoProgressAPI,
+  type LessonVideo,
+  type StudentLessonVideos,
+  type VideoProgress,
+} from '@/api/client'
 import { ElMessage } from 'element-plus'
 import { VideoPlay, CircleCheck } from '@element-plus/icons-vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
@@ -77,7 +84,7 @@ const updateProgress = async (videoId: number, currentTime: number, duration: nu
   try {
     const response = await videoProgressAPI.updateProgress(currentStudentId.value, videoId, {
       watchedTime: Math.floor(currentTime),
-      duration: Math.floor(duration)
+      duration: Math.floor(duration),
     })
 
     // Update local progress map
@@ -146,8 +153,8 @@ const playVideo = async (video: LessonVideo) => {
     if (videoFrame.value) {
       player.value = new window.YT.Player(videoFrame.value, {
         events: {
-          onReady: onPlayerReady
-        }
+          onReady: onPlayerReady,
+        },
       })
     }
   }
@@ -210,7 +217,7 @@ const formatDate = (dateStr: string) => {
   return date.toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
   })
 }
 
@@ -239,96 +246,103 @@ onUnmounted(() => {
 
 <template>
   <div class="student-page student-page--wide videos-page">
-    <el-card class="videos-shell" shadow="never">
-      <template #header>
-        <div class="student-page__header">
-          <div>
-            <p class="student-page__eyebrow">LESSON VIDEO</p>
-            <h1 class="student-page__title">수업 다시보기</h1>
-            <p class="student-page__subtitle">놓친 부분부터 이어서 학습하세요.</p>
-          </div>
-          <span class="videos-header-icon"><el-icon><VideoPlay /></el-icon></span>
+    <header class="student-page__header videos-header">
+      <div>
+        <p class="student-page__eyebrow">LESSON VIDEO</p>
+        <h1 class="student-page__title">수업 다시보기</h1>
+        <p class="student-page__subtitle">놓친 부분부터 이어서 학습하세요.</p>
+      </div>
+      <span class="videos-header-icon"
+        ><el-icon><VideoPlay /></el-icon
+      ></span>
+    </header>
+
+    <div v-loading="loading">
+      <div v-for="lesson in lessonsWithVideos" :key="lesson.lessonId" class="lesson-video-group">
+        <div class="lesson-video-group__header">
+          <h2>
+            {{ formatDate(lesson.lessonDate) }}
+          </h2>
+          <p>
+            {{ lesson.className }}
+          </p>
         </div>
-      </template>
 
-      <div v-loading="loading">
-        <div
-          v-for="lesson in lessonsWithVideos"
-          :key="lesson.lessonId"
-          class="lesson-video-group"
-        >
-          <div class="lesson-video-group__header">
-            <h2>
-              {{ formatDate(lesson.lessonDate) }}
-            </h2>
-            <p>
-              {{ lesson.className }}
-            </p>
-          </div>
-
-          <el-row :gutter="16">
-            <el-col
-              :xs="24"
-              :sm="12"
-              :md="8"
-              :lg="6"
-              v-for="video in lesson.videos"
-              :key="video.id"
-              style="margin-bottom: 16px"
+        <el-row :gutter="16">
+          <el-col
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="6"
+            v-for="video in lesson.videos"
+            :key="video.id"
+            style="margin-bottom: 16px"
+          >
+            <el-card
+              class="video-card"
+              shadow="hover"
+              @click="playVideo(video)"
+              @keydown.enter="playVideo(video)"
+              @keydown.space.prevent="playVideo(video)"
+              role="button"
+              tabindex="0"
             >
-              <el-card
-                class="video-card"
-                shadow="hover"
-                @click="playVideo(video)"
-                @keydown.enter="playVideo(video)"
-                @keydown.space.prevent="playVideo(video)"
-                role="button"
-                tabindex="0"
-              >
-                <div class="video-card__thumbnail">
-                  <img
-                    :src="video.thumbnailUrl"
-                    :alt="`${video.title} 썸네일`"
-                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover"
-                  />
+              <div class="video-card__thumbnail">
+                <img
+                  :src="video.thumbnailUrl"
+                  :alt="`${video.title} 썸네일`"
+                  style="
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                  "
+                />
 
-                  <div style="
+                <div
+                  style="
                     position: absolute;
                     top: 50%;
                     left: 50%;
                     transform: translate(-50%, -50%);
-                    background: rgba(0,0,0,0.7);
+                    background: rgba(0, 0, 0, 0.7);
                     width: 60px;
                     height: 60px;
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                  ">
-                    <el-icon color="#fff" size="32">
-                      <VideoPlay />
-                    </el-icon>
-                  </div>
+                  "
+                >
+                  <el-icon color="#fff" size="32">
+                    <VideoPlay />
+                  </el-icon>
+                </div>
 
-                  <div style="
+                <div
+                  style="
                     position: absolute;
                     bottom: 8px;
                     right: 8px;
-                    background: rgba(0,0,0,0.8);
+                    background: rgba(0, 0, 0, 0.8);
                     color: white;
                     padding: 2px 6px;
                     border-radius: 4px;
                     font-size: 12px;
-                  ">
-                    {{ formatDuration(video.duration) }}
-                  </div>
+                  "
+                >
+                  {{ formatDuration(video.duration) }}
                 </div>
+              </div>
 
-                <div class="video-card__body">
-                  <el-tag type="info" size="small" style="margin-bottom: 8px">
-                    {{ video.orderIndex }}부
-                  </el-tag>
-                  <h3 style="
+              <div class="video-card__body">
+                <el-tag type="info" size="small" style="margin-bottom: 8px">
+                  {{ video.orderIndex }}부
+                </el-tag>
+                <h3
+                  style="
                     margin: 0;
                     font-size: 14px;
                     font-weight: 500;
@@ -337,44 +351,57 @@ onUnmounted(() => {
                     display: -webkit-box;
                     -webkit-line-clamp: 2;
                     -webkit-box-orient: vertical;
-                  ">
-                    {{ video.title }}
-                  </h3>
+                  "
+                >
+                  {{ video.title }}
+                </h3>
 
-                  <!-- Progress Bar -->
-                  <div style="margin-top: 12px">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px">
-                      <div style="display: flex; align-items: center; gap: 4px">
-                        <el-icon v-if="getProgress(video.id) === 100" color="#67c23a" size="16">
-                          <CircleCheck />
-                        </el-icon>
-                        <span style="font-size: 12px; color: #909399">
-                          {{ getProgress(video.id) === 100 ? '완료' : getProgress(video.id) > 0 ? `${getProgress(video.id)}%` : '시청 안함' }}
-                        </span>
-                      </div>
-                      <span v-if="getLastWatched(video.id)" style="font-size: 11px; color: #c0c4cc">
-                        {{ formatLastWatched(getLastWatched(video.id)!) }}
+                <!-- Progress Bar -->
+                <div style="margin-top: 12px">
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                      margin-bottom: 4px;
+                    "
+                  >
+                    <div style="display: flex; align-items: center; gap: 4px">
+                      <el-icon v-if="getProgress(video.id) === 100" color="#67c23a" size="16">
+                        <CircleCheck />
+                      </el-icon>
+                      <span style="font-size: 12px; color: #909399">
+                        {{
+                          getProgress(video.id) === 100
+                            ? '완료'
+                            : getProgress(video.id) > 0
+                              ? `${getProgress(video.id)}%`
+                              : '시청 안함'
+                        }}
                       </span>
                     </div>
-                    <el-progress
-                      :percentage="getProgress(video.id)"
-                      :stroke-width="4"
-                      :show-text="false"
-                      :color="getProgress(video.id) === 100 ? '#67c23a' : '#409eff'"
-                    />
+                    <span v-if="getLastWatched(video.id)" style="font-size: 11px; color: #c0c4cc">
+                      {{ formatLastWatched(getLastWatched(video.id)!) }}
+                    </span>
                   </div>
+                  <el-progress
+                    :percentage="getProgress(video.id)"
+                    :stroke-width="4"
+                    :show-text="false"
+                    :color="getProgress(video.id) === 100 ? '#67c23a' : '#409eff'"
+                  />
                 </div>
-              </el-card>
-            </el-col>
-          </el-row>
-        </div>
-
-        <el-empty
-          v-if="!loading && lessonsWithVideos.length === 0"
-          description="아직 등록된 수업 영상이 없어요"
-        />
+              </div>
+            </el-card>
+          </el-col>
+        </el-row>
       </div>
-    </el-card>
+
+      <el-empty
+        v-if="!loading && lessonsWithVideos.length === 0"
+        description="아직 등록된 수업 영상이 없어요"
+      />
+    </div>
 
     <el-dialog
       v-model="playDialogVisible"
@@ -389,13 +416,7 @@ onUnmounted(() => {
           v-if="playDialogVisible && selectedVideo"
           ref="videoFrame"
           :src="embedUrl"
-          style="
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%
-          "
+          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%"
           frameborder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen
@@ -406,28 +427,111 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.videos-page { padding-bottom: 24px; }
-.videos-shell { border: 0; background: transparent; box-shadow: none; }
-.videos-shell :deep(> .el-card__header) { padding: 0 0 24px; border: 0; }
-.videos-shell :deep(> .el-card__body) { padding: 0; }
-.videos-header-icon { display: grid; flex: 0 0 48px; height: 48px; place-items: center; border-radius: 15px; color: var(--student-primary); background: var(--student-primary-soft); font-size: 24px; }
-.lesson-video-group { margin-bottom: 30px; }
-.lesson-video-group:last-child { margin-bottom: 0; }
-.lesson-video-group__header { margin-bottom: 14px; }
-.lesson-video-group__header h2 { margin: 0; color: var(--student-ink); font-size: 18px; font-weight: 800; letter-spacing: -.3px; }
-.lesson-video-group__header p { margin: 4px 0 0; color: var(--student-muted); font-size: 13px; }
-.video-card { overflow: hidden; height: 100%; border: 1px solid var(--student-border); border-radius: 18px; background: var(--student-surface); cursor: pointer; box-shadow: var(--student-shadow-sm); transition: transform .18s ease, box-shadow .18s ease; }
-.video-card:hover { transform: translateY(-2px); box-shadow: var(--student-shadow-md); }
-.video-card:focus-visible { outline: 3px solid color-mix(in srgb, var(--student-primary) 30%, transparent); outline-offset: 3px; }
-.video-card :deep(.el-card__body) { padding: 0; }
-.video-card__thumbnail { position: relative; padding-top: 56.25%; overflow: hidden; background: #111827; }
-.video-card__thumbnail::after { position: absolute; inset: 0; content: ''; background: linear-gradient(180deg, transparent 50%, rgba(5, 11, 24, .35)); }
-.video-card__body { padding: 15px !important; }
-.video-card__body > h3 { display: -webkit-box !important; overflow: hidden; min-height: 42px; margin: 0 !important; color: var(--student-ink); font-size: 15px !important; font-weight: 750 !important; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.video-player-frame { position: relative; padding-top: 56.25%; overflow: hidden; border-radius: 14px; background: #000; }
+.videos-page {
+  padding-bottom: 24px;
+}
+.videos-header {
+  margin-bottom: 24px;
+}
+.videos-header-icon {
+  display: grid;
+  flex: 0 0 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 15px;
+  color: var(--student-primary);
+  background: var(--student-primary-soft);
+  font-size: 24px;
+}
+.lesson-video-group {
+  margin-bottom: 30px;
+}
+.lesson-video-group:last-child {
+  margin-bottom: 0;
+}
+.lesson-video-group__header {
+  margin-bottom: 14px;
+}
+.lesson-video-group__header h2 {
+  margin: 0;
+  color: var(--student-ink);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+.lesson-video-group__header p {
+  margin: 4px 0 0;
+  color: var(--student-muted);
+  font-size: 13px;
+}
+.video-card {
+  overflow: hidden;
+  height: 100%;
+  border: 1px solid var(--student-border);
+  border-radius: 18px;
+  background: var(--student-surface);
+  cursor: pointer;
+  box-shadow: var(--student-shadow-sm);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.video-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--student-shadow-md);
+}
+.video-card:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--student-primary) 30%, transparent);
+  outline-offset: 3px;
+}
+.video-card :deep(.el-card__body) {
+  padding: 0;
+}
+.video-card__thumbnail {
+  position: relative;
+  padding-top: 56.25%;
+  overflow: hidden;
+  background: #111827;
+}
+.video-card__thumbnail::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: linear-gradient(180deg, transparent 50%, rgba(5, 11, 24, 0.35));
+}
+.video-card__body {
+  padding: 15px !important;
+}
+.video-card__body > h3 {
+  display: -webkit-box !important;
+  overflow: hidden;
+  min-height: 42px;
+  margin: 0 !important;
+  color: var(--student-ink);
+  font-size: 15px !important;
+  font-weight: 750 !important;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.video-player-frame {
+  position: relative;
+  padding-top: 56.25%;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #000;
+}
 @media (max-width: 767px) {
-  .videos-shell :deep(.el-row) { margin-right: 0 !important; margin-left: 0 !important; }
-  .videos-shell :deep(.el-col) { padding-right: 0 !important; padding-left: 0 !important; }
-  .video-card__body { padding: 15px !important; }
+  .videos-page :deep(.el-row) {
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+  }
+  .videos-page :deep(.el-col) {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+  }
+  .video-card__body {
+    padding: 15px !important;
+  }
 }
 </style>
