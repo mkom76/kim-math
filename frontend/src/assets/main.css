@@ -6,6 +6,15 @@
   font-weight: normal;
 }
 
+/* The preview student UI owns its mobile gutters. Keep the legacy shell intact. */
+#app.student-ui-v2-root {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+}
+
 /* Default max-width for student views */
 .student-view {
   max-width: 1200px;

@@ -243,11 +243,12 @@ onMounted(fetchDashboard)
 </template>
 
 <style scoped>
-.dashboard-page { display: grid; gap: 28px; }
+.dashboard-page { display: grid; min-width: 0; gap: 28px; }
 .dashboard-header__actions { display: flex; align-items: center; gap: 8px; }
-.dashboard-preview-exit { min-height: 44px; padding: 0 13px; border: 1px solid rgba(255, 255, 255, .55); border-radius: 999px; color: var(--student-primary); background: var(--student-surface); box-shadow: var(--student-shadow-soft); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
-.dashboard-hero { display: grid; gap: 22px; }
-.dashboard-hero__content { display: grid; gap: 8px; }
+.dashboard-preview-exit { min-height: 44px; padding: 0 13px; border: 1px solid rgba(255, 255, 255, .55); border-radius: 999px; color: var(--student-primary); background: var(--student-surface); box-shadow: var(--student-shadow-soft); font: inherit; font-size: 12px; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.dashboard-hero { display: grid; min-width: 0; gap: 22px; }
+.dashboard-hero__content { display: grid; min-width: 0; gap: 8px; }
+.dashboard-hero__content > * { min-width: 0; overflow-wrap: anywhere; }
 .dashboard-hero__action { width: fit-content; min-width: 172px; color: var(--student-primary-strong); background: #fff; border: 0; }
 .student-text-action { min-height: 44px; padding: 0 2px; border: 0; background: transparent; color: var(--student-primary); font: inherit; font-weight: 700; cursor: pointer; }
 .student-section-heading__count { display: grid; place-items: center; min-width: 30px; height: 30px; padding: 0 9px; border-radius: 999px; color: var(--student-primary); background: var(--student-primary-soft); font-size: 13px; font-weight: 800; }
@@ -265,5 +266,10 @@ onMounted(fetchDashboard)
 .attendance-detail__grid div { display: grid; justify-items: center; gap: 3px; padding: 16px; border: 1px solid var(--student-border); border-radius: 14px; background: var(--student-surface-soft); }
 .attendance-detail__grid strong { color: var(--student-ink); font-size: 23px; }
 .attendance-detail__grid span { color: var(--student-muted); font-size: 13px; }
+@media (max-width: 420px) {
+  .dashboard-page :deep(.student-page__header) { flex-direction: column; align-items: stretch; gap: 12px; }
+  .dashboard-header__actions { order: -1; align-self: flex-end; }
+  .dashboard-hero__action { width: 100%; min-width: 0; }
+}
 @media (min-width: 680px) { .dashboard-hero { grid-template-columns: 1fr auto; align-items: end; } }
 </style>

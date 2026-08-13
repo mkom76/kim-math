@@ -63,6 +63,12 @@
   margin-bottom: 20px;
 }
 
+.student-ui-v2 .student-page__header > *,
+.student-ui-v2 .student-section-heading > *,
+.student-ui-v2 .student-section__header > * {
+  min-width: 0;
+}
+
 .student-ui-v2 .student-page__eyebrow {
   margin: 0 0 5px;
   color: var(--student-primary);
@@ -619,15 +625,48 @@
 @media (max-width: 420px) {
   .student-ui-v2 .student-view,
   .student-ui-v2 .student-page {
-    padding-inline: 14px !important;
+    padding-left: max(12px, env(safe-area-inset-left)) !important;
+    padding-right: max(12px, env(safe-area-inset-right)) !important;
   }
 
   .student-ui-v2 .student-hero {
-    padding: 21px;
+    padding: 20px;
   }
 
   .student-ui-v2 .student-stat {
     padding: 15px;
+  }
+
+  .student-ui-v2 .student-stat-grid {
+    gap: 10px;
+  }
+
+  .student-ui-v2 .student-stat-card {
+    min-height: 124px;
+    padding: 14px;
+  }
+
+  .student-ui-v2 .student-section-heading,
+  .student-ui-v2 .student-section__header {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 340px) {
+  .student-ui-v2 .student-page__title {
+    font-size: 23px;
+  }
+
+  .student-ui-v2 .student-hero {
+    padding: 18px;
+  }
+
+  .student-ui-v2 .student-stat-card {
+    padding: 12px;
+  }
+
+  .student-ui-v2 .student-stat-card__value {
+    font-size: 24px;
   }
 }
 

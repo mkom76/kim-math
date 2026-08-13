@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { authAPI } from '@/api/client'
@@ -66,6 +66,16 @@ onMounted(() => {
 // Refetch user when route changes (e.g., after login)
 watch(() => route.path, () => {
   fetchCurrentUser()
+})
+
+// The legacy shell intentionally keeps its desktop padding. Remove it only while
+// the opt-in student UI is active so compact phones can use the full viewport.
+watch(isStudentV2, (enabled) => {
+  document.getElementById('app')?.classList.toggle('student-ui-v2-root', enabled)
+}, { immediate: true })
+
+onBeforeUnmount(() => {
+  document.getElementById('app')?.classList.remove('student-ui-v2-root')
 })
 </script>
 
