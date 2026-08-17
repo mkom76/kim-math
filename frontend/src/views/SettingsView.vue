@@ -2,11 +2,18 @@
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePinChange } from '@/composables/usePinChange'
+import { useStudentUiMode } from '@/composables/useStudentUiMode'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { enablePreview, hasSeenPreview } = useStudentUiMode()
 
 const { loading, pinForm, pinLength, handleChangePIN } = usePinChange()
+
+const startPreview = async () => {
+  enablePreview()
+  await router.replace('/student/dashboard')
+}
 </script>
 
 <template>
@@ -21,6 +28,30 @@ const { loading, pinForm, pinLength, handleChangePIN } = usePinChange()
           설정
         </h1>
         <p style="margin: 8px 0 0; color: #909399">계정 설정을 관리합니다</p>
+      </div>
+    </el-card>
+
+    <el-card
+      v-if="authStore.role === 'STUDENT'"
+      shadow="never"
+      style="margin-bottom: 24px"
+    >
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap">
+        <div style="min-width: 0">
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: #303133">
+            <el-icon color="#409eff"><MagicStick /></el-icon>
+            새로운 학생 화면
+          </div>
+          <div style="margin-top: 5px; color: #909399; font-size: 13px">
+            새 디자인을 체험하고 언제든 기존 화면으로 돌아올 수 있습니다.
+          </div>
+        </div>
+        <span class="preview-settings-action">
+          <el-button size="small" plain type="primary" @click="startPreview">
+            새 UI 체험하기
+          </el-button>
+          <span v-if="!hasSeenPreview" class="preview-settings-action__dot" aria-hidden="true" />
+        </span>
       </div>
     </el-card>
 
@@ -131,3 +162,23 @@ const { loading, pinForm, pinLength, handleChangePIN } = usePinChange()
     </el-card>
   </div>
 </template>
+
+<style scoped>
+.preview-settings-action {
+  position: relative;
+  display: inline-flex;
+}
+
+.preview-settings-action__dot {
+  position: absolute;
+  z-index: 1;
+  top: 4px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid #fff;
+  border-radius: 50%;
+  background: #f56c6c;
+  pointer-events: none;
+}
+</style>

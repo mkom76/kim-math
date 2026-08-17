@@ -1,12 +1,15 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { usePinChange } from '@/composables/usePinChange'
+import StudentUiFeedbackDialog from '@/components/student-v2/StudentUiFeedbackDialog.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const { loading, pinForm, pinLength, handleChangePIN } = usePinChange()
+const feedbackDialogVisible = ref(false)
 
 async function logout() {
   try {
@@ -43,6 +46,14 @@ async function logout() {
         <h2 id="privacy-title">서비스 정보</h2>
       </div>
       <div class="settings-surface">
+        <button type="button" class="settings-row" @click="feedbackDialogVisible = true">
+          <span class="settings-row__icon"><el-icon><ChatDotRound /></el-icon></span>
+          <span class="settings-row__content">
+            <strong>새 UI 의견 보내기</strong>
+            <small>좋았던 점이나 불편한 점을 편하게 알려주세요.</small>
+          </span>
+          <el-icon class="settings-row__arrow"><ArrowRight /></el-icon>
+        </button>
         <button type="button" class="settings-row" @click="router.push('/privacy')">
           <span class="settings-row__icon"><el-icon><Document /></el-icon></span>
           <span class="settings-row__content">
@@ -84,6 +95,8 @@ async function logout() {
         <el-icon class="settings-row__arrow"><ArrowRight /></el-icon>
       </button>
     </section>
+
+    <StudentUiFeedbackDialog v-model="feedbackDialogVisible" />
   </div>
 </template>
 
@@ -94,7 +107,11 @@ async function logout() {
 .settings-section__heading p { margin: 0 0 3px; color: var(--student-primary); font-size: 11px; font-weight: 750; letter-spacing: .06em; }
 .settings-section__heading h2 { margin: 0; color: var(--student-ink); font-size: 19px; font-weight: 850; letter-spacing: -.02em; }
 .settings-surface { overflow: hidden; border: 1px solid var(--student-border); border-radius: var(--student-radius-lg); background: var(--student-surface); box-shadow: var(--student-shadow-soft); }
-.settings-row { display: grid; grid-template-columns: 42px minmax(0, 1fr) 20px; align-items: center; gap: 12px; width: 100%; min-width: 0; min-height: 72px; padding: 12px 16px; border: 0; color: inherit; background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.settings-row { display: grid; grid-template-columns: 42px minmax(0, 1fr) 20px; align-items: center; gap: 12px; width: 100%; min-width: 0; min-height: 72px; padding: 12px 16px; border: 0; color: inherit; background: transparent; font: inherit; text-align: left; cursor: pointer; transition: background-color .16s ease, box-shadow .16s ease; }
+.settings-row + .settings-row { border-top: 1px solid var(--student-border); }
+.settings-row:hover { background: #f8faff; box-shadow: inset 3px 0 var(--student-primary); }
+.settings-row:active { background: var(--student-primary-soft); }
+.settings-row:focus-visible { outline: 3px solid rgba(36, 87, 214, .25); outline-offset: -3px; }
 .settings-row__icon { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 13px; color: var(--student-primary); background: var(--student-primary-soft); font-size: 20px; }
 .settings-row__content { display: grid; min-width: 0; gap: 3px; }
 .settings-row__content strong { color: var(--student-ink); font-size: 14px; font-weight: 800; }

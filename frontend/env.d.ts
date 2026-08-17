@@ -3,6 +3,7 @@
 interface ImportMetaEnv {
   readonly VITE_PRIVACY_CONTACT_EMAIL?: string
   readonly VITE_PUSH_ENABLED?: string
+  readonly VITE_APP_VERSION?: string
 }
 
 interface ImportMeta {

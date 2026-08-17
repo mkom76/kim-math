@@ -9,9 +9,11 @@ import {
   studentAPI,
   studentHomeworkAPI,
   studentNotificationAPI,
+  videoProgressAPI,
 } from '@/api/client'
-import type { AttendanceStats, AuthResponse, Student, StudentHomework, Submission } from '@/api/client'
+import type { AttendanceStats, AuthResponse, Student, StudentHomework, Submission, VideoProgress } from '@/api/client'
 import { useStudentUiMode } from '@/composables/useStudentUiMode'
+import StudentUiFeedbackDialog from '@/components/student-v2/StudentUiFeedbackDialog.vue'
 
 const router = useRouter()
 const { leavePreview } = useStudentUiMode()
@@ -21,8 +23,9 @@ const studentInfo = ref<Student | null>(null)
 const mySubmissions = ref<Submission[]>([])
 const homeworks = ref<StudentHomework[]>([])
 const attendanceStats = ref<AttendanceStats | null>(null)
-const attendanceDialogVisible = ref(false)
 const unreadNotificationCount = ref(0)
+const feedbackDialogVisible = ref(false)
+const videoProgress = ref<VideoProgress[]>([])
 
 const displayName = computed(() => currentUser.value.name || studentInfo.value?.name || '학생')
 const attendanceRate = computed(() => attendanceStats.value?.attendanceRate ?? null)
@@ -38,7 +41,11 @@ const averageCompletion = computed(() => {
   const total = completedHomeworks.value.reduce((sum, item) => sum + (item.completion ?? 0), 0)
   return Math.round(total / completedHomeworks.value.length)
 })
-const recentHomeworks = computed(() => completedHomeworks.value.slice(0, 5))
+const averageVideoProgress = computed(() => {
+  if (!videoProgress.value.length) return null
+  const total = videoProgress.value.reduce((sum, item) => sum + item.progressPercent, 0)
+  return Math.round(total / videoProgress.value.length)
+})
 
 const returnToLegacyUi = async () => {
   leavePreview()
@@ -62,14 +69,16 @@ const fetchDashboard = async () => {
     if (!currentUser.value.userId) return
 
     const studentId = currentUser.value.userId
-    const [studentResponse, submissionsResponse, homeworksResponse] = await Promise.all([
+    const [studentResponse, submissionsResponse, homeworksResponse, videoProgressResponse] = await Promise.all([
       studentAPI.getStudent(studentId),
       submissionAPI.getStudentSubmissions(studentId),
       studentHomeworkAPI.getByStudentId(studentId),
+      videoProgressAPI.getStudentProgress(studentId).catch(() => ({ data: [] as VideoProgress[] })),
     ])
     studentInfo.value = studentResponse.data
     mySubmissions.value = submissionsResponse.data.content || submissionsResponse.data
     homeworks.value = homeworksResponse.data.content || homeworksResponse.data
+    videoProgress.value = videoProgressResponse.data
 
     try {
       attendanceStats.value = await lessonAPI.getAttendanceStats(studentId)
@@ -105,6 +114,7 @@ onBeforeUnmount(() => {
           {{ studentInfo?.academyName || 'KIM MATH' }}<span v-if="studentInfo?.className"> · {{ studentInfo.className }}</span>
         </p>
         <p v-if="studentInfo?.school || studentInfo?.grade" class="dashboard-student-meta">
+          <span v-if="studentInfo?.id">ID {{ studentInfo.id }}</span>
           <span v-if="studentInfo?.school">{{ studentInfo.school }}</span>
           <span v-if="studentInfo?.grade">{{ studentInfo.grade }}</span>
         </p>
@@ -120,9 +130,8 @@ onBeforeUnmount(() => {
           <span
             v-if="unreadNotificationCount"
             class="dashboard-notification-button__badge"
-            role="status"
-            aria-atomic="true"
-          >{{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}</span>
+            aria-hidden="true"
+          />
         </button>
         <button class="student-icon-button" aria-label="설정 열기" @click="router.push('/settings')">
           <el-icon><Setting /></el-icon>
@@ -130,16 +139,29 @@ onBeforeUnmount(() => {
       </div>
     </header>
 
-    <section class="student-hero dashboard-hero">
-      <div class="dashboard-hero__content">
-        <span class="student-hero__label">오늘의 학습</span>
-        <h2 class="student-hero__title">수업 피드백을 확인해 볼까요?</h2>
-        <p class="student-hero__description">선생님이 남긴 코멘트로 복습할 내용을 확인해 보세요.</p>
-      </div>
-      <el-button class="dashboard-hero__action" @click="router.push('/student/daily-feedback')">
-        피드백 확인하기 <el-icon><ArrowRight /></el-icon>
-      </el-button>
-    </section>
+    <div class="dashboard-learning-cards" aria-label="학습 바로가기">
+      <RouterLink to="/student/daily-feedback" class="student-hero dashboard-hero dashboard-learning-card">
+        <span class="dashboard-hero__content">
+          <span class="student-hero__label">오늘의 학습</span>
+          <strong class="student-hero__title">수업 피드백을 확인해 볼까요?</strong>
+          <span class="student-hero__description">선생님이 남긴 코멘트로 복습할 내용을 확인해 보세요.</span>
+        </span>
+        <span class="dashboard-learning-card__action">
+          피드백 확인하기 <el-icon><ArrowRight /></el-icon>
+        </span>
+      </RouterLink>
+
+      <RouterLink to="/student/videos" class="student-hero dashboard-hero dashboard-learning-card dashboard-learning-card--video">
+        <span class="dashboard-hero__content">
+          <span class="student-hero__label">수업 다시보기</span>
+          <strong class="student-hero__title">놓친 부분부터 이어서 학습해요</strong>
+          <span class="student-hero__description">지난 수업 영상을 원하는 구간부터 다시 확인하세요.</span>
+        </span>
+        <span class="dashboard-learning-card__action">
+          영상 확인하기 <el-icon><VideoPlay /></el-icon>
+        </span>
+      </RouterLink>
+    </div>
 
     <section aria-labelledby="study-status-title">
       <div class="student-section-heading">
@@ -149,73 +171,44 @@ onBeforeUnmount(() => {
         </div>
       </div>
       <div class="student-stat-grid dashboard-stat-grid">
-        <button class="student-stat-card" @click="router.push('/student/exams')">
+        <button class="student-stat-card is-interactive" @click="router.push('/student/statistics/tests')">
           <span class="student-stat-card__label">평균 점수</span>
           <strong class="student-stat-card__value">{{ averageScore ?? '-' }}<small v-if="averageScore !== null">점</small></strong>
-          <span class="student-stat-card__hint">시험 결과 보기</span>
+          <span class="dashboard-stat-card__action">시험 통계 보기 <el-icon><ArrowRight /></el-icon></span>
         </button>
-        <div class="student-stat-card">
+        <button type="button" class="student-stat-card is-interactive" @click="router.push('/student/statistics/homework')">
           <span class="student-stat-card__label">숙제 완성도</span>
           <strong class="student-stat-card__value">{{ averageCompletion ?? '-' }}<small v-if="averageCompletion !== null">%</small></strong>
-          <span class="student-stat-card__hint">제출한 숙제 기준</span>
-        </div>
-        <button type="button" class="student-stat-card" @click="attendanceDialogVisible = true">
+          <span class="dashboard-stat-card__action">숙제 통계 보기 <el-icon><ArrowRight /></el-icon></span>
+        </button>
+        <button type="button" class="student-stat-card is-interactive" @click="router.push('/student/statistics/attendance')">
           <span class="student-stat-card__label">출석률</span>
           <strong class="student-stat-card__value">{{ attendanceRate ?? '-' }}<small v-if="attendanceRate !== null">%</small></strong>
-          <span class="student-stat-card__hint">출석 상세 보기</span>
+          <span class="dashboard-stat-card__action">출석 통계 보기 <el-icon><ArrowRight /></el-icon></span>
+        </button>
+        <button type="button" class="student-stat-card is-interactive" @click="router.push('/student/statistics/videos')">
+          <span class="student-stat-card__label">영상 학습</span>
+          <strong class="student-stat-card__value">{{ averageVideoProgress ?? '-' }}<small v-if="averageVideoProgress !== null">%</small></strong>
+          <span class="dashboard-stat-card__action">영상 통계 보기 <el-icon><ArrowRight /></el-icon></span>
         </button>
       </div>
     </section>
 
-    <button type="button" class="dashboard-video-entry" @click="router.push('/student/videos')">
-      <span class="dashboard-video-entry__icon"><el-icon><VideoPlay /></el-icon></span>
-      <span class="dashboard-video-entry__content">
-        <small>LESSON VIDEO</small>
-        <strong>수업 다시보기</strong>
-        <span>지난 수업에서 놓친 부분을 이어서 학습하세요.</span>
-      </span>
-      <el-icon class="dashboard-video-entry__arrow"><ArrowRight /></el-icon>
-    </button>
-
-    <section aria-labelledby="homework-flow-title">
-      <div class="student-section-heading">
-        <div>
-          <p class="student-section-heading__eyebrow">HOMEWORK</p>
-          <h2 id="homework-flow-title" class="student-section-heading__title">최근 숙제 흐름</h2>
-        </div>
+    <section class="dashboard-feedback-prompt" aria-label="새 UI 의견 보내기">
+      <div>
+        <span class="dashboard-feedback-prompt__icon"><el-icon><ChatDotRound /></el-icon></span>
+        <span>
+          <strong>새 화면은 어떠셨나요?</strong>
+          <small>불편한 점을 알려주시면 더 편하게 다듬을게요.</small>
+        </span>
       </div>
-
-      <div v-if="recentHomeworks.length" class="student-surface homework-list">
-        <div v-for="homework in recentHomeworks" :key="homework.id" class="homework-progress-row">
-          <div class="homework-progress-row__header">
-            <span>{{ homework.homeworkTitle }}</span>
-            <strong>{{ homework.completion ?? 0 }}%</strong>
-          </div>
-          <div class="student-progress-track"><span :style="{ width: `${homework.completion ?? 0}%` }" /></div>
-        </div>
-      </div>
-      <div v-else class="student-empty-state">
-        <span class="student-empty-state__icon"><el-icon><Notebook /></el-icon></span>
-        <h3>표시할 숙제 기록이 없어요</h3>
-        <p>숙제를 제출하면 완성도 흐름이 이곳에 쌓여요.</p>
-      </div>
+      <button type="button" @click="feedbackDialogVisible = true">
+        의견 보내기 <el-icon><ArrowRight /></el-icon>
+      </button>
     </section>
 
-    <el-dialog v-model="attendanceDialogVisible" title="출석 현황" width="420px" class="student-dialog">
-      <div v-if="attendanceStats" class="attendance-detail">
-        <div class="attendance-detail__hero">
-          <strong>{{ attendanceStats.attendanceRate }}%</strong>
-          <span>전체 {{ attendanceStats.totalLessons }}회 수업</span>
-        </div>
-        <div class="attendance-detail__grid">
-          <div><strong>{{ attendanceStats.presentCount }}</strong><span>출석</span></div>
-          <div><strong>{{ attendanceStats.absentCount }}</strong><span>결석</span></div>
-          <div><strong>{{ attendanceStats.lateCount }}</strong><span>지각</span></div>
-          <div><strong>{{ attendanceStats.videoCount }}</strong><span>인강</span></div>
-        </div>
-      </div>
-      <div v-else class="student-empty-state student-empty-state--compact"><p>출석 기록이 아직 없어요.</p></div>
-    </el-dialog>
+    <StudentUiFeedbackDialog v-model="feedbackDialogVisible" />
+
   </div>
 </template>
 
@@ -226,45 +219,45 @@ onBeforeUnmount(() => {
 .dashboard-student-meta span { padding: 4px 9px; border-radius: 999px; color: var(--student-primary-strong); background: var(--student-primary-soft); font-size: 11px; font-weight: 750; }
 .dashboard-preview-exit { min-height: 44px; padding: 0 13px; border: 1px solid rgba(255, 255, 255, .55); border-radius: 999px; color: var(--student-primary); background: var(--student-surface); box-shadow: var(--student-shadow-soft); font: inherit; font-size: 12px; font-weight: 800; white-space: nowrap; cursor: pointer; }
 .dashboard-notification-button { position: relative; }
-.dashboard-notification-button__badge { position: absolute; top: -5px; right: -5px; display: grid; min-width: 20px; height: 20px; padding: 0 5px; place-items: center; border: 2px solid var(--student-surface); border-radius: 999px; color: #fff; background: var(--student-danger); font-size: 10px; font-weight: 800; line-height: 1; }
+.dashboard-notification-button__badge { position: absolute; top: 6px; right: 6px; width: 10px; height: 10px; border: 2px solid var(--student-surface); border-radius: 50%; background: var(--student-danger); pointer-events: none; }
+.dashboard-learning-cards { display: grid; min-width: 0; gap: 14px; }
 .dashboard-hero { display: grid; min-width: 0; gap: 22px; }
+.dashboard-learning-card { border: 0; text-decoration: none; transition: transform .18s ease, box-shadow .18s ease; }
+.dashboard-learning-card--video { background: linear-gradient(135deg, #1254cf 0%, #1978eb 62%, #42a5f5 100%); box-shadow: 0 18px 36px rgba(18, 84, 207, .24); }
+.dashboard-learning-card:hover { transform: translateY(-2px); box-shadow: 0 22px 42px rgba(36, 87, 214, .26); }
+.dashboard-learning-card:active { transform: translateY(0) scale(.995); }
+.dashboard-learning-card:focus-visible { outline: 3px solid rgba(36, 87, 214, .3); outline-offset: 4px; }
 .dashboard-hero__content { display: grid; min-width: 0; gap: 8px; }
 .dashboard-hero__content > * { min-width: 0; overflow-wrap: anywhere; }
-.dashboard-hero__action { width: fit-content; min-width: 172px; color: var(--student-primary-strong); background: #fff; border: 0; }
+.dashboard-learning-card .student-hero__title { display: block; margin: 0; }
+.dashboard-learning-card .student-hero__description { position: relative; z-index: 1; display: block; max-width: 520px; color: rgba(255, 255, 255, .88); font-size: 14px; font-weight: 550; line-height: 1.6; }
+.dashboard-learning-card__action { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: space-between; gap: 14px; width: fit-content; min-width: 190px; min-height: 52px; padding: 0 18px; border-radius: 16px; color: var(--student-primary-strong); background: #fff; box-shadow: 0 8px 20px rgba(10, 28, 74, .2); font-size: 15px; font-weight: 800; }
 .student-stat-card { text-align: left; }
 button.student-stat-card { cursor: pointer; }
+.student-stat-card.is-interactive { border-color: rgba(36, 87, 214, .32); box-shadow: 0 7px 20px rgba(36, 87, 214, .1); transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background-color .16s ease; }
+.student-stat-card.is-interactive:hover { border-color: var(--student-primary); background: #f9fbff; box-shadow: 0 10px 24px rgba(36, 87, 214, .14); transform: translateY(-2px); }
+.student-stat-card.is-interactive:active { transform: translateY(0) scale(.985); }
 .student-stat-card__value small { margin-left: 3px; font-size: 14px; font-weight: 700; }
-.dashboard-page .dashboard-stat-grid .student-stat-card:last-child { grid-column: 1 / -1; }
-.dashboard-video-entry { display: grid; grid-template-columns: 48px minmax(0, 1fr) 24px; align-items: center; gap: 14px; width: 100%; min-width: 0; padding: 17px 18px; border: 1px solid var(--student-border); border-radius: var(--student-radius-lg); color: inherit; background: var(--student-surface); box-shadow: var(--student-shadow-soft); font: inherit; text-align: left; cursor: pointer; }
-.dashboard-video-entry__icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 15px; color: var(--student-primary); background: var(--student-primary-soft); font-size: 24px; }
-.dashboard-video-entry__content { display: grid; min-width: 0; gap: 3px; }
-.dashboard-video-entry__content small { color: var(--student-primary); font-size: 10px; font-weight: 800; letter-spacing: .07em; }
-.dashboard-video-entry__content strong { color: var(--student-ink); font-size: 16px; font-weight: 800; }
-.dashboard-video-entry__content span { color: var(--student-muted); font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
-.dashboard-video-entry__arrow { color: var(--student-muted); font-size: 18px; }
-.dashboard-video-entry:focus-visible { outline: 3px solid color-mix(in srgb, var(--student-primary) 28%, transparent); outline-offset: 3px; }
-.homework-list { overflow: hidden; }
-.homework-progress-row { padding: 16px 18px; border-bottom: 1px solid var(--student-border); }
-.homework-progress-row:last-child { border-bottom: 0; }
-.homework-progress-row__header { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 10px; color: var(--student-ink); font-size: 14px; font-weight: 700; }
-.homework-progress-row__header span { min-width: 0; overflow-wrap: anywhere; }
-.homework-progress-row__header strong { flex: 0 0 auto; color: var(--student-primary); }
-.attendance-detail { display: grid; gap: 18px; }
-.attendance-detail__hero { display: grid; justify-items: center; gap: 3px; padding: 22px; border-radius: 18px; color: #fff; background: linear-gradient(135deg, var(--student-primary), #6d8df4); }
-.attendance-detail__hero strong { font-size: 38px; line-height: 1.1; letter-spacing: -1px; }
-.attendance-detail__hero span { font-size: 13px; opacity: .86; }
-.attendance-detail__grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-.attendance-detail__grid div { display: grid; justify-items: center; gap: 3px; padding: 16px; border: 1px solid var(--student-border); border-radius: 14px; background: var(--student-surface-soft); }
-.attendance-detail__grid strong { color: var(--student-ink); font-size: 23px; }
-.attendance-detail__grid span { color: var(--student-muted); font-size: 13px; }
+.dashboard-stat-card__action { display: flex; align-items: center; justify-content: space-between; gap: 5px; margin-top: 7px; color: var(--student-primary); font-size: 12px; font-weight: 800; }
+.dashboard-stat-card__action .el-icon { flex: 0 0 auto; }
+.dashboard-feedback-prompt { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; border: 1px solid var(--student-border); border-radius: var(--student-radius-lg); background: rgba(255, 255, 255, .78); box-shadow: var(--student-shadow-soft); }
+.dashboard-feedback-prompt > div { display: flex; align-items: center; min-width: 0; gap: 12px; }
+.dashboard-feedback-prompt__icon { display: grid; flex: 0 0 auto; width: 40px; height: 40px; place-items: center; border-radius: 13px; color: var(--student-primary); background: var(--student-primary-soft); font-size: 19px; }
+.dashboard-feedback-prompt > div > span:last-child { display: grid; min-width: 0; gap: 3px; }
+.dashboard-feedback-prompt strong { color: var(--student-ink); font-size: 14px; font-weight: 800; }
+.dashboard-feedback-prompt small { color: var(--student-muted); font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+.dashboard-feedback-prompt button { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 5px; min-height: 42px; padding: 0 13px; border: 1px solid rgba(36, 87, 214, .28); border-radius: 13px; color: var(--student-primary-strong); background: #fff; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; transition: background-color .16s ease, border-color .16s ease; }
+.dashboard-feedback-prompt button:hover { border-color: var(--student-primary); background: var(--student-primary-soft); }
+.dashboard-feedback-prompt button:focus-visible { outline: 3px solid rgba(36, 87, 214, .25); outline-offset: 2px; }
 @media (max-width: 420px) {
   .dashboard-page :deep(.student-page__header) { flex-direction: column; align-items: stretch; gap: 12px; }
   .dashboard-header__actions { order: -1; align-self: flex-end; }
-  .dashboard-hero__action { width: 100%; min-width: 0; }
+  .dashboard-learning-card__action { width: 100%; min-width: 0; }
+  .dashboard-feedback-prompt { align-items: stretch; flex-direction: column; }
+  .dashboard-feedback-prompt button { justify-content: space-between; width: 100%; }
 }
 @media (min-width: 680px) { .dashboard-hero { grid-template-columns: 1fr auto; align-items: end; } }
 @media (min-width: 720px) {
-  .dashboard-page .dashboard-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .dashboard-page .dashboard-stat-grid .student-stat-card:last-child { grid-column: auto; }
+  .dashboard-page .dashboard-stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 </style>

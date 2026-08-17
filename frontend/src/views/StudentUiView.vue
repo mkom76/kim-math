@@ -6,13 +6,22 @@ import { useStudentUiMode } from '@/composables/useStudentUiMode'
 const route = useRoute()
 const { mode } = useStudentUiMode()
 
+const legacyStudentStatsView = defineAsyncComponent(() => import('@/views/StudentDetailView.vue'))
+const previewMoreView = defineAsyncComponent(() => import('@/views/student-v2/StudentMoreView.vue'))
+const previewStudentStatisticsView = defineAsyncComponent(() => import('@/views/student-v2/StudentStatisticsView.vue'))
+
 const legacyViews = {
   dashboard: defineAsyncComponent(() => import('@/views/StudentDashboardView.vue')),
   exams: defineAsyncComponent(() => import('@/views/StudentDashboardView.vue')),
   testTaking: defineAsyncComponent(() => import('@/views/StudentTestTakingView.vue')),
   testResult: defineAsyncComponent(() => import('@/views/TestResultView.vue')),
   dailyFeedback: defineAsyncComponent(() => import('@/views/StudentDailyFeedbackView.vue')),
-  stats: defineAsyncComponent(() => import('@/views/StudentDetailView.vue')),
+  stats: legacyStudentStatsView,
+  more: legacyStudentStatsView,
+  testStats: legacyStudentStatsView,
+  homeworkStats: legacyStudentStatsView,
+  attendanceStats: legacyStudentStatsView,
+  videoStats: legacyStudentStatsView,
   clinic: defineAsyncComponent(() => import('@/views/StudentClinicView.vue')),
   videos: defineAsyncComponent(() => import('@/views/StudentVideosView.vue')),
 } as const
@@ -23,7 +32,12 @@ const previewViews = {
   testTaking: defineAsyncComponent(() => import('@/views/student-v2/StudentTestTakingView.vue')),
   testResult: defineAsyncComponent(() => import('@/views/student-v2/TestResultView.vue')),
   dailyFeedback: defineAsyncComponent(() => import('@/views/student-v2/StudentDailyFeedbackView.vue')),
-  stats: defineAsyncComponent(() => import('@/views/student-v2/StudentStatsView.vue')),
+  stats: previewMoreView,
+  more: previewMoreView,
+  testStats: previewStudentStatisticsView,
+  homeworkStats: previewStudentStatisticsView,
+  attendanceStats: previewStudentStatisticsView,
+  videoStats: previewStudentStatisticsView,
   clinic: defineAsyncComponent(() => import('@/views/student-v2/StudentClinicView.vue')),
   videos: defineAsyncComponent(() => import('@/views/student-v2/StudentVideosView.vue')),
 } as const

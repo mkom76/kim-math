@@ -6,7 +6,7 @@ import { authAPI, lessonAPI, submissionAPI, studentAPI, studentNotificationAPI }
 import type { AuthResponse, Submission, Student, Lesson, AttendanceStats } from '@/api/client'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useAuthStore } from '@/stores/auth'
-import StudentUiPreviewBanner from '@/components/StudentUiPreviewBanner.vue'
+import { useStudentUiMode } from '@/composables/useStudentUiMode'
 
 interface DashboardTest {
   id: number
@@ -19,6 +19,7 @@ interface DashboardTest {
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { hasSeenPreview } = useStudentUiMode()
 const loading = ref(false)
 const currentUser = ref<AuthResponse>({})
 const studentInfo = ref<Student | null>(null)
@@ -154,20 +155,30 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="student-view" :style="{ padding: containerPadding, maxWidth: '1200px', margin: '0 auto' }">
-    <StudentUiPreviewBanner />
-
     <!-- Top Right Actions -->
     <div :style="{ display: 'flex', justifyContent: 'flex-end', gap: isMobile ? '8px' : '12px', marginBottom: isMobile ? '12px' : '16px' }">
-      <el-badge :value="unreadNotificationCount" :hidden="!unreadNotificationCount" :max="99">
-        <el-button @click="$router.push('/student/notifications')" :size="isMobile ? 'small' : 'default'">
+      <span class="legacy-action-button">
+        <el-button
+          :aria-label="unreadNotificationCount ? `미확인 알림 ${unreadNotificationCount}개` : '알림'"
+          @click="$router.push('/student/notifications')"
+          :size="isMobile ? 'small' : 'default'"
+        >
           <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><Bell /></el-icon>
           알림
         </el-button>
-      </el-badge>
-      <el-button @click="$router.push('/settings')" :size="isMobile ? 'small' : 'default'">
-        <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><Setting /></el-icon>
-        설정
-      </el-button>
+        <span v-if="unreadNotificationCount" class="legacy-action-button__dot" aria-hidden="true" />
+      </span>
+      <span class="legacy-action-button">
+        <el-button
+          :aria-label="hasSeenPreview ? '설정' : '새로운 학생 화면 안내가 있는 설정'"
+          @click="$router.push('/settings')"
+          :size="isMobile ? 'small' : 'default'"
+        >
+          <el-icon :style="{ marginRight: isMobile ? '4px' : '8px' }"><Setting /></el-icon>
+          설정
+        </el-button>
+        <span v-if="!hasSeenPreview" class="legacy-action-button__dot" aria-hidden="true" />
+      </span>
       <el-button type="danger" @click="handleLogout" :size="isMobile ? 'small' : 'default'">
         로그아웃
       </el-button>
@@ -577,3 +588,23 @@ onBeforeUnmount(() => {
     </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.legacy-action-button {
+  position: relative;
+  display: inline-flex;
+}
+
+.legacy-action-button__dot {
+  position: absolute;
+  z-index: 1;
+  top: 5px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid #fff;
+  border-radius: 50%;
+  background: #f56c6c;
+  pointer-events: none;
+}
+</style>

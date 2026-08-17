@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import type { Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { House, DocumentChecked, Service } from '@element-plus/icons-vue'
+import { House, DocumentChecked, Service, MoreFilled } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,9 +16,10 @@ interface Tab {
 }
 
 const tabs: Tab[] = [
-  { label: '홈', path: '/student/dashboard', icon: House, matchPrefix: ['/student/dashboard', '/student/daily-feedback', '/student/notifications', '/student/stats', '/student/videos'] },
+  { label: '홈', path: '/student/dashboard', icon: House, matchPrefix: ['/student/dashboard', '/student/daily-feedback', '/student/videos'] },
   { label: '시험', path: '/student/exams', icon: DocumentChecked, matchPrefix: ['/student/exams', '/student/tests'] },
   { label: '클리닉', path: '/student/clinic', icon: Service, matchPrefix: ['/student/clinic'] },
+  { label: '더보기', path: '/student/more', icon: MoreFilled, matchPrefix: ['/student/more', '/student/statistics', '/student/stats', '/student/notifications'] },
 ]
 
 const activeIndex = computed(() => {
@@ -61,7 +62,7 @@ function go(tab: Tab) {
   bottom: 0;
   z-index: 100;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   min-height: calc(72px + env(safe-area-inset-bottom));
   padding: 6px 8px env(safe-area-inset-bottom);
   border-top: 1px solid rgba(223, 229, 236, 0.92);

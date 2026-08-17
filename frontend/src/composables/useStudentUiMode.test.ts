@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
-import { STUDENT_UI_MODE_KEY, useStudentUiMode } from './useStudentUiMode'
+import {
+  STUDENT_UI_MODE_KEY,
+  STUDENT_UI_PREVIEW_SEEN_KEY,
+  useStudentUiMode,
+} from './useStudentUiMode'
 
 describe('useStudentUiMode', () => {
   beforeEach(() => {
@@ -41,5 +45,19 @@ describe('useStudentUiMode', () => {
     studentUi.leavePreview()
 
     expect(studentUi.mode.value).toBe('legacy')
+  })
+
+  it('remembers that a student has experienced the preview', () => {
+    const authStore = useAuthStore()
+    authStore.userId = 303
+    const studentUi = useStudentUiMode()
+
+    expect(studentUi.hasSeenPreview.value).toBe(false)
+
+    studentUi.enablePreview()
+    studentUi.leavePreview()
+
+    expect(studentUi.hasSeenPreview.value).toBe(true)
+    expect(window.localStorage.getItem(`${STUDENT_UI_PREVIEW_SEEN_KEY}:303`)).toBe('true')
   })
 })

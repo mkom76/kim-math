@@ -368,6 +368,36 @@ export const studentNotificationAPI = {
   markAllRead: () => client.patch<{ updated: number }>('/student-notifications/read-all'),
 };
 
+export type StudentUiFeedbackSentiment = 'POSITIVE' | 'IMPROVEMENT' | 'BUG';
+export type StudentUiFeedbackCategory =
+  | 'NAVIGATION'
+  | 'LAYOUT'
+  | 'READABILITY'
+  | 'PERFORMANCE'
+  | 'CONTENT'
+  | 'OTHER';
+
+export interface StudentUiFeedbackRequest {
+  sentiment: StudentUiFeedbackSentiment;
+  category?: StudentUiFeedbackCategory;
+  message?: string;
+  pagePath: string;
+  uiVersion: 'v2';
+  viewportWidth?: number;
+  platform?: 'ios' | 'android' | 'web';
+  appVersion?: string;
+}
+
+export interface StudentUiFeedbackResponse {
+  id: number;
+  createdAt: string;
+}
+
+export const studentUiFeedbackAPI = {
+  create: (data: StudentUiFeedbackRequest) =>
+    client.post<StudentUiFeedbackResponse>('/student-ui-feedback', data),
+};
+
 // Tests API
 export const testAPI = {
   getTests: (params?: any) => client.get('/tests', { params }),

@@ -109,6 +109,17 @@
   box-shadow: var(--student-shadow-soft);
   font: inherit;
   cursor: pointer;
+  transition: transform .16s ease, border-color .16s ease, background-color .16s ease, color .16s ease;
+}
+
+.student-ui-v2 .student-icon-button:hover {
+  border-color: var(--student-primary) !important;
+  background: #f8faff !important;
+  color: var(--student-primary) !important;
+}
+
+.student-ui-v2 .student-icon-button:active {
+  transform: scale(.94);
 }
 
 .student-ui-v2 .student-hero {
@@ -330,6 +341,16 @@
 .student-ui-v2 button.student-list-row {
   width: 100%;
   cursor: pointer;
+  transition: background-color .16s ease, box-shadow .16s ease;
+}
+
+.student-ui-v2 button.student-list-row:hover {
+  background: #f8faff;
+  box-shadow: inset 3px 0 var(--student-primary);
+}
+
+.student-ui-v2 button.student-list-row:active {
+  background: var(--student-primary-soft);
 }
 
 .student-ui-v2 .student-list-row:last-child {

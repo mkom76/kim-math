@@ -202,6 +202,36 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresRole: 'STUDENT', studentView: 'stats' }
     },
     {
+      path: '/student/more',
+      name: 'student-more',
+      component: () => import('../views/StudentUiView.vue'),
+      meta: { requiresAuth: true, requiresRole: 'STUDENT', studentView: 'more' }
+    },
+    {
+      path: '/student/statistics/tests',
+      name: 'student-test-statistics',
+      component: () => import('../views/StudentUiView.vue'),
+      meta: { requiresAuth: true, requiresRole: 'STUDENT', studentView: 'testStats', studentStatsKind: 'tests' }
+    },
+    {
+      path: '/student/statistics/homework',
+      name: 'student-homework-statistics',
+      component: () => import('../views/StudentUiView.vue'),
+      meta: { requiresAuth: true, requiresRole: 'STUDENT', studentView: 'homeworkStats', studentStatsKind: 'homework' }
+    },
+    {
+      path: '/student/statistics/attendance',
+      name: 'student-attendance-statistics',
+      component: () => import('../views/StudentUiView.vue'),
+      meta: { requiresAuth: true, requiresRole: 'STUDENT', studentView: 'attendanceStats', studentStatsKind: 'attendance' }
+    },
+    {
+      path: '/student/statistics/videos',
+      name: 'student-video-statistics',
+      component: () => import('../views/StudentUiView.vue'),
+      meta: { requiresAuth: true, requiresRole: 'STUDENT', studentView: 'videoStats', studentStatsKind: 'videos' }
+    },
+    {
       path: '/student/clinic',
       name: 'student-clinic',
       component: () => import('../views/StudentUiView.vue'),

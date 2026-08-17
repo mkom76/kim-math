@@ -2,6 +2,22 @@
 
 이 디렉토리의 SQL은 운영자가 직접 실행하는 일회성 마이그레이션입니다. 자동 마이그레이션 도구(예: Flyway, Liquibase)는 사용하지 않습니다.
 
+## 2026-08-16: 학생 새 UI 의견 테이블
+
+새 학생 UI에서 보낸 만족도, 불편 유형, 자유 의견과 화면·기기 메타데이터를 저장합니다.
+운영 환경은 `ddl-auto: validate`이므로 **코드 배포 전에** 적용해야 합니다.
+
+```bash
+mysql -u root -p academy < migrations/2026-08-16-01-add-student-ui-feedback.sql
+```
+
+적용 후 `SHOW CREATE TABLE student_ui_feedback \G`로 두 외래 키와 학생/학원별 인덱스를
+확인합니다. 롤백은 아직 수집된 의견을 보존할 필요가 없을 때만 아래 파일로 수행합니다.
+
+```bash
+mysql -u root -p academy < migrations/2026-08-16-01-add-student-ui-feedback_rollback.sql
+```
+
 ## 2026-08-10: 시험 문항 수학 유형 스냅샷
 
 시험 문항이 교재의 `topic`을 실시간 참조하지 않고 출제 시점 값을 독립 보관하도록
@@ -25,6 +41,30 @@ WHERE tp.topic IS NOT NULL AND tp.topic <> '' AND tq.topic IS NULL;
 
 결과가 `0`이어야 합니다. 롤백 SQL은 새 컬럼과 시험에서 수정한 유형 값을 삭제하므로,
 운영 데이터 입력이 시작된 뒤에는 DB 백업을 복원하는 방식을 우선합니다.
+
+## 2026-08-08: 학생 알림함 테이블
+
+학생별 알림 목록, 읽음 상태, 이동 경로를 저장하는 `student_notifications` 테이블을
+생성합니다. 동일 이벤트의 중복 생성을 막는 `(student_id, source_key)` 고유 인덱스와
+알림함/미확인 조회 인덱스를 포함합니다. 운영 환경은 `ddl-auto: validate`이므로
+**알림 기능이 포함된 코드 배포 전에** 적용해야 합니다.
+
+```bash
+mysql -u root -p academy < migrations/2026-08-08-01-add-student-notifications.sql
+```
+
+적용 후 확인:
+
+```sql
+SHOW CREATE TABLE student_notifications \G
+SHOW INDEX FROM student_notifications;
+```
+
+롤백은 아직 보존할 알림이 없을 때만 수행합니다.
+
+```bash
+mysql -u root -p academy < migrations/2026-08-08-01-add-student-notifications_rollback.sql
+```
 
 ## 2026-04-11: 선생님/학원 격리 마이그레이션
 

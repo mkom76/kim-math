@@ -38,16 +38,6 @@ const filteredTests = computed(() => {
   return tests.value
 })
 
-const visibleScores = computed(() =>
-  submissions.value.filter(submission => typeof submission.totalScore === 'number'),
-)
-
-const averageScore = computed(() => {
-  if (!visibleScores.value.length) return null
-  const total = visibleScores.value.reduce((sum, submission) => sum + submission.totalScore, 0)
-  return Math.round((total / visibleScores.value.length) * 10) / 10
-})
-
 function getSubmission(testId: number) {
   return submissionByTestId.value.get(testId)
 }
@@ -128,12 +118,12 @@ onMounted(fetchExams)
       <button type="button" :class="{ 'is-active': activeFilter === 'untaken' }" @click="activeFilter = 'untaken'">
         <span>미응시 시험</span>
         <strong>{{ untakenTests.length }}<small>개</small></strong>
-        <em>지금 응시할 시험</em>
+        <em>미응시만 보기 <el-icon><ArrowRight /></el-icon></em>
       </button>
       <button type="button" :class="{ 'is-active': activeFilter === 'completed' }" @click="activeFilter = 'completed'">
         <span>완료한 시험</span>
         <strong>{{ completedTests.length }}<small>개</small></strong>
-        <em>평균 {{ averageScore ?? '-' }}점</em>
+        <em>완료 결과 보기 <el-icon><ArrowRight /></el-icon></em>
       </button>
     </section>
 
@@ -184,12 +174,15 @@ onMounted(fetchExams)
 .exams-page { display: grid; min-width: 0; gap: 28px; }
 .exams-header-icon { display: grid; flex: 0 0 48px; height: 48px; place-items: center; border-radius: 15px; color: var(--student-primary); background: var(--student-primary-soft); font-size: 24px; }
 .exam-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.exam-summary button { display: grid; min-width: 0; min-height: 150px; padding: 18px; border: 1px solid var(--student-border); border-radius: var(--student-radius-lg); color: inherit; background: var(--student-surface); box-shadow: var(--student-shadow-soft); font: inherit; text-align: left; cursor: pointer; }
-.exam-summary button.is-active { border-color: var(--student-primary); box-shadow: 0 0 0 2px var(--student-primary-soft); }
+.exam-summary button { display: grid; min-width: 0; min-height: 150px; padding: 18px; border: 1px solid rgba(36, 87, 214, .28); border-radius: var(--student-radius-lg); color: inherit; background: var(--student-surface); box-shadow: 0 7px 20px rgba(36, 87, 214, .09); font: inherit; text-align: left; cursor: pointer; transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background-color .16s ease; }
+.exam-summary button:hover { border-color: var(--student-primary); background: #f9fbff; box-shadow: 0 10px 24px rgba(36, 87, 214, .14); transform: translateY(-2px); }
+.exam-summary button:active { transform: translateY(0) scale(.985); }
+.exam-summary button:focus-visible { outline: 3px solid rgba(36, 87, 214, .25); outline-offset: 3px; }
+.exam-summary button.is-active { border-color: var(--student-primary); background: #f7f9ff; box-shadow: 0 0 0 2px var(--student-primary-soft); }
 .exam-summary span { color: var(--student-muted); font-size: 13px; font-weight: 700; }
 .exam-summary strong { align-self: end; margin-top: 12px; color: var(--student-ink); font-size: 30px; font-weight: 850; line-height: 1; }
 .exam-summary strong small { margin-left: 3px; font-size: 14px; }
-.exam-summary em { margin-top: 8px; color: var(--student-muted); font-size: 12px; font-style: normal; font-weight: 600; }
+.exam-summary em { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 8px; color: var(--student-primary); font-size: 12px; font-style: normal; font-weight: 800; }
 .exam-list-heading { align-items: center; }
 .exam-filters { display: flex; gap: 5px; padding: 4px; border-radius: 999px; background: var(--student-primary-soft); }
 .exam-filters button { min-height: 36px; padding: 0 12px; border: 0; border-radius: 999px; color: var(--student-muted); background: transparent; font: inherit; font-size: 12px; font-weight: 750; cursor: pointer; }
