@@ -83,6 +83,50 @@ class StudentNotificationControllerTest {
     }
 
     @Test
+    void student_can_mark_all_own_notifications_read() throws Exception {
+        notificationService.createForStudents(
+                List.of(student.getId()), "FEEDBACK", "첫 알림", "본문",
+                "/student/daily-feedback", "lesson-feedback:all-1");
+        notificationService.createForStudents(
+                List.of(student.getId()), "TEST", "두 번째 알림", "본문",
+                "/student/exams", "test:all-2");
+        notificationService.createForStudents(
+                List.of(otherStudent.getId()), "GENERAL", "다른 학생 알림", "본문",
+                "/student/dashboard", "general:other");
+        entityManager.flush();
+
+        mockMvc.perform(patch("/api/student-notifications/read-all")
+                        .session(studentSession(student)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.updated").value(2));
+
+        mockMvc.perform(get("/api/student-notifications/unread-count").session(studentSession(student)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(0));
+        mockMvc.perform(get("/api/student-notifications/unread-count").session(studentSession(otherStudent)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(1));
+    }
+
+    @Test
+    void native_push_can_mark_notification_read_by_source_key() throws Exception {
+        notificationService.createForStudents(
+                List.of(student.getId()), "FEEDBACK", "피드백 도착", "본문",
+                "/student/daily-feedback", "lesson-feedback:native");
+        entityManager.flush();
+
+        mockMvc.perform(patch("/api/student-notifications/read-by-source")
+                        .param("sourceKey", "lesson-feedback:native")
+                        .session(studentSession(student)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.readAt").isNotEmpty());
+
+        mockMvc.perform(get("/api/student-notifications/unread-count").session(studentSession(student)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(0));
+    }
+
+    @Test
     void repeated_source_key_does_not_duplicate_inbox_item() {
         notificationService.createForStudents(
                 List.of(student.getId()), "FEEDBACK", "첫 알림", "본문",

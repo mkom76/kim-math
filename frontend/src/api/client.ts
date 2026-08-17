@@ -365,6 +365,11 @@ export const studentNotificationAPI = {
   getInbox: () => client.get<StudentNotification[]>('/student-notifications'),
   getUnreadCount: () => client.get<{ count: number }>('/student-notifications/unread-count'),
   markRead: (id: number) => client.patch<StudentNotification>(`/student-notifications/${id}/read`),
+  markReadBySourceKey: (sourceKey: string) => client.patch<StudentNotification>(
+    '/student-notifications/read-by-source',
+    undefined,
+    { params: { sourceKey } },
+  ),
   markAllRead: () => client.patch<{ updated: number }>('/student-notifications/read-all'),
 };
 

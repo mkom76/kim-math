@@ -15,6 +15,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -61,7 +62,10 @@ public class PushNotificationService {
         if (studentIds == null || studentIds.isEmpty()) return DeliveryResult.empty();
 
         List<Long> distinctStudentIds = studentIds.stream().distinct().toList();
-        Map<String, String> safeData = data == null ? Map.of() : data;
+        Map<String, String> safeData = new HashMap<>(data == null ? Map.of() : data);
+        if (sourceKey != null && !sourceKey.isBlank()) {
+            safeData.put("sourceKey", sourceKey);
+        }
         studentNotificationService.createForStudents(
                 distinctStudentIds,
                 safeData.get("type"),

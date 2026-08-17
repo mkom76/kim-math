@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -35,6 +36,12 @@ public class StudentNotificationController {
     public ResponseEntity<StudentNotificationDto> markRead(
             @PathVariable Long notificationId, HttpSession session) {
         return ResponseEntity.ok(notificationService.markRead(requireStudentId(session), notificationId));
+    }
+
+    @PatchMapping("/read-by-source")
+    public ResponseEntity<StudentNotificationDto> markReadBySourceKey(
+            @RequestParam String sourceKey, HttpSession session) {
+        return ResponseEntity.ok(notificationService.markReadBySourceKey(requireStudentId(session), sourceKey));
     }
 
     @PatchMapping("/read-all")

@@ -10,6 +10,7 @@ import StudentBottomNav from '@/components/StudentBottomNav.vue'
 import StudentBottomNavV2 from '@/components/StudentBottomNavV2.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useStudentUiMode } from '@/composables/useStudentUiMode'
+import { initPushNotifications } from '@/utils/push'
 
 const router = useRouter()
 const route = useRoute()
@@ -68,8 +69,11 @@ const handleLogout = async () => {
   }
 }
 
-onMounted(() => {
-  fetchCurrentUser()
+onMounted(async () => {
+  await fetchCurrentUser()
+  if (currentUser.value.role === 'STUDENT') {
+    initPushNotifications(router).catch(() => { /* best effort */ })
+  }
 })
 
 // Refetch user when route changes (e.g., after login)

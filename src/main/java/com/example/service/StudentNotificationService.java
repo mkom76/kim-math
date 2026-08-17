@@ -68,6 +68,19 @@ public class StudentNotificationService {
     }
 
     @Transactional
+    public StudentNotificationDto markReadBySourceKey(Long studentId, String sourceKey) {
+        if (sourceKey == null || sourceKey.isBlank() || sourceKey.length() > 120) {
+            throw new IllegalArgumentException("올바른 알림 식별자가 필요합니다");
+        }
+        StudentNotification notification = repository.findByStudentIdAndSourceKey(studentId, sourceKey)
+                .orElseThrow(() -> new IllegalArgumentException("알림을 찾을 수 없습니다"));
+        if (notification.getReadAt() == null) {
+            notification.setReadAt(LocalDateTime.now());
+        }
+        return StudentNotificationDto.from(notification);
+    }
+
+    @Transactional
     public int markAllRead(Long studentId) {
         return repository.markAllRead(studentId, LocalDateTime.now());
     }

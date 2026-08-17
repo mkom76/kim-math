@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface StudentNotificationRepository extends JpaRepository<StudentNotification, Long> {
@@ -18,6 +19,8 @@ public interface StudentNotificationRepository extends JpaRepository<StudentNoti
     long countByStudentIdAndReadAtIsNull(Long studentId);
 
     boolean existsByStudentIdAndSourceKey(Long studentId, String sourceKey);
+
+    Optional<StudentNotification> findByStudentIdAndSourceKey(Long studentId, String sourceKey);
 
     @Modifying
     @Query("update StudentNotification n set n.readAt = :readAt " +

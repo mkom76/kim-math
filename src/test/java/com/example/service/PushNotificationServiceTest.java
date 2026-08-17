@@ -4,6 +4,7 @@ import com.example.entity.DeviceToken;
 import com.example.repository.DeviceTokenRepository;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.SendResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -104,6 +105,34 @@ class PushNotificationServiceTest {
         assertThat(result.targetStudentCount()).isEqualTo(2);
         assertThat(result.registeredDeviceCount()).isEqualTo(3);
         assertThat(result.sentStudentCount()).isEqualTo(2);
+    }
+
+    @Test
+    void source_key_is_forwarded_to_the_native_push_payload() throws Exception {
+        DeviceToken token = token(1L, 10L, "token-1");
+        when(deviceTokenRepository.findByStudentIdIn(List.of(10L))).thenReturn(List.of(token));
+
+        FirebaseMessaging messaging = mock(FirebaseMessaging.class);
+        when(firebaseMessagingProvider.getIfAvailable()).thenReturn(messaging);
+        ReflectionTestUtils.setField(service, "pushEnabled", true);
+
+        SendResponse success = mock(SendResponse.class);
+        when(success.isSuccessful()).thenReturn(true);
+        BatchResponse response = mock(BatchResponse.class);
+        when(response.getResponses()).thenReturn(List.of(success));
+        when(response.getSuccessCount()).thenReturn(1);
+        when(messaging.sendEachForMulticast(any())).thenAnswer(invocation -> {
+            MulticastMessage message = invocation.getArgument(0);
+            @SuppressWarnings("unchecked")
+            Map<String, String> payload = (Map<String, String>) ReflectionTestUtils.getField(message, "data");
+            assertThat(payload).containsEntry("sourceKey", "lesson-feedback:55");
+            return response;
+        });
+
+        service.sendToStudents(
+                List.of(10L), "title", "body",
+                Map.of("path", "/student/daily-feedback", "type", "FEEDBACK"),
+                "lesson-feedback:55");
     }
 
     private DeviceToken token(Long id, Long studentId, String token) {

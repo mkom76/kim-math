@@ -2,12 +2,30 @@ import { PushNotifications } from '@capacitor/push-notifications'
 import { Preferences } from '@capacitor/preferences'
 import type { Router } from 'vue-router'
 import { isNativeApp, platformName } from './platform'
-import { deviceAPI } from '@/api/client'
+import { deviceAPI, studentNotificationAPI } from '@/api/client'
+import { navigateToStudentNotification } from './notificationNavigation'
 
 const TOKEN_STORAGE_KEY = 'push-device-token'
 
 let listenersInitialized = false
 let lastToken: string | null = null
+
+export async function handlePushNotificationAction(
+  router: Router,
+  data?: Record<string, unknown>,
+): Promise<void> {
+  const path = typeof data?.path === 'string' ? data.path : undefined
+  const sourceKey = typeof data?.sourceKey === 'string' ? data.sourceKey : undefined
+
+  const readRequest = sourceKey
+    ? studentNotificationAPI.markReadBySourceKey(sourceKey)
+        .then(() => window.dispatchEvent(new CustomEvent('student-notifications-changed')))
+        .catch(() => undefined)
+    : Promise.resolve()
+
+  await navigateToStudentNotification(router, path)
+  await readRequest
+}
 
 /**
  * Bootstrap push notifications. Idempotent — safe to call multiple times
@@ -53,12 +71,9 @@ export async function initPushNotifications(router: Router): Promise<void> {
     })
 
     await PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
-      // The server can include a `path` in the data payload to deep-link the
-      // notification tap (e.g. /student/tests/123). Falls back to dashboard.
-      const path = (notification.data as Record<string, string>)?.path
-      if (path && typeof path === 'string') {
-        router.push(path).catch(() => router.push('/student/dashboard'))
-      }
+      // The server includes a route and stable source key so opening the native
+      // notification both deep-links and clears the matching inbox badge.
+      void handlePushNotificationAction(router, notification.data as Record<string, unknown>)
     })
 
     listenersInitialized = true

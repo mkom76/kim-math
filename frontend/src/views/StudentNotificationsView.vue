@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { studentNotificationAPI } from '@/api/client'
 import type { StudentNotification } from '@/api/client'
+import { navigateToStudentNotification } from '@/utils/notificationNavigation'
 
 type Filter = 'all' | 'unread'
 
@@ -59,15 +60,11 @@ const openNotification = async (notification: StudentNotification) => {
       Object.assign(notification, response.data)
       window.dispatchEvent(new CustomEvent('student-notifications-changed'))
     } catch {
-      ElMessage.error('읽음 처리에 실패했습니다')
-      return
+      ElMessage.warning('읽음 처리는 잠시 후 다시 시도해주세요')
     }
   }
 
-  const target = notification.targetPath
-  if (target?.startsWith('/student/')) {
-    await router.push(target)
-  }
+  await navigateToStudentNotification(router, notification.targetPath)
 }
 
 const markAllRead = async () => {
