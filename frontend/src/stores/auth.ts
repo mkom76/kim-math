@@ -13,6 +13,7 @@ export const useAuthStore = defineStore('auth', () => {
   const memberships = ref<Membership[]>([])
   const activeAcademyId = ref<number | null>(null)
   const activeRole = ref<'TEACHER' | 'ACADEMY_ADMIN' | 'ASSISTANT' | null>(null)
+  const studentUiDefaultMode = ref<'legacy' | 'v2'>('legacy')
 
   const isAdmin = computed(() => activeRole.value === 'ACADEMY_ADMIN')
   const isAssistant = computed(() => activeRole.value === 'ASSISTANT')
@@ -29,6 +30,7 @@ export const useAuthStore = defineStore('auth', () => {
     memberships.value = data.memberships ?? []
     activeAcademyId.value = data.activeAcademyId ?? null
     activeRole.value = data.activeRole ?? null
+    studentUiDefaultMode.value = data.studentUiDefaultMode ?? 'legacy'
     return data
   }
 
@@ -67,6 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
     memberships.value = []
     activeAcademyId.value = null
     activeRole.value = null
+    studentUiDefaultMode.value = 'legacy'
     // localStorage.lastAcademyId는 유지 (다음 로그인 기본값)
     // Clear stored biometric quick-login credential — logout is the explicit
     // "switch user / hand off device" signal.
@@ -74,7 +77,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
-    userId, name, role, memberships, activeAcademyId, activeRole,
+    userId, name, role, memberships, activeAcademyId, activeRole, studentUiDefaultMode,
     isAdmin, isAssistant, activeAcademy,
     loadCurrentUser, ensureActiveAcademy, switchAcademy, logout
   }

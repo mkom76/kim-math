@@ -305,6 +305,7 @@ interface AuthResponse {
   memberships?: Membership[];
   activeAcademyId?: number;
   activeRole?: 'TEACHER' | 'ACADEMY_ADMIN' | 'ASSISTANT';
+  studentUiDefaultMode?: 'legacy' | 'v2';
   message?: string;
 }
 

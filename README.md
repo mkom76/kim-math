@@ -132,6 +132,7 @@ npm run android:install
 | `PUSH_ENABLED` | FCM 실제 발송 활성화 | `false` |
 | `FCM_CREDENTIALS_PATH` | Firebase 서비스 계정 JSON 경로 | 미지정 시 ADC 사용 |
 | `REMEMBER_ME_TTL_DAYS` | 자동 로그인 토큰 수명 | 30일 |
+| `STUDENT_UI_V2_DEFAULT_ACADEMY_IDS` | 새 학생 UI를 기본 적용할 학원 ID 목록 | `2,4` |
 
 비밀값과 Firebase 서비스 계정 파일은 Git에 커밋하지 마세요. YouTube 키 발급 방법은 [YouTube API 설정 가이드](docs/YOUTUBE_API_SETUP.md)에 정리되어 있습니다.
 

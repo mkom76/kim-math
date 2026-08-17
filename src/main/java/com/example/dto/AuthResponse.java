@@ -19,4 +19,5 @@ public class AuthResponse {
     private List<MembershipDto> memberships;
     private Long activeAcademyId;
     private String activeRole;
+    private String studentUiDefaultMode;
 }

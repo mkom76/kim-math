@@ -15,6 +15,7 @@ import com.example.service.MembershipService;
 import com.example.service.PinCredentialService;
 import com.example.service.AuthSessionService;
 import com.example.service.RememberMeService;
+import com.example.service.StudentUiPolicyService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -44,6 +45,7 @@ public class AuthController {
     private final LoginSecurityService loginSecurityService;
     private final AuthSessionService authSessionService;
     private final RememberMeService rememberMeService;
+    private final StudentUiPolicyService studentUiPolicyService;
 
     @GetMapping("/csrf")
     public ResponseEntity<Map<String, String>> csrf(CsrfToken token) {
@@ -117,6 +119,7 @@ public class AuthController {
                 .userId(student.getId())
                 .name(student.getName())
                 .role("STUDENT")
+                .studentUiDefaultMode(studentUiPolicyService.defaultModeForStudent(student))
                 .message("로그인 성공")
                 .build());
     }
@@ -247,6 +250,9 @@ public class AuthController {
                 builder.activeAcademyId(activeAcademyId);
                 builder.activeRole(activeRole);
             }
+        } else if ("STUDENT".equals(userRole)) {
+            builder.studentUiDefaultMode(studentUiPolicyService.defaultModeForAcademy(
+                    (Long) session.getAttribute("studentAcademyId")));
         }
 
         return ResponseEntity.ok(builder.build());

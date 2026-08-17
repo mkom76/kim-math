@@ -20,7 +20,9 @@ export function useStudentUiMode() {
     if (typeof window === 'undefined' || !storageKey.value) return 'legacy'
     const override = modeOverrides.value[storageKey.value]
     if (override) return override
-    return window.localStorage.getItem(storageKey.value) === 'v2' ? 'v2' : 'legacy'
+    const storedMode = window.localStorage.getItem(storageKey.value)
+    if (storedMode === 'legacy' || storedMode === 'v2') return storedMode
+    return authStore.studentUiDefaultMode
   })
   const hasSeenPreview = computed(() => {
     if (typeof window === 'undefined' || !seenStorageKey.value) return false
@@ -49,6 +51,9 @@ export function useStudentUiMode() {
     hasSeenPreview,
     setMode,
     enablePreview: () => setMode('v2'),
-    leavePreview: () => setMode('legacy'),
+    leavePreview: () => {
+      markPreviewSeen()
+      setMode('legacy')
+    },
   }
 }
