@@ -39,14 +39,19 @@ const categories: Array<{ value: StudentUiFeedbackCategory; label: string }> = [
 
 const visible = computed({
   get: () => props.modelValue,
-  set: value => emit('update:modelValue', value),
+  set: (value) => emit('update:modelValue', value),
 })
 const needsCategory = computed(() => form.sentiment === 'IMPROVEMENT' || form.sentiment === 'BUG')
-const canSubmit = computed(() => Boolean(form.sentiment) && (!needsCategory.value || Boolean(form.category)))
+const canSubmit = computed(
+  () => Boolean(form.sentiment) && (!needsCategory.value || Boolean(form.category)),
+)
 
-watch(() => form.sentiment, value => {
-  if (value === 'POSITIVE') form.category = undefined
-})
+watch(
+  () => form.sentiment,
+  (value) => {
+    if (value === 'POSITIVE') form.category = undefined
+  },
+)
 
 function resetForm() {
   form.sentiment = undefined
@@ -170,6 +175,10 @@ async function submit() {
 </template>
 
 <style>
+.student-feedback-overlay {
+  background: var(--student-overlay);
+  backdrop-filter: blur(3px);
+}
 .student-feedback-overlay .el-overlay-dialog {
   display: flex;
   align-items: center;
@@ -181,44 +190,198 @@ async function submit() {
   max-height: calc(100dvh - 40px);
   margin: 0;
   overflow: hidden;
-  border-radius: 24px;
-  box-shadow: 0 24px 70px rgba(23, 32, 51, .22);
+  border-radius: calc(var(--student-radius-lg) + var(--student-space-1));
+  background: var(--student-surface);
+  box-shadow: var(--student-shadow-dialog);
 }
-.student-feedback-dialog .el-dialog__header { padding: 22px 22px 0; }
-.student-feedback-dialog .el-dialog__body { max-height: calc(100dvh - 190px); padding: 14px 22px 18px; overflow-y: auto; }
-.student-feedback-dialog .el-dialog__footer { padding: 0 22px 22px; }
-.student-feedback-dialog__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.student-feedback-dialog__header p { margin: 0 0 4px; color: #2457d6; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
-.student-feedback-dialog__header h2 { margin: 0; color: #172033; font-size: 23px; font-weight: 850; letter-spacing: -.035em; }
-.student-feedback-dialog__header button { display: grid; flex: 0 0 auto; width: 40px; height: 40px; place-items: center; padding: 0; border: 1px solid #dfe5ec; border-radius: 13px; color: #344054; background: #fff; cursor: pointer; }
-.student-feedback-dialog__description { margin: 0 0 20px; color: #667085; font-size: 13px; line-height: 1.55; }
-.student-feedback-fieldset { min-width: 0; margin: 0 0 20px; padding: 0; border: 0; }
-.student-feedback-fieldset legend, .student-feedback-message > span { display: block; margin-bottom: 10px; color: #344054; font-size: 13px; font-weight: 800; }
-.student-feedback-fieldset legend strong { margin-left: 3px; color: #2457d6; font-size: 10px; }
-.student-feedback-sentiments { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.student-feedback-sentiments button { display: grid; min-width: 0; min-height: 72px; place-items: center; gap: 4px; padding: 10px 6px; border: 1px solid #dfe5ec; border-radius: 15px; color: #344054; background: #fff; font: inherit; font-size: 12px; font-weight: 750; cursor: pointer; }
-.student-feedback-sentiments button span { font-size: 22px; }
-.student-feedback-categories { display: flex; flex-wrap: wrap; gap: 8px; }
-.student-feedback-categories button { min-height: 38px; padding: 0 13px; border: 1px solid #dfe5ec; border-radius: 999px; color: #344054; background: #fff; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
-.student-feedback-sentiments button.is-selected, .student-feedback-categories button.is-selected { border-color: #2457d6; color: #1945b8; background: #eaf0ff; box-shadow: 0 0 0 2px rgba(36, 87, 214, .1); }
-.student-feedback-sentiments button:focus-visible, .student-feedback-categories button:focus-visible, .student-feedback-dialog__header button:focus-visible { outline: 3px solid rgba(36, 87, 214, .25); outline-offset: 2px; }
-.student-feedback-message { display: block; }
-.student-feedback-message > span small { color: #98a2b3; font-size: 10px; }
-.student-feedback-message .el-textarea__inner { border-radius: 14px; box-shadow: 0 0 0 1px #dfe5ec inset; font-family: inherit; }
-.student-feedback-dialog__meta { margin: 11px 0 0; color: #8a94a6; font-size: 11px; line-height: 1.5; }
-.student-feedback-dialog__footer { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
-.student-feedback-dialog__footer .el-button { min-height: 48px; margin: 0; border-radius: 14px; font-weight: 800; }
+.student-feedback-dialog .el-dialog__header {
+  padding: 22px 22px 0;
+}
+.student-feedback-dialog .el-dialog__body {
+  max-height: calc(100dvh - 190px);
+  padding: 14px 22px 18px;
+  overflow-y: auto;
+}
+.student-feedback-dialog .el-dialog__footer {
+  padding: 0 22px 22px;
+}
+.student-feedback-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.student-feedback-dialog__header p {
+  margin: 0 0 4px;
+  color: var(--student-primary);
+  font-size: var(--student-font-xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.student-feedback-dialog__header h2 {
+  margin: 0;
+  color: var(--student-ink);
+  font-size: var(--student-font-title-md);
+  font-weight: 850;
+  letter-spacing: -0.035em;
+}
+.student-feedback-dialog__header button {
+  display: grid;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--student-border);
+  border-radius: 13px;
+  color: var(--student-text);
+  background: var(--student-surface);
+  cursor: pointer;
+}
+.student-feedback-dialog__description {
+  margin: 0 0 20px;
+  color: var(--student-muted);
+  font-size: var(--student-font-md);
+  line-height: var(--student-leading-body);
+}
+.student-feedback-fieldset {
+  min-width: 0;
+  margin: 0 0 20px;
+  padding: 0;
+  border: 0;
+}
+.student-feedback-fieldset legend,
+.student-feedback-message > span {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--student-text);
+  font-size: var(--student-font-md);
+  font-weight: 800;
+}
+.student-feedback-fieldset legend strong {
+  margin-left: 3px;
+  color: var(--student-primary);
+  font-size: 10px;
+}
+.student-feedback-sentiments {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.student-feedback-sentiments button {
+  display: grid;
+  min-width: 0;
+  min-height: 72px;
+  place-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border: 1px solid var(--student-border);
+  border-radius: 15px;
+  color: var(--student-text);
+  background: var(--student-surface);
+  font: inherit;
+  font-size: var(--student-font-sm);
+  font-weight: 750;
+  cursor: pointer;
+}
+.student-feedback-sentiments button span {
+  font-size: 22px;
+}
+.student-feedback-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.student-feedback-categories button {
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid var(--student-border);
+  border-radius: var(--student-radius-pill);
+  color: var(--student-text);
+  background: var(--student-surface);
+  font: inherit;
+  font-size: var(--student-font-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+.student-feedback-sentiments button.is-selected,
+.student-feedback-categories button.is-selected {
+  border-color: var(--student-primary);
+  color: var(--student-primary-strong);
+  background: var(--student-primary-soft);
+  box-shadow: 0 0 0 2px rgba(36, 87, 214, 0.1);
+}
+.student-feedback-sentiments button:focus-visible,
+.student-feedback-categories button:focus-visible,
+.student-feedback-dialog__header button:focus-visible {
+  outline: 0;
+  box-shadow: var(--student-focus-ring);
+}
+.student-feedback-message {
+  display: block;
+}
+.student-feedback-message > span small {
+  color: var(--student-text-disabled);
+  font-size: 10px;
+}
+.student-feedback-message .el-textarea__inner {
+  border-radius: var(--student-radius-md);
+  box-shadow: 0 0 0 1px var(--student-border) inset;
+  font-family: inherit;
+}
+.student-feedback-dialog__meta {
+  margin: 11px 0 0;
+  color: var(--student-slate-500);
+  font-size: var(--student-font-xs);
+  line-height: 1.5;
+}
+.student-feedback-dialog__footer {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 10px;
+}
+.student-feedback-dialog__footer .el-button {
+  min-height: var(--student-control-height-md);
+  margin: 0;
+  border-radius: var(--student-radius-md);
+  font-weight: 800;
+}
 @media (max-width: 600px) {
-  .student-feedback-overlay .el-overlay-dialog { align-items: flex-end; padding: 0; }
-  .student-feedback-dialog.el-dialog { width: 100% !important; max-width: none; max-height: calc(100dvh - env(safe-area-inset-top)); border-radius: 24px 24px 0 0; }
-  .student-feedback-dialog .el-dialog__header { padding: 20px 18px 0; }
-  .student-feedback-dialog .el-dialog__body { max-height: calc(100dvh - 184px - env(safe-area-inset-top)); padding: 12px 18px 16px; }
-  .student-feedback-dialog .el-dialog__footer { padding: 0 18px calc(16px + env(safe-area-inset-bottom)); }
-  .student-feedback-dialog__header h2 { font-size: 21px; }
+  .student-feedback-overlay .el-overlay-dialog {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .student-feedback-dialog.el-dialog {
+    width: 100% !important;
+    max-width: none;
+    max-height: calc(100dvh - env(safe-area-inset-top));
+    border-radius: calc(var(--student-radius-lg) + var(--student-space-1))
+      calc(var(--student-radius-lg) + var(--student-space-1)) 0 0;
+  }
+  .student-feedback-dialog .el-dialog__header {
+    padding: 20px 18px 0;
+  }
+  .student-feedback-dialog .el-dialog__body {
+    max-height: calc(100dvh - 184px - env(safe-area-inset-top));
+    padding: 12px 18px 16px;
+  }
+  .student-feedback-dialog .el-dialog__footer {
+    padding: 0 18px calc(16px + env(safe-area-inset-bottom));
+  }
+  .student-feedback-dialog__header h2 {
+    font-size: 21px;
+  }
 }
 @media (max-width: 350px) {
-  .student-feedback-sentiments button { min-height: 66px; font-size: 11px; }
-  .student-feedback-dialog__footer { grid-template-columns: 1fr; }
-  .student-feedback-dialog__footer .el-button:first-child { display: none; }
+  .student-feedback-sentiments button {
+    min-height: 66px;
+    font-size: 11px;
+  }
+  .student-feedback-dialog__footer {
+    grid-template-columns: 1fr;
+  }
+  .student-feedback-dialog__footer .el-button:first-child {
+    display: none;
+  }
 }
 </style>

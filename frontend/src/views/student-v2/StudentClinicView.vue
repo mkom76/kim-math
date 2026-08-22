@@ -1,9 +1,26 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { MagicStick, Calendar, Warning, Check, Close, TrophyBase, Right, CaretTop, CaretBottom } from '@element-plus/icons-vue'
-import { clinicAPI, authAPI, type StudentClinicInfo, type AuthResponse, type RecentClinicResult } from '@/api/client'
+import {
+  MagicStick,
+  Calendar,
+  Warning,
+  Check,
+  Close,
+  TrophyBase,
+  Right,
+  CaretTop,
+  CaretBottom,
+} from '@element-plus/icons-vue'
+import {
+  clinicAPI,
+  authAPI,
+  type StudentClinicInfo,
+  type AuthResponse,
+  type RecentClinicResult,
+} from '@/api/client'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import StudentPageHeader from '@/components/student-v2/StudentPageHeader.vue'
 
 const loading = ref(false)
 const clinicInfo = ref<StudentClinicInfo | null>(null)
@@ -13,7 +30,7 @@ const getApiMessage = (error: unknown, fallback: string) =>
   (error as { response?: { data?: { message?: string } } }).response?.data?.message || fallback
 
 const { isMobile } = useBreakpoint()
-const h3FontSize = computed(() => isMobile.value ? '16px' : '18px')
+const h3FontSize = computed(() => (isMobile.value ? '16px' : '18px'))
 
 const hasUpcomingClinic = computed(() => {
   return clinicInfo.value?.upcomingClinic != null
@@ -22,8 +39,10 @@ const hasUpcomingClinic = computed(() => {
 const incompleteHomeworks = computed(() => clinicInfo.value?.incompleteHomeworks ?? [])
 
 const isRegistered = computed(() => {
-  return clinicInfo.value?.myRegistration != null &&
-         clinicInfo.value.myRegistration.status !== 'CANCELLED'
+  return (
+    clinicInfo.value?.myRegistration != null &&
+    clinicInfo.value.myRegistration.status !== 'CANCELLED'
+  )
 })
 
 const shouldAttendClinic = computed(() => {
@@ -77,7 +96,7 @@ const formatDate = (dateStr: string) => {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    weekday: 'long'
+    weekday: 'long',
   })
 }
 
@@ -95,17 +114,17 @@ const formatTime = (timeStr: string) => {
 }
 
 const getCompletionColor = (completion?: number) => {
-  if (!completion) return '#909399'
-  if (completion >= 90) return '#67c23a'
-  if (completion >= 70) return '#e6a23c'
-  return '#f56c6c'
+  if (!completion) return 'var(--student-muted)'
+  if (completion >= 90) return 'var(--student-success)'
+  if (completion >= 70) return 'var(--student-warning)'
+  return 'var(--student-danger)'
 }
 
 const getChangeColor = (change: number) => {
   // 오답/안 푼 문제는 감소가 좋은 것
-  if (change < 0) return '#67c23a'
-  if (change > 0) return '#f56c6c'
-  return '#909399'
+  if (change < 0) return 'var(--student-success)'
+  if (change > 0) return 'var(--student-danger)'
+  return 'var(--student-muted)'
 }
 
 const getChangeText = (change: number) => {
@@ -117,15 +136,11 @@ const registerForClinic = async () => {
   if (!currentUser.value?.userId || !clinicInfo.value?.upcomingClinic?.id) return
 
   try {
-    await ElMessageBox.confirm(
-      '클리닉에 신청하시겠습니까?',
-      '신청 확인',
-      {
-        confirmButtonText: '신청',
-        cancelButtonText: '취소',
-        type: 'info',
-      }
-    )
+    await ElMessageBox.confirm('클리닉에 신청하시겠습니까?', '신청 확인', {
+      confirmButtonText: '신청',
+      cancelButtonText: '취소',
+      type: 'info',
+    })
 
     await clinicAPI.registerForClinic(clinicInfo.value.upcomingClinic.id, currentUser.value.userId)
     ElMessage.success('클리닉 신청이 완료되었습니다.')
@@ -141,15 +156,11 @@ const cancelRegistration = async () => {
   if (!currentUser.value?.userId || !clinicInfo.value?.upcomingClinic?.id) return
 
   try {
-    await ElMessageBox.confirm(
-      '클리닉 신청을 취소하시겠습니까?',
-      '취소 확인',
-      {
-        confirmButtonText: '취소',
-        cancelButtonText: '돌아가기',
-        type: 'warning',
-      }
-    )
+    await ElMessageBox.confirm('클리닉 신청을 취소하시겠습니까?', '취소 확인', {
+      confirmButtonText: '취소',
+      cancelButtonText: '돌아가기',
+      type: 'warning',
+    })
 
     await clinicAPI.cancelRegistration(clinicInfo.value.upcomingClinic.id, currentUser.value.userId)
     ElMessage.success('클리닉 신청이 취소되었습니다.')
@@ -170,22 +181,19 @@ onMounted(async () => {
 
 <template>
   <div class="student-page clinic-page">
-    <!-- Header -->
-    <header class="student-page__header clinic-header">
-      <div>
-        <p class="student-page__eyebrow">CLINIC</p>
-        <h1 class="student-page__title">클리닉</h1>
-        <p class="student-page__subtitle">부족한 숙제를 차근차근 완성해요.</p>
-      </div>
-      <span class="clinic-header__icon"><el-icon><MagicStick /></el-icon></span>
-    </header>
+    <StudentPageHeader eyebrow="CLINIC" title="클리닉" subtitle="부족한 숙제를 차근차근 완성해요.">
+      <template #action
+        ><span class="clinic-header__icon"
+          ><el-icon><MagicStick /></el-icon></span
+      ></template>
+    </StudentPageHeader>
 
     <div v-loading="loading">
       <!-- No Upcoming Clinic -->
       <el-card v-if="!hasUpcomingClinic" class="clinic-empty" shadow="never">
         <el-empty description="예정된 클리닉이 없습니다">
           <template #image>
-            <el-icon size="80" color="#909399">
+            <el-icon size="80" color="var(--student-muted)">
               <Calendar />
             </el-icon>
           </template>
@@ -202,7 +210,9 @@ onMounted(async () => {
           style="margin-bottom: 24px"
         >
           <template #default>
-            <p style="margin: 0">완성도가 90% 미만인 숙제가 있습니다. 클리닉에 참여하여 부족한 부분을 보충하세요!</p>
+            <p style="margin: 0">
+              완성도가 90% 미만인 숙제가 있습니다. 클리닉에 참여하여 부족한 부분을 보충하세요!
+            </p>
           </template>
         </el-alert>
 
@@ -210,9 +220,7 @@ onMounted(async () => {
         <el-card class="clinic-schedule" shadow="never">
           <template #header>
             <div style="display: flex; justify-content: space-between; align-items: center">
-              <h3 :style="{ margin: 0, fontSize: h3FontSize, fontWeight: 600 }">
-                다가오는 클리닉
-              </h3>
+              <h3 :style="{ margin: 0, fontSize: h3FontSize, fontWeight: 600 }">다가오는 클리닉</h3>
               <el-tag v-if="isRegistered" type="success" size="large">신청 완료</el-tag>
               <el-tag v-else type="info" size="large">미신청</el-tag>
             </div>
@@ -254,7 +262,14 @@ onMounted(async () => {
         <!-- Incomplete Homeworks -->
         <el-card v-if="incompleteHomeworks.length > 0" class="clinic-homeworks" shadow="never">
           <template #header>
-            <h3 :style="{ margin: 0, fontSize: h3FontSize, fontWeight: 600, color: '#e6a23c' }">
+            <h3
+              :style="{
+                margin: 0,
+                fontSize: h3FontSize,
+                fontWeight: 600,
+                color: 'var(--student-warning)',
+              }"
+            >
               <el-icon style="margin-right: 8px"><Warning /></el-icon>
               완성도가 낮은 숙제 ({{ incompleteHomeworks.length }}개)
             </h3>
@@ -265,7 +280,13 @@ onMounted(async () => {
             <el-table-column prop="lessonDate" label="수업 날짜" width="90" />
             <el-table-column prop="completion" label="완성도" width="120" align="center">
               <template #default="{ row }">
-                <span :style="{ color: getCompletionColor(row.completion), fontWeight: 600, fontSize: h3FontSize }">
+                <span
+                  :style="{
+                    color: getCompletionColor(row.completion),
+                    fontWeight: 600,
+                    fontSize: h3FontSize,
+                  }"
+                >
                   {{ row.completion || 0 }}%
                 </span>
               </template>
@@ -280,7 +301,9 @@ onMounted(async () => {
             >
               <div class="mobile-homework-main">
                 <div class="mobile-homework-title">{{ homework.homeworkTitle }}</div>
-                <div class="mobile-homework-date">{{ formatShortDate(homework.lessonDate) }} 수업</div>
+                <div class="mobile-homework-date">
+                  {{ formatShortDate(homework.lessonDate) }} 수업
+                </div>
               </div>
               <div
                 class="mobile-homework-completion"
@@ -291,11 +314,7 @@ onMounted(async () => {
             </div>
           </div>
 
-          <el-alert
-            type="info"
-            :closable="false"
-            style="margin-top: 16px"
-          >
+          <el-alert type="info" :closable="false" style="margin-top: 16px">
             <template #default>
               <p style="margin: 0">클리닉에서 위 숙제들을 집중적으로 복습하고 보충할 예정입니다.</p>
             </template>
@@ -315,11 +334,18 @@ onMounted(async () => {
         <el-card v-if="recentResult" class="clinic-result" shadow="never">
           <template #header>
             <div>
-              <h3 :style="{ margin: 0, fontSize: h3FontSize, fontWeight: 600, color: '#67c23a' }">
+              <h3
+                :style="{
+                  margin: 0,
+                  fontSize: h3FontSize,
+                  fontWeight: 600,
+                  color: 'var(--student-success)',
+                }"
+              >
                 <el-icon style="margin-right: 8px"><TrophyBase /></el-icon>
                 최근 클리닉 결과
               </h3>
-              <p style="margin: 8px 0 0; color: #909399; font-size: 14px">
+              <p style="margin: 8px 0 0; color: var(--student-muted); font-size: 14px">
                 {{ formatDate(recentResult.clinicDate) }} {{ formatTime(recentResult.clinicTime) }}
               </p>
             </div>
@@ -333,28 +359,36 @@ onMounted(async () => {
               {{ recentResult.totalIncorrectCountBefore }}개
               <el-icon style="margin: 0 4px"><Right /></el-icon>
               {{ recentResult.totalIncorrectCountAfter }}개
-              <span :style="{
-                color: getChangeColor(recentResult.totalIncorrectCountChange),
-                fontWeight: 600,
-                marginLeft: '8px'
-              }">
+              <span
+                :style="{
+                  color: getChangeColor(recentResult.totalIncorrectCountChange),
+                  fontWeight: 600,
+                  marginLeft: '8px',
+                }"
+              >
                 {{ getChangeText(recentResult.totalIncorrectCountChange) }}
                 <el-icon v-if="recentResult.totalIncorrectCountChange < 0"><CaretBottom /></el-icon>
-                <el-icon v-else-if="recentResult.totalIncorrectCountChange > 0"><CaretTop /></el-icon>
+                <el-icon v-else-if="recentResult.totalIncorrectCountChange > 0"
+                  ><CaretTop
+                /></el-icon>
               </span>
             </el-descriptions-item>
             <el-descriptions-item label="전체 안 푼 문제">
               {{ recentResult.totalUnsolvedCountBefore }}개
               <el-icon style="margin: 0 4px"><Right /></el-icon>
               {{ recentResult.totalUnsolvedCountAfter }}개
-              <span :style="{
-                color: getChangeColor(recentResult.totalUnsolvedCountChange),
-                fontWeight: 600,
-                marginLeft: '8px'
-              }">
+              <span
+                :style="{
+                  color: getChangeColor(recentResult.totalUnsolvedCountChange),
+                  fontWeight: 600,
+                  marginLeft: '8px',
+                }"
+              >
                 {{ getChangeText(recentResult.totalUnsolvedCountChange) }}
                 <el-icon v-if="recentResult.totalUnsolvedCountChange < 0"><CaretBottom /></el-icon>
-                <el-icon v-else-if="recentResult.totalUnsolvedCountChange > 0"><CaretTop /></el-icon>
+                <el-icon v-else-if="recentResult.totalUnsolvedCountChange > 0"
+                  ><CaretTop
+                /></el-icon>
               </span>
             </el-descriptions-item>
           </el-descriptions>
@@ -363,10 +397,12 @@ onMounted(async () => {
             <el-table-column prop="homeworkTitle" label="숙제" width="100" />
             <el-table-column label="오답 변화" width="80" align="center">
               <template #default="{ row }">
-                <div :style="{
-                  color: getChangeColor(row.incorrectCountChange),
-                  fontWeight: 600
-                }">
+                <div
+                  :style="{
+                    color: getChangeColor(row.incorrectCountChange),
+                    fontWeight: 600,
+                  }"
+                >
                   {{ getChangeText(row.incorrectCountChange) }}
                   <el-icon v-if="row.incorrectCountChange < 0"><CaretBottom /></el-icon>
                   <el-icon v-else-if="row.incorrectCountChange > 0"><CaretTop /></el-icon>
@@ -375,10 +411,12 @@ onMounted(async () => {
             </el-table-column>
             <el-table-column label="안 푼 문제 변화" width="100" align="center">
               <template #default="{ row }">
-                <div :style="{
-                  color: getChangeColor(row.unsolvedCountChange),
-                  fontWeight: 600
-                }">
+                <div
+                  :style="{
+                    color: getChangeColor(row.unsolvedCountChange),
+                    fontWeight: 600,
+                  }"
+                >
                   {{ getChangeText(row.unsolvedCountChange) }}
                   <el-icon v-if="row.unsolvedCountChange < 0"><CaretBottom /></el-icon>
                   <el-icon v-else-if="row.unsolvedCountChange > 0"><CaretTop /></el-icon>
@@ -429,19 +467,63 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.clinic-page { display: grid; gap: 24px; padding-bottom: 24px; }
-.clinic-header__icon { display: grid; flex: 0 0 48px; height: 48px; place-items: center; border-radius: 15px; color: var(--student-success); background: #eaf8f0; font-size: 24px; }
-.clinic-page :deep(.el-card) { border: 1px solid var(--student-border); border-radius: 18px; box-shadow: var(--student-shadow-sm); }
-.clinic-page :deep(.el-card__header) { padding: 17px 18px; border-bottom-color: var(--student-border); }
-.clinic-page :deep(.el-card__body) { padding: 18px; }
-.clinic-page :deep(.el-alert) { border-radius: 14px; }
-.clinic-page :deep(.el-descriptions__label) { width: 78px; color: var(--student-muted); font-weight: 700; background: var(--student-surface-soft); }
-.clinic-schedule { margin-bottom: 20px; border-color: #cbd8fb !important; background: linear-gradient(180deg, #fff, #f8faff); }
-.clinic-schedule :deep(.el-button) { width: 100%; max-width: 360px; }
-.clinic-homeworks { margin-bottom: 20px; }
-.clinic-complete { margin-bottom: 20px; }
-.clinic-result { margin-top: 20px; }
-.clinic-empty { min-height: 280px; }
+.clinic-page {
+  display: grid;
+  gap: 24px;
+  padding-bottom: 24px;
+}
+.clinic-header__icon {
+  display: grid;
+  flex: 0 0 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 15px;
+  color: var(--student-success);
+  background: var(--student-success-soft);
+  font-size: 24px;
+}
+.clinic-page :deep(.el-card) {
+  border: 1px solid var(--student-border);
+  border-radius: 18px;
+  box-shadow: var(--student-shadow-sm);
+}
+.clinic-page :deep(.el-card__header) {
+  padding: 17px 18px;
+  border-bottom-color: var(--student-border);
+}
+.clinic-page :deep(.el-card__body) {
+  padding: 18px;
+}
+.clinic-page :deep(.el-alert) {
+  border-radius: 14px;
+}
+.clinic-page :deep(.el-descriptions__label) {
+  width: 78px;
+  color: var(--student-muted);
+  font-weight: 700;
+  background: var(--student-surface-soft);
+}
+.clinic-schedule {
+  margin-bottom: 20px;
+  border-color: var(--student-primary-border) !important;
+  background: linear-gradient(180deg, var(--student-surface), var(--student-surface-hover));
+}
+.clinic-schedule :deep(.el-button) {
+  width: 100%;
+  max-width: 360px;
+}
+.clinic-homeworks {
+  margin-bottom: 20px;
+}
+.clinic-complete {
+  margin-bottom: 20px;
+}
+.clinic-result {
+  margin-top: 20px;
+}
+.clinic-empty {
+  min-height: 280px;
+}
 .mobile-homework-list {
   display: flex;
   flex-direction: column;
@@ -502,7 +584,7 @@ onMounted(async () => {
 }
 
 .mobile-change-label {
-  color: #909399;
+  color: var(--student-muted);
   font-size: 12px;
   margin-bottom: 4px;
 }
@@ -523,8 +605,15 @@ onMounted(async () => {
   }
 }
 @media (max-width: 767px) {
-  .clinic-page :deep(.el-result) { padding: 20px 0; }
-  .clinic-page :deep(.el-result__title p) { font-size: 17px; }
-  .clinic-page :deep(.el-result__subtitle p) { font-size: 13px; line-height: 1.55; }
+  .clinic-page :deep(.el-result) {
+    padding: 20px 0;
+  }
+  .clinic-page :deep(.el-result__title p) {
+    font-size: 17px;
+  }
+  .clinic-page :deep(.el-result__subtitle p) {
+    font-size: 13px;
+    line-height: 1.55;
+  }
 }
 </style>

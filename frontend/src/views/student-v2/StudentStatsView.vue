@@ -16,6 +16,7 @@ import {
   type VideoProgress,
 } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
+import StudentPageHeader from '@/components/student-v2/StudentPageHeader.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -28,7 +29,7 @@ const videoProgress = ref<VideoProgress[]>([])
 const attendance = ref<AttendanceStats | null>(null)
 
 const visibleScores = computed(() =>
-  submissions.value.filter(item => typeof item.totalScore === 'number'),
+  submissions.value.filter((item) => typeof item.totalScore === 'number'),
 )
 
 const averageScore = computed(() => {
@@ -37,9 +38,7 @@ const averageScore = computed(() => {
   return Math.round((total / visibleScores.value.length) * 10) / 10
 })
 
-const completedHomework = computed(() =>
-  homeworks.value.filter(item => item.completion != null),
-)
+const completedHomework = computed(() => homeworks.value.filter((item) => item.completion != null))
 
 const averageCompletion = computed(() => {
   if (!completedHomework.value.length) return null
@@ -64,9 +63,7 @@ const recentSubmissions = computed(() =>
 )
 
 const recentHomeworks = computed(() =>
-  [...homeworks.value]
-    .filter(item => item.completion != null)
-    .slice(0, 5),
+  [...homeworks.value].filter((item) => item.completion != null).slice(0, 5),
 )
 
 function formatDate(value?: string) {
@@ -118,21 +115,26 @@ onMounted(fetchStats)
 
 <template>
   <div v-loading="loading" class="student-page">
-    <header class="student-page__header">
-      <div>
-        <p class="student-page__eyebrow">My learning</p>
-        <h1 class="student-page__title">내 학습</h1>
-        <p class="student-page__subtitle">최근 학습 흐름을 한눈에 확인해요.</p>
-      </div>
-      <el-button
-        class="student-icon-button"
-        aria-label="설정 열기"
-        @click="router.push('/settings')"
-      ><el-icon><Setting /></el-icon></el-button>
-    </header>
+    <StudentPageHeader
+      eyebrow="MY LEARNING"
+      title="내 학습"
+      subtitle="최근 학습 흐름을 한눈에 확인해요."
+    >
+      <template #action>
+        <el-button
+          class="student-icon-button"
+          aria-label="설정 열기"
+          @click="router.push('/settings')"
+        >
+          <el-icon><Setting /></el-icon>
+        </el-button>
+      </template>
+    </StudentPageHeader>
 
     <section class="profile-card">
-      <el-avatar :size="64" class="profile-card__avatar"><el-icon :size="28"><UserFilled /></el-icon></el-avatar>
+      <el-avatar :size="64" class="profile-card__avatar"
+        ><el-icon :size="28"><UserFilled /></el-icon
+      ></el-avatar>
       <div class="profile-card__body">
         <h2>{{ student?.name || '학생' }}</h2>
         <p>{{ student?.academyName || '-' }} · {{ student?.className || '-' }}</p>
@@ -143,22 +145,30 @@ onMounted(fetchStats)
     <section class="student-stat-grid stats-grid">
       <div class="student-stat">
         <div class="student-stat__label">평균 점수</div>
-        <div class="student-stat__value">{{ averageScore ?? '-' }}<small v-if="averageScore != null">점</small></div>
+        <div class="student-stat__value">
+          {{ averageScore ?? '-' }}<small v-if="averageScore != null">점</small>
+        </div>
         <div class="student-stat__hint">최근 {{ visibleScores.length }}회</div>
       </div>
       <div class="student-stat">
         <div class="student-stat__label">숙제 완성도</div>
-        <div class="student-stat__value">{{ averageCompletion ?? '-' }}<small v-if="averageCompletion != null">%</small></div>
+        <div class="student-stat__value">
+          {{ averageCompletion ?? '-' }}<small v-if="averageCompletion != null">%</small>
+        </div>
         <div class="student-stat__hint">제출한 숙제 기준</div>
       </div>
       <div class="student-stat">
         <div class="student-stat__label">출석률</div>
-        <div class="student-stat__value">{{ attendance?.attendanceRate ?? '-' }}<small v-if="attendance">%</small></div>
+        <div class="student-stat__value">
+          {{ attendance?.attendanceRate ?? '-' }}<small v-if="attendance">%</small>
+        </div>
         <div class="student-stat__hint">총 {{ attendance?.totalLessons ?? 0 }}회 수업</div>
       </div>
       <div class="student-stat">
         <div class="student-stat__label">영상 학습</div>
-        <div class="student-stat__value">{{ averageVideoProgress ?? '-' }}<small v-if="averageVideoProgress != null">%</small></div>
+        <div class="student-stat__value">
+          {{ averageVideoProgress ?? '-' }}<small v-if="averageVideoProgress != null">%</small>
+        </div>
         <div class="student-stat__hint">등록 영상 평균</div>
       </div>
     </section>
@@ -180,16 +190,24 @@ onMounted(fetchStats)
             type="button"
             @click="submission.testId && router.push(`/student/tests/${submission.testId}/result`)"
           >
-            <span class="student-list-row__icon"><el-icon><DataLine /></el-icon></span>
+            <span class="student-list-row__icon"
+              ><el-icon><DataLine /></el-icon
+            ></span>
             <span class="student-list-row__content">
-              <span class="student-list-row__title">{{ submission.testTitle || submission.test?.title || '시험' }}</span>
+              <span class="student-list-row__title">{{
+                submission.testTitle || submission.test?.title || '시험'
+              }}</span>
               <span class="student-list-row__meta">{{ formatDate(submission.submittedAt) }}</span>
             </span>
-            <span class="student-list-row__trailing score-value">{{ submission.totalScore ?? '-' }}점</span>
+            <span class="student-list-row__trailing score-value"
+              >{{ submission.totalScore ?? '-' }}점</span
+            >
           </button>
         </div>
         <div v-else class="student-empty">
-          <div class="student-empty__icon"><el-icon :size="28"><DataLine /></el-icon></div>
+          <div class="student-empty__icon">
+            <el-icon :size="28"><DataLine /></el-icon>
+          </div>
           <div class="student-empty__title">아직 시험 기록이 없어요</div>
           <div class="student-empty__description">시험을 완료하면 점수 흐름이 이곳에 쌓입니다.</div>
         </div>
@@ -240,14 +258,14 @@ onMounted(fetchStats)
   gap: 16px;
   padding: 20px;
   border-radius: var(--student-radius-xl);
-  background: linear-gradient(145deg, #fff, #eef3ff);
+  background: linear-gradient(145deg, var(--student-surface), var(--student-primary-soft));
   box-shadow: var(--student-shadow);
 }
 
 .profile-card__avatar {
   flex: 0 0 auto;
   background: var(--student-primary);
-  color: #fff;
+  color: var(--student-surface);
 }
 
 .profile-card__body {
@@ -309,7 +327,7 @@ onMounted(fetchStats)
   margin-top: 24px;
   border: 1px solid var(--student-border);
   border-radius: var(--student-radius-lg);
-  background: #fff;
+  background: var(--student-surface);
 }
 
 .account-actions button {

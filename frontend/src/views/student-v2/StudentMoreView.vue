@@ -1,14 +1,8 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import type { Component } from 'vue'
-import {
-  Bell,
-  Calendar,
-  DataLine,
-  Notebook,
-  Setting,
-  VideoPlay,
-} from '@element-plus/icons-vue'
+import { Bell, Calendar, DataLine, Notebook, Setting, VideoPlay } from '@element-plus/icons-vue'
+import StudentPageHeader from '@/components/student-v2/StudentPageHeader.vue'
 
 const router = useRouter()
 
@@ -71,13 +65,11 @@ const serviceMenus: MoreMenuItem[] = [
 
 <template>
   <div class="student-page more-page">
-    <header class="student-page__header more-header">
-      <div>
-        <p class="student-page__eyebrow">ALL MENU</p>
-        <h1 class="student-page__title">더보기</h1>
-        <p class="student-page__subtitle">학습 기록과 서비스 메뉴를 모아봤어요.</p>
-      </div>
-    </header>
+    <StudentPageHeader
+      eyebrow="ALL MENU"
+      title="더보기"
+      subtitle="학습 기록과 서비스 메뉴를 모아봤어요."
+    />
 
     <section class="more-section" aria-labelledby="more-statistics-title">
       <div class="more-section__heading">
@@ -132,33 +124,157 @@ const serviceMenus: MoreMenuItem[] = [
 </template>
 
 <style scoped>
-.more-page { display: grid; min-width: 0; gap: 28px; }
-.more-header { margin-bottom: -2px; }
-.more-section { display: grid; gap: 11px; }
-.more-section__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 2px; }
-.more-section__heading h2 { margin: 0; color: var(--student-ink); font-size: 17px; font-weight: 850; letter-spacing: -.02em; }
-.more-section__heading span { color: var(--student-muted); font-size: 11px; font-weight: 650; }
-.more-menu-surface { overflow: hidden; border: 1px solid var(--student-border); border-radius: var(--student-radius-lg); background: var(--student-surface); box-shadow: var(--student-shadow-soft); }
-.more-menu-row { display: grid; grid-template-columns: 27px minmax(78px, .7fr) minmax(0, 1.3fr) 16px; align-items: center; gap: 9px; width: 100%; min-width: 0; min-height: 44px; padding: 4px 13px; border: 0; border-bottom: 1px solid var(--student-border); color: inherit; background: transparent; font: inherit; text-align: left; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; transition: background-color .1s ease, box-shadow .1s ease; }
-.more-menu-row:last-child { border-bottom: 0; }
-.more-menu-row:hover { background: #f8faff; box-shadow: inset 3px 0 var(--student-primary); }
-.more-menu-row:active { background: #e5e9f0; box-shadow: inset 3px 0 #7c899e; transition-duration: 0s; }
-.more-menu-row:focus-visible { position: relative; outline: 3px solid rgba(36, 87, 214, .25); outline-offset: -3px; }
-.more-menu-row__icon { display: grid; width: 25px; height: 25px; place-items: center; border-radius: 8px; font-size: 14px; }
-.more-menu-row__icon.is-blue { color: #2457d6; background: #eaf0ff; }
-.more-menu-row__icon.is-amber { color: #9a5b00; background: #fff1d6; }
-.more-menu-row__icon.is-green { color: #177245; background: #e9f7ef; }
-.more-menu-row__icon.is-violet { color: #6941c6; background: #f1ebff; }
-.more-menu-row__icon.is-red { color: #b92d3d; background: #ffedf0; }
-.more-menu-row__icon.is-gray { color: #475467; background: #eef1f5; }
-.more-menu-row__content { display: contents; }
-.more-menu-row__content strong { overflow: hidden; color: var(--student-ink); font-size: 14px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
-.more-menu-row__content small { overflow: hidden; color: var(--student-muted); font-size: 10px; font-weight: 550; line-height: 1.35; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
-.more-menu-row__arrow { color: #98a2b3; font-size: 14px; }
+.more-page {
+  display: grid;
+  min-width: 0;
+  gap: 28px;
+}
+.more-header {
+  margin-bottom: -2px;
+}
+.more-section {
+  display: grid;
+  gap: 11px;
+}
+.more-section__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px;
+}
+.more-section__heading h2 {
+  margin: 0;
+  color: var(--student-ink);
+  font-size: 17px;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+}
+.more-section__heading span {
+  color: var(--student-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+.more-menu-surface {
+  overflow: hidden;
+  border: 1px solid var(--student-border);
+  border-radius: var(--student-radius-lg);
+  background: var(--student-surface);
+  box-shadow: var(--student-shadow-soft);
+}
+.more-menu-row {
+  display: grid;
+  grid-template-columns: 27px minmax(78px, 0.7fr) minmax(0, 1.3fr) 16px;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px 13px;
+  border: 0;
+  border-bottom: 1px solid var(--student-border);
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 0.1s ease,
+    box-shadow 0.1s ease;
+}
+.more-menu-row:last-child {
+  border-bottom: 0;
+}
+.more-menu-row:hover {
+  background: var(--student-surface-hover);
+  box-shadow: inset 3px 0 var(--student-primary);
+}
+.more-menu-row:active {
+  background: var(--student-surface-pressed);
+  box-shadow: inset 3px 0 var(--student-muted);
+  transition-duration: 0s;
+}
+.more-menu-row:focus-visible {
+  position: relative;
+  outline: 3px solid rgba(36, 87, 214, 0.25);
+  outline-offset: -3px;
+}
+.more-menu-row__icon {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.more-menu-row__icon.is-blue {
+  color: var(--student-primary);
+  background: var(--student-primary-soft);
+}
+.more-menu-row__icon.is-amber {
+  color: var(--student-warning);
+  background: var(--student-warning-soft);
+}
+.more-menu-row__icon.is-green {
+  color: var(--student-success);
+  background: var(--student-success-soft);
+}
+.more-menu-row__icon.is-violet {
+  color: var(--student-violet-700);
+  background: var(--student-violet-100);
+}
+.more-menu-row__icon.is-red {
+  color: var(--student-danger);
+  background: var(--student-danger-soft);
+}
+.more-menu-row__icon.is-gray {
+  color: var(--student-text-subtle);
+  background: var(--student-slate-75);
+}
+.more-menu-row__content {
+  display: contents;
+}
+.more-menu-row__content strong {
+  overflow: hidden;
+  color: var(--student-ink);
+  font-size: 14px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.more-menu-row__content small {
+  overflow: hidden;
+  color: var(--student-muted);
+  font-size: 10px;
+  font-weight: 550;
+  line-height: 1.35;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.more-menu-row__arrow {
+  color: var(--student-text-disabled);
+  font-size: var(--student-font-body);
+}
 @media (max-width: 350px) {
-  .more-menu-row { grid-template-columns: 25px minmax(70px, .8fr) minmax(0, 1.2fr) 14px; gap: 7px; min-height: 44px; padding: 4px 10px; }
-  .more-menu-row__icon { width: 24px; height: 24px; font-size: 13px; }
-  .more-menu-row__content strong { font-size: 13px; }
-  .more-menu-row__content small { font-size: 9px; }
+  .more-menu-row {
+    grid-template-columns: 25px minmax(70px, 0.8fr) minmax(0, 1.2fr) 14px;
+    gap: 7px;
+    min-height: 44px;
+    padding: 4px 10px;
+  }
+  .more-menu-row__icon {
+    width: 24px;
+    height: 24px;
+    font-size: 13px;
+  }
+  .more-menu-row__content strong {
+    font-size: 13px;
+  }
+  .more-menu-row__content small {
+    font-size: 9px;
+  }
 }
 </style>

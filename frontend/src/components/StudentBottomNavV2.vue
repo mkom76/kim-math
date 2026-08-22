@@ -16,15 +16,35 @@ interface Tab {
 }
 
 const tabs: Tab[] = [
-  { label: '홈', path: '/student/dashboard', icon: House, matchPrefix: ['/student/dashboard', '/student/daily-feedback', '/student/videos'] },
-  { label: '시험', path: '/student/exams', icon: DocumentChecked, matchPrefix: ['/student/exams', '/student/tests'] },
+  {
+    label: '홈',
+    path: '/student/dashboard',
+    icon: House,
+    matchPrefix: ['/student/dashboard', '/student/daily-feedback', '/student/videos'],
+  },
+  {
+    label: '시험',
+    path: '/student/exams',
+    icon: DocumentChecked,
+    matchPrefix: ['/student/exams', '/student/tests'],
+  },
   { label: '클리닉', path: '/student/clinic', icon: Service, matchPrefix: ['/student/clinic'] },
-  { label: '더보기', path: '/student/more', icon: MoreFilled, matchPrefix: ['/student/more', '/student/statistics', '/student/stats', '/student/notifications'] },
+  {
+    label: '더보기',
+    path: '/student/more',
+    icon: MoreFilled,
+    matchPrefix: [
+      '/student/more',
+      '/student/statistics',
+      '/student/stats',
+      '/student/notifications',
+    ],
+  },
 ]
 
 const activeIndex = computed(() => {
   const path = route.path
-  return tabs.findIndex(t => t.matchPrefix.some(p => path.startsWith(p)))
+  return tabs.findIndex((t) => t.matchPrefix.some((p) => path.startsWith(p)))
 })
 
 function go(tab: Tab) {
@@ -60,7 +80,7 @@ function go(tab: Tab) {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 100;
+  z-index: var(--student-z-navigation);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   min-height: calc(72px + env(safe-area-inset-bottom));
@@ -83,7 +103,7 @@ function go(tab: Tab) {
   background: none;
   border: none;
   border-radius: 16px;
-  color: #667085;
+  color: var(--student-muted);
   font-size: 12px;
   cursor: pointer;
   transition: color 0.15s;
@@ -92,7 +112,7 @@ function go(tab: Tab) {
 }
 
 .tab:active {
-  background: #f3f6fb;
+  background: var(--student-background);
 }
 
 .tab.active {
@@ -105,7 +125,9 @@ function go(tab: Tab) {
   height: 32px;
   place-items: center;
   border-radius: 999px;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .tab.active .icon-wrap {

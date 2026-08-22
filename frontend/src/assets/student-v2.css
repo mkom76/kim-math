@@ -1,41 +1,137 @@
-.student-ui-v2 {
-  --student-primary: #2457d6;
-  --student-primary-strong: #1945b8;
-  --student-primary-soft: #eaf0ff;
-  --student-success: #177245;
-  --student-success-soft: #e9f7ef;
-  --student-warning: #8a5700;
-  --student-warning-soft: #fff4d6;
-  --student-danger: #b92d3d;
-  --student-danger-soft: #ffedf0;
-  --student-ink: #172033;
-  --student-text: #344054;
-  --student-muted: #667085;
-  --student-border: #dfe5ec;
-  --student-background: #f3f6fb;
-  --student-surface: #ffffff;
+/*
+ * Student design tokens
+ *
+ * These live on :root so teleported Element Plus overlays can use the same
+ * visual language as content inside .student-ui-v2. Product code should use
+ * the semantic aliases (for example --student-text-muted), not palette values.
+ */
+:root {
+  /* Foundation palette */
+  --student-blue-700: #1945b8;
+  --student-blue-600: #2457d6;
+  --student-blue-500: #3f73e5;
+  --student-blue-100: #eaf0ff;
+  --student-blue-50: #f7f9ff;
+  --student-green-700: #177245;
+  --student-green-100: #e9f7ef;
+  --student-amber-800: #8a5700;
+  --student-amber-100: #fff4d6;
+  --student-red-700: #b92d3d;
+  --student-red-800: #9f2534;
+  --student-red-100: #ffedf0;
+  --student-violet-700: #6941c6;
+  --student-violet-100: #f1ebff;
+  --student-slate-950: #172033;
+  --student-slate-800: #344054;
+  --student-slate-700: #475467;
+  --student-slate-600: #667085;
+  --student-slate-500: #8a94a6;
+  --student-slate-400: #98a2b3;
+  --student-slate-200: #dfe5ec;
+  --student-slate-100: #e8edf4;
+  --student-slate-75: #eef1f5;
+  --student-slate-50: #f3f6fb;
+  --student-white: #ffffff;
+
+  /* Semantic color roles. Keep legacy aliases while screens migrate. */
+  --student-primary: var(--student-blue-600);
+  --student-primary-strong: var(--student-blue-700);
+  --student-primary-soft: var(--student-blue-100);
+  --student-success: var(--student-green-700);
+  --student-success-soft: var(--student-green-100);
+  --student-warning: var(--student-amber-800);
+  --student-warning-soft: var(--student-amber-100);
+  --student-danger: var(--student-red-700);
+  --student-danger-strong: var(--student-red-800);
+  --student-danger-soft: var(--student-red-100);
+  --student-ink: var(--student-slate-950);
+  --student-text: var(--student-slate-800);
+  --student-text-subtle: var(--student-slate-700);
+  --student-muted: var(--student-slate-600);
+  --student-text-disabled: var(--student-slate-400);
+  --student-border: var(--student-slate-200);
+  --student-border-strong: #c7d2e3;
+  --student-background: var(--student-slate-50);
+  --student-surface: var(--student-white);
+  --student-surface-soft: #f6f8fc;
+  --student-surface-hover: #f8faff;
+  --student-surface-pressed: #e5e9f0;
+  --student-primary-border: #cbd8fb;
+  --student-media-background: #111827;
+  --student-gradient-primary: linear-gradient(135deg, #183eaa 0%, #2f68e6 64%, #4b7ce8 100%);
+  --student-gradient-video: linear-gradient(135deg, #1254cf 0%, #1978eb 62%, #42a5f5 100%);
+  --student-overlay: rgba(23, 32, 51, 0.42);
+
+  /* Spacing scale */
+  --student-space-1: 4px;
+  --student-space-2: 8px;
+  --student-space-3: 12px;
+  --student-space-4: 16px;
+  --student-space-5: 20px;
+  --student-space-6: 24px;
+  --student-space-7: 28px;
+  --student-space-8: 32px;
+
+  /* Typography scale */
+  --student-font-xs: 11px;
+  --student-font-sm: 12px;
+  --student-font-md: 13px;
+  --student-font-body: 14px;
+  --student-font-label: 15px;
+  --student-font-title-sm: 19px;
+  --student-font-title-md: 23px;
+  --student-font-title-lg: 30px;
+  --student-leading-tight: 1.25;
+  --student-leading-body: 1.55;
+
+  /* Shape, elevation and interaction */
   --student-radius-sm: 10px;
   --student-radius-md: 14px;
   --student-radius-lg: 20px;
   --student-radius-xl: 28px;
+  --student-radius-pill: 999px;
+  --student-control-height-sm: 44px;
+  --student-control-height-md: 48px;
+  --student-control-height-lg: 54px;
   --student-shadow: 0 12px 32px rgba(28, 46, 78, 0.08);
   --student-shadow-soft: 0 5px 18px rgba(28, 46, 78, 0.06);
   --student-shadow-sm: var(--student-shadow-soft);
   --student-shadow-md: var(--student-shadow);
+  --student-shadow-dialog: 0 24px 70px rgba(23, 32, 51, 0.24);
+  --student-focus-ring: 0 0 0 3px rgba(36, 87, 214, 0.25);
+  --student-duration-fast: 160ms;
+  --student-duration-normal: 220ms;
+  --student-ease-standard: ease;
+  --student-z-sticky: 40;
+  --student-z-navigation: 100;
 }
 
-.student-ui-v2 .student-app-main {
+.student-ui-v2,
+.student-logout-overlay,
+.student-feedback-overlay {
   --el-color-primary: var(--student-primary);
   --el-color-success: var(--student-success);
   --el-color-warning: var(--student-warning);
   --el-color-danger: var(--student-danger);
+  --el-text-color-primary: var(--student-ink);
+  --el-text-color-regular: var(--student-text);
+  --el-text-color-secondary: var(--student-muted);
+  --el-border-color: var(--student-border);
+  --el-border-color-light: var(--student-border);
+  --el-fill-color-light: var(--student-surface-soft);
+  --el-bg-color: var(--student-surface);
+  --el-border-radius-base: var(--student-radius-md);
+}
+
+.student-ui-v2 .student-app-main {
   min-width: 0;
   padding: 0 !important;
   background:
     radial-gradient(circle at 10% -10%, rgba(36, 87, 214, 0.1), transparent 32%),
     var(--student-background) !important;
   color: var(--student-text);
-  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Segoe UI', sans-serif;
 }
 
 .student-ui-v2 .student-app-main.has-student-nav {
@@ -44,9 +140,11 @@
 
 .student-ui-v2 .student-view,
 .student-ui-v2 .student-page {
+  box-sizing: border-box;
   width: 100%;
   max-width: 760px !important;
   min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   margin: 0 auto !important;
   padding: 20px 16px 32px !important;
 }
@@ -72,7 +170,7 @@
 .student-ui-v2 .student-page__eyebrow {
   margin: 0 0 5px;
   color: var(--student-primary);
-  font-size: 12px;
+  font-size: var(--student-font-sm);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -81,7 +179,7 @@
 .student-ui-v2 .student-page__title {
   margin: 0;
   color: var(--student-ink);
-  font-size: clamp(24px, 7vw, 30px);
+  font-size: clamp(24px, 7vw, var(--student-font-title-lg));
   font-weight: 800;
   line-height: 1.22;
   letter-spacing: -0.035em;
@@ -90,9 +188,9 @@
 .student-ui-v2 .student-page__subtitle {
   margin: 7px 0 0;
   color: var(--student-muted);
-  font-size: 14px;
+  font-size: var(--student-font-body);
   font-weight: 500;
-  line-height: 1.55;
+  line-height: var(--student-leading-body);
 }
 
 .student-ui-v2 .student-icon-button {
@@ -109,17 +207,21 @@
   box-shadow: var(--student-shadow-soft);
   font: inherit;
   cursor: pointer;
-  transition: transform .16s ease, border-color .16s ease, background-color .16s ease, color .16s ease;
+  transition:
+    transform var(--student-duration-fast) var(--student-ease-standard),
+    border-color var(--student-duration-fast) var(--student-ease-standard),
+    background-color var(--student-duration-fast) var(--student-ease-standard),
+    color var(--student-duration-fast) var(--student-ease-standard);
 }
 
 .student-ui-v2 .student-icon-button:hover {
   border-color: var(--student-primary) !important;
-  background: #f8faff !important;
+  background: var(--student-surface-hover) !important;
   color: var(--student-primary) !important;
 }
 
 .student-ui-v2 .student-icon-button:active {
-  transform: scale(.94);
+  transform: scale(0.94);
 }
 
 .student-ui-v2 .student-hero {
@@ -127,7 +229,7 @@
   overflow: hidden;
   padding: 24px;
   border-radius: var(--student-radius-xl);
-  background: linear-gradient(135deg, #183eaa 0%, #2f68e6 64%, #4b7ce8 100%);
+  background: var(--student-gradient-primary);
   color: #fff;
   box-shadow: 0 18px 36px rgba(36, 87, 214, 0.22);
 }
@@ -140,7 +242,7 @@
   top: -58px;
   border: 24px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
-  content: "";
+  content: '';
 }
 
 .student-ui-v2 .student-hero__label,
@@ -235,7 +337,7 @@
   color: var(--student-primary);
   font-size: 11px;
   font-weight: 750;
-  letter-spacing: .06em;
+  letter-spacing: 0.06em;
 }
 
 .student-ui-v2 .student-section-heading__title {
@@ -243,7 +345,7 @@
   color: var(--student-ink);
   font-size: 19px;
   font-weight: 850;
-  letter-spacing: -.02em;
+  letter-spacing: -0.02em;
 }
 
 .student-ui-v2 .student-stat {
@@ -334,18 +436,21 @@
 .student-ui-v2 .student-icon-button:focus-visible,
 .student-ui-v2 .student-list-row:focus-visible,
 .student-ui-v2 .student-stat-card:focus-visible {
-  outline: 3px solid rgba(36, 87, 214, .25);
+  outline: 0;
+  box-shadow: var(--student-focus-ring);
   outline-offset: 2px;
 }
 
 .student-ui-v2 button.student-list-row {
   width: 100%;
   cursor: pointer;
-  transition: background-color .16s ease, box-shadow .16s ease;
+  transition:
+    background-color var(--student-duration-fast) var(--student-ease-standard),
+    box-shadow var(--student-duration-fast) var(--student-ease-standard);
 }
 
 .student-ui-v2 button.student-list-row:hover {
-  background: #f8faff;
+  background: var(--student-surface-hover);
   box-shadow: inset 3px 0 var(--student-primary);
 }
 
@@ -435,24 +540,46 @@
   justify-items: center;
   align-content: center;
   padding: 30px 20px;
-  border: 1px dashed #ccd5e3;
+  border: 1px dashed var(--student-border-strong);
   border-radius: var(--student-radius-lg);
   color: var(--student-muted);
-  background: rgba(255, 255, 255, .62);
+  background: rgba(255, 255, 255, 0.62);
   text-align: center;
 }
 
-.student-ui-v2 .student-empty-state--compact { min-height: 140px; }
-.student-ui-v2 .student-empty-state__icon { display: grid; width: 58px; height: 58px; margin-bottom: 12px; place-items: center; border-radius: 19px; color: var(--student-primary); background: var(--student-primary-soft); font-size: 25px; }
-.student-ui-v2 .student-empty-state h3 { margin: 0; color: var(--student-ink); font-size: 17px; font-weight: 800; }
-.student-ui-v2 .student-empty-state p { max-width: 320px; margin: 7px 0 0; font-size: 13px; line-height: 1.55; }
+.student-ui-v2 .student-empty-state--compact {
+  min-height: 140px;
+}
+.student-ui-v2 .student-empty-state__icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 12px;
+  place-items: center;
+  border-radius: 19px;
+  color: var(--student-primary);
+  background: var(--student-primary-soft);
+  font-size: 25px;
+}
+.student-ui-v2 .student-empty-state h3 {
+  margin: 0;
+  color: var(--student-ink);
+  font-size: 17px;
+  font-weight: 800;
+}
+.student-ui-v2 .student-empty-state p {
+  max-width: 320px;
+  margin: 7px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+}
 
 .student-ui-v2 .student-pill {
   display: inline-flex;
   align-items: center;
   min-height: 28px;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--student-radius-pill);
   background: var(--student-primary-soft);
   color: var(--student-primary-strong);
   font-size: 12px;
@@ -508,7 +635,7 @@
   overflow: hidden;
   height: 8px;
   border-radius: 999px;
-  background: #e8edf4;
+  background: var(--student-slate-100);
 }
 
 .student-ui-v2 .student-progress-track > span {
@@ -521,8 +648,8 @@
 .student-ui-v2 .student-progress {
   overflow: hidden;
   height: 8px;
-  border-radius: 999px;
-  background: #e4eaf3;
+  border-radius: var(--student-radius-pill);
+  background: var(--student-slate-100);
 }
 
 .student-ui-v2 .student-progress > span {
@@ -530,11 +657,11 @@
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--student-primary), #6384ef);
-  transition: width .22s ease;
+  transition: width var(--student-duration-normal) var(--student-ease-standard);
 }
 
 .student-ui-v2 .student-app-main .el-button {
-  min-height: 48px;
+  min-height: var(--student-control-height-md);
   border-radius: var(--student-radius-md);
   padding: 11px 18px;
   font-size: 14px;
@@ -542,12 +669,12 @@
 }
 
 .student-ui-v2 .student-app-main .el-button.is-link {
-  min-height: 44px;
+  min-height: var(--student-control-height-sm);
 }
 
 .student-ui-v2 .student-app-main .el-input__wrapper,
 .student-ui-v2 .student-app-main .el-select__wrapper {
-  min-height: 48px;
+  min-height: var(--student-control-height-md);
   border-radius: var(--student-radius-md);
   box-shadow: 0 0 0 1px var(--student-border) inset;
 }
@@ -620,22 +747,26 @@
 
 .student-ui-v2 .student-sticky-action {
   position: fixed;
-  z-index: 40;
+  z-index: var(--student-z-sticky);
   right: 0;
   bottom: 0;
   left: 0;
   padding: 12px max(16px, calc((100vw - 960px) / 2 + 24px)) calc(12px + env(safe-area-inset-bottom));
-  border-top: 1px solid rgba(223, 229, 236, .95);
-  background: rgba(255, 255, 255, .95);
-  box-shadow: 0 -10px 28px rgba(28, 46, 78, .08);
+  border-top: 1px solid rgba(223, 229, 236, 0.95);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 -10px 28px rgba(28, 46, 78, 0.08);
   backdrop-filter: blur(18px);
 }
 
-.student-ui-v2 .student-sticky-action .el-button { width: 100%; min-height: 54px; font-size: 16px; }
+.student-ui-v2 .student-sticky-action .el-button {
+  width: 100%;
+  min-height: var(--student-control-height-lg);
+  font-size: 16px;
+}
 
 .student-ui-v2 .student-bottom-action .el-button {
   width: 100%;
-  min-height: 54px;
+  min-height: var(--student-control-height-lg);
   font-size: 16px;
 }
 

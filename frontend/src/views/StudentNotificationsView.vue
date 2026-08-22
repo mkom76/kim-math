@@ -14,10 +14,12 @@ const markingAll = ref(false)
 const notifications = ref<StudentNotification[]>([])
 const activeFilter = ref<Filter>('all')
 
-const unreadCount = computed(() => notifications.value.filter(item => !item.readAt).length)
-const filteredNotifications = computed(() => activeFilter.value === 'unread'
-  ? notifications.value.filter(item => !item.readAt)
-  : notifications.value)
+const unreadCount = computed(() => notifications.value.filter((item) => !item.readAt).length)
+const filteredNotifications = computed(() =>
+  activeFilter.value === 'unread'
+    ? notifications.value.filter((item) => !item.readAt)
+    : notifications.value,
+)
 
 const loadNotifications = async () => {
   loading.value = true
@@ -35,13 +37,16 @@ const loadNotifications = async () => {
 const formatTimestamp = (value: string) => {
   const date = new Date(value)
   const today = new Date()
-  const sameDay = date.getFullYear() === today.getFullYear()
-    && date.getMonth() === today.getMonth()
-    && date.getDate() === today.getDate()
+  const sameDay =
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
 
-  return new Intl.DateTimeFormat('ko-KR', sameDay
-    ? { hour: 'numeric', minute: '2-digit' }
-    : { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }
+  return new Intl.DateTimeFormat(
+    'ko-KR',
+    sameDay
+      ? { hour: 'numeric', minute: '2-digit' }
+      : { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' },
   ).format(date)
 }
 
@@ -73,7 +78,7 @@ const markAllRead = async () => {
   try {
     await studentNotificationAPI.markAllRead()
     const readAt = new Date().toISOString()
-    notifications.value.forEach(item => {
+    notifications.value.forEach((item) => {
       if (!item.readAt) item.readAt = readAt
     })
     window.dispatchEvent(new CustomEvent('student-notifications-changed'))
@@ -92,7 +97,11 @@ onMounted(loadNotifications)
   <div class="student-view student-page notifications-page" v-loading="loading">
     <header class="student-page__header notifications-header">
       <div class="notifications-header__title">
-        <button class="student-icon-button" aria-label="이전 화면으로 돌아가기" @click="router.back()">
+        <button
+          class="student-icon-button"
+          aria-label="이전 화면으로 돌아가기"
+          @click="router.back()"
+        >
           <el-icon><ArrowLeft /></el-icon>
         </button>
         <div>
@@ -104,15 +113,21 @@ onMounted(loadNotifications)
         class="notifications-read-all"
         :disabled="!unreadCount || markingAll"
         @click="markAllRead"
-      >모두 읽음</button>
+      >
+        모두 읽음
+      </button>
     </header>
 
     <section class="notifications-summary" aria-labelledby="notification-summary-title">
       <div>
-        <span class="notifications-summary__icon"><el-icon><Bell /></el-icon></span>
+        <span class="notifications-summary__icon"
+          ><el-icon><Bell /></el-icon
+        ></span>
         <div>
           <h2 id="notification-summary-title">새로운 소식</h2>
-          <p v-if="unreadCount"><strong>{{ unreadCount }}개</strong>의 읽지 않은 알림이 있어요.</p>
+          <p v-if="unreadCount">
+            <strong>{{ unreadCount }}개</strong>의 읽지 않은 알림이 있어요.
+          </p>
           <p v-else>새로 확인할 알림이 없어요.</p>
         </div>
       </div>
@@ -142,61 +157,293 @@ onMounted(loadNotifications)
           <span class="notification-row__content">
             <span class="notification-row__meta">
               <span v-if="!notification.readAt" class="notification-row__new">새 알림</span>
-              <time :datetime="notification.createdAt">{{ formatTimestamp(notification.createdAt) }}</time>
+              <time :datetime="notification.createdAt">{{
+                formatTimestamp(notification.createdAt)
+              }}</time>
             </span>
             <strong>{{ notification.title }}</strong>
             <span class="notification-row__body">{{ notification.body }}</span>
           </span>
-          <el-icon v-if="notification.targetPath" class="notification-row__arrow"><ArrowRight /></el-icon>
+          <el-icon v-if="notification.targetPath" class="notification-row__arrow"
+            ><ArrowRight
+          /></el-icon>
         </button>
       </div>
 
       <div v-else class="student-empty-state notifications-empty">
-        <span class="student-empty-state__icon"><el-icon><Bell /></el-icon></span>
-        <h3>{{ activeFilter === 'unread' ? '모든 알림을 확인했어요' : '아직 도착한 알림이 없어요' }}</h3>
-        <p>{{ activeFilter === 'unread' ? '새 알림이 오면 여기에 표시할게요.' : '피드백과 학습 소식이 도착하면 모아둘게요.' }}</p>
+        <span class="student-empty-state__icon"
+          ><el-icon><Bell /></el-icon
+        ></span>
+        <h3>
+          {{ activeFilter === 'unread' ? '모든 알림을 확인했어요' : '아직 도착한 알림이 없어요' }}
+        </h3>
+        <p>
+          {{
+            activeFilter === 'unread'
+              ? '새 알림이 오면 여기에 표시할게요.'
+              : '피드백과 학습 소식이 도착하면 모아둘게요.'
+          }}
+        </p>
       </div>
     </section>
   </div>
 </template>
 
 <style scoped>
-.notifications-page { --student-primary: #2457d6; --student-primary-soft: #eaf0ff; --student-danger: #b92d3d; --student-ink: #172033; --student-muted: #667085; --student-border: #dfe5ec; --student-surface: #fff; --student-radius-lg: 20px; --student-shadow: 0 12px 32px rgba(28, 46, 78, .08); display: grid; width: 100%; max-width: 760px; min-width: 0; gap: 20px; margin: 0 auto; padding: 20px 16px 32px; }
-.notifications-page .student-page__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 0; }
-.notifications-page .student-page__eyebrow { margin: 0 0 5px; color: var(--student-primary); font-size: 12px; font-weight: 700; letter-spacing: .08em; }
-.notifications-page .student-page__title { margin: 0; color: var(--student-ink); font-size: clamp(24px, 7vw, 30px); font-weight: 800; line-height: 1.22; }
-.notifications-page .student-icon-button { display: grid; width: 48px; min-width: 48px; height: 48px; padding: 0; place-items: center; border: 1px solid var(--student-border); border-radius: 15px; color: var(--student-ink); background: #fff; box-shadow: 0 5px 18px rgba(28, 46, 78, .06); cursor: pointer; }
-.notifications-page .student-surface { overflow: hidden; border: 1px solid var(--student-border); border-radius: var(--student-radius-lg); background: var(--student-surface); box-shadow: 0 5px 18px rgba(28, 46, 78, .06); }
-.notifications-page .student-empty-state { display: grid; min-height: 230px; justify-items: center; align-content: center; padding: 30px 20px; color: var(--student-muted); text-align: center; }
-.notifications-page .student-empty-state__icon { display: grid; width: 58px; height: 58px; margin-bottom: 12px; place-items: center; border-radius: 19px; color: var(--student-primary); background: var(--student-primary-soft); font-size: 25px; }
-.notifications-page .student-empty-state h3 { margin: 0; color: var(--student-ink); }
-.notifications-page .student-empty-state p { margin: 7px 0 0; font-size: 13px; line-height: 1.55; }
-.notifications-header { align-items: center; }
-.notifications-header__title { display: flex; align-items: center; gap: 12px; }
-.notifications-read-all { min-height: 44px; padding: 0 2px; border: 0; color: var(--student-primary); background: transparent; font: inherit; font-size: 14px; font-weight: 750; cursor: pointer; }
-.notifications-read-all:disabled { color: var(--student-muted); cursor: default; opacity: .55; }
-.notifications-summary { padding: 18px; border-radius: var(--student-radius-lg); color: #fff; background: linear-gradient(135deg, var(--student-primary), #6d8df4); box-shadow: var(--student-shadow); }
-.notifications-summary > div { display: flex; align-items: center; gap: 14px; }
-.notifications-summary__icon { display: grid; flex: 0 0 46px; height: 46px; place-items: center; border-radius: 15px; background: rgba(255, 255, 255, .16); font-size: 23px; }
-.notifications-summary h2 { margin: 0; font-size: 17px; font-weight: 800; }
-.notifications-summary p { margin: 4px 0 0; font-size: 13px; opacity: .88; }
-.notifications-summary strong { color: #fff; }
-.notifications-filters { display: flex; gap: 8px; }
-.notifications-filters button { min-height: 44px; padding: 0 15px; border: 1px solid var(--student-border); border-radius: 999px; color: var(--student-muted); background: var(--student-surface); font: inherit; font-size: 13px; font-weight: 750; cursor: pointer; }
-.notifications-filters button.active { border-color: var(--student-primary); color: var(--student-primary); background: var(--student-primary-soft); }
-.notifications-filters span { margin-left: 3px; }
-.notifications-list { overflow: hidden; }
-.notification-row { position: relative; display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: start; width: 100%; min-height: 108px; padding: 18px; border: 0; border-bottom: 1px solid var(--student-border); color: inherit; background: var(--student-surface); text-align: left; cursor: pointer; }
-.notification-row:last-child { border-bottom: 0; }
-.notification-row.unread { background: linear-gradient(90deg, var(--student-primary-soft), var(--student-surface) 72%); }
-.notification-row.unread::before { position: absolute; top: 20px; left: 0; width: 3px; height: 28px; border-radius: 0 3px 3px 0; background: var(--student-primary); content: ''; }
-.notification-row__icon { display: grid; width: 46px; height: 46px; place-items: center; border-radius: 15px; color: var(--student-primary); background: var(--student-primary-soft); font-size: 21px; }
-.notification-row__content { display: grid; min-width: 0; gap: 5px; }
-.notification-row__content > strong { overflow: hidden; color: var(--student-ink); font-size: 15px; font-weight: 800; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
-.notification-row__meta { display: flex; align-items: center; gap: 7px; color: var(--student-muted); font-size: 11px; }
-.notification-row__new { color: var(--student-primary); font-weight: 800; }
-.notification-row__body { display: -webkit-box; overflow: hidden; color: var(--student-muted); font-size: 13px; line-height: 1.5; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.notification-row__arrow { align-self: center; color: var(--student-muted); }
-.notifications-empty { min-height: 280px; }
-@media (max-width: 420px) { .notifications-header__title { gap: 9px; } .notification-row { padding: 16px 14px; } }
+.notifications-page {
+  display: grid;
+  width: 100%;
+  max-width: 760px;
+  min-width: 0;
+  gap: var(--student-space-5);
+  margin: 0 auto;
+  padding: var(--student-space-5) var(--student-space-4) var(--student-space-8);
+}
+.notifications-page .student-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 0;
+}
+.notifications-page .student-page__eyebrow {
+  margin: 0 0 5px;
+  color: var(--student-primary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.notifications-page .student-page__title {
+  margin: 0;
+  color: var(--student-ink);
+  font-size: clamp(24px, 7vw, 30px);
+  font-weight: 800;
+  line-height: 1.22;
+}
+.notifications-page .student-icon-button {
+  display: grid;
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--student-border);
+  border-radius: 15px;
+  color: var(--student-ink);
+  background: var(--student-surface);
+  box-shadow: 0 5px 18px rgba(28, 46, 78, 0.06);
+  cursor: pointer;
+}
+.notifications-page .student-surface {
+  overflow: hidden;
+  border: 1px solid var(--student-border);
+  border-radius: var(--student-radius-lg);
+  background: var(--student-surface);
+  box-shadow: 0 5px 18px rgba(28, 46, 78, 0.06);
+}
+.notifications-page .student-empty-state {
+  display: grid;
+  min-height: 230px;
+  justify-items: center;
+  align-content: center;
+  padding: 30px 20px;
+  color: var(--student-muted);
+  text-align: center;
+}
+.notifications-page .student-empty-state__icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 12px;
+  place-items: center;
+  border-radius: 19px;
+  color: var(--student-primary);
+  background: var(--student-primary-soft);
+  font-size: 25px;
+}
+.notifications-page .student-empty-state h3 {
+  margin: 0;
+  color: var(--student-ink);
+}
+.notifications-page .student-empty-state p {
+  margin: 7px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.notifications-header {
+  align-items: center;
+}
+.notifications-header__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.notifications-read-all {
+  min-height: 44px;
+  padding: 0 2px;
+  border: 0;
+  color: var(--student-primary);
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.notifications-read-all:disabled {
+  color: var(--student-muted);
+  cursor: default;
+  opacity: 0.55;
+}
+.notifications-summary {
+  padding: 18px;
+  border-radius: var(--student-radius-lg);
+  color: var(--student-surface);
+  background: linear-gradient(135deg, var(--student-primary), var(--student-blue-500));
+  box-shadow: var(--student-shadow);
+}
+.notifications-summary > div {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.notifications-summary__icon {
+  display: grid;
+  flex: 0 0 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 23px;
+}
+.notifications-summary h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+}
+.notifications-summary p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  opacity: 0.88;
+}
+.notifications-summary strong {
+  color: var(--student-surface);
+}
+.notifications-filters {
+  display: flex;
+  gap: 8px;
+}
+.notifications-filters button {
+  min-height: 44px;
+  padding: 0 15px;
+  border: 1px solid var(--student-border);
+  border-radius: 999px;
+  color: var(--student-muted);
+  background: var(--student-surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.notifications-filters button.active {
+  border-color: var(--student-primary);
+  color: var(--student-primary);
+  background: var(--student-primary-soft);
+}
+.notifications-filters span {
+  margin-left: 3px;
+}
+.notifications-list {
+  overflow: hidden;
+}
+.notification-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  width: 100%;
+  min-height: 108px;
+  padding: 18px;
+  border: 0;
+  border-bottom: 1px solid var(--student-border);
+  color: inherit;
+  background: var(--student-surface);
+  text-align: left;
+  cursor: pointer;
+}
+.notification-row:last-child {
+  border-bottom: 0;
+}
+.notification-row.unread {
+  background: linear-gradient(90deg, var(--student-primary-soft), var(--student-surface) 72%);
+}
+.notification-row.unread::before {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  width: 3px;
+  height: 28px;
+  border-radius: 0 3px 3px 0;
+  background: var(--student-primary);
+  content: '';
+}
+.notification-row__icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 15px;
+  color: var(--student-primary);
+  background: var(--student-primary-soft);
+  font-size: 21px;
+}
+.notification-row__content {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+.notification-row__content > strong {
+  overflow: hidden;
+  color: var(--student-ink);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.notification-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--student-muted);
+  font-size: 11px;
+}
+.notification-row__new {
+  color: var(--student-primary);
+  font-weight: 800;
+}
+.notification-row__body {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--student-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.notification-row__arrow {
+  align-self: center;
+  color: var(--student-muted);
+}
+.notifications-empty {
+  min-height: 280px;
+}
+@media (max-width: 420px) {
+  .notifications-header__title {
+    gap: 9px;
+  }
+  .notification-row {
+    padding: 16px 14px;
+  }
+}
 </style>

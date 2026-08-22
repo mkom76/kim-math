@@ -11,6 +11,7 @@ import {
 import { ElMessage } from 'element-plus'
 import { VideoPlay, CircleCheck } from '@element-plus/icons-vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import StudentPageHeader from '@/components/student-v2/StudentPageHeader.vue'
 
 const lessonsWithVideos = ref<StudentLessonVideos[]>([])
 const loading = ref(false)
@@ -246,16 +247,16 @@ onUnmounted(() => {
 
 <template>
   <div class="student-page student-page--wide videos-page">
-    <header class="student-page__header videos-header">
-      <div>
-        <p class="student-page__eyebrow">LESSON VIDEO</p>
-        <h1 class="student-page__title">수업 다시보기</h1>
-        <p class="student-page__subtitle">놓친 부분부터 이어서 학습하세요.</p>
-      </div>
-      <span class="videos-header-icon"
-        ><el-icon><VideoPlay /></el-icon
-      ></span>
-    </header>
+    <StudentPageHeader
+      eyebrow="LESSON VIDEO"
+      title="수업 다시보기"
+      subtitle="놓친 부분부터 이어서 학습하세요."
+    >
+      <template #action
+        ><span class="videos-header-icon"
+          ><el-icon><VideoPlay /></el-icon></span
+      ></template>
+    </StudentPageHeader>
 
     <div v-loading="loading">
       <div v-for="lesson in lessonsWithVideos" :key="lesson.lessonId" class="lesson-video-group">
@@ -316,7 +317,7 @@ onUnmounted(() => {
                     justify-content: center;
                   "
                 >
-                  <el-icon color="#fff" size="32">
+                  <el-icon color="var(--student-surface)" size="32">
                     <VideoPlay />
                   </el-icon>
                 </div>
@@ -367,10 +368,14 @@ onUnmounted(() => {
                     "
                   >
                     <div style="display: flex; align-items: center; gap: 4px">
-                      <el-icon v-if="getProgress(video.id) === 100" color="#67c23a" size="16">
+                      <el-icon
+                        v-if="getProgress(video.id) === 100"
+                        color="var(--student-success)"
+                        size="16"
+                      >
                         <CircleCheck />
                       </el-icon>
-                      <span style="font-size: 12px; color: #909399">
+                      <span style="font-size: 12px; color: var(--student-muted)">
                         {{
                           getProgress(video.id) === 100
                             ? '완료'
@@ -380,7 +385,10 @@ onUnmounted(() => {
                         }}
                       </span>
                     </div>
-                    <span v-if="getLastWatched(video.id)" style="font-size: 11px; color: #c0c4cc">
+                    <span
+                      v-if="getLastWatched(video.id)"
+                      style="font-size: 11px; color: var(--student-text-disabled)"
+                    >
                       {{ formatLastWatched(getLastWatched(video.id)!) }}
                     </span>
                   </div>
@@ -388,7 +396,11 @@ onUnmounted(() => {
                     :percentage="getProgress(video.id)"
                     :stroke-width="4"
                     :show-text="false"
-                    :color="getProgress(video.id) === 100 ? '#67c23a' : '#409eff'"
+                    :color="
+                      getProgress(video.id) === 100
+                        ? 'var(--student-success)'
+                        : 'var(--student-primary)'
+                    "
                   />
                 </div>
               </div>
@@ -491,7 +503,7 @@ onUnmounted(() => {
   position: relative;
   padding-top: 56.25%;
   overflow: hidden;
-  background: #111827;
+  background: var(--student-media-background);
 }
 .video-card__thumbnail::after {
   position: absolute;
@@ -519,7 +531,7 @@ onUnmounted(() => {
   padding-top: 56.25%;
   overflow: hidden;
   border-radius: 14px;
-  background: #000;
+  background: var(--student-media-background);
 }
 @media (max-width: 767px) {
   .videos-page :deep(.el-row) {
