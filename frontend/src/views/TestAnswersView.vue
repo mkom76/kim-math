@@ -4,6 +4,7 @@ import {useRoute, useRouter} from 'vue-router'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import {type Question, testAPI, type TextbookProblem} from '../api/client'
 import TextbookProblemPicker from '@/components/TextbookProblemPicker.vue'
+import { parseMultipleAnswer, serializeMultipleAnswer } from '@/utils/examAnswers'
 
 const route = useRoute()
 const router = useRouter()
@@ -36,6 +37,7 @@ const handleAddQuestion = () => {
   questions.value.push({
     number: newNumber,
     answer: '',
+    multipleAnswers: false,
     points: basePoints,
     questionType: 'OBJECTIVE',
     topic: ''
@@ -102,6 +104,7 @@ const handleSaveAll = async () => {
     const answersToSave = questions.value.map(q => ({
       number: q.number!,
       answer: q.answer || '',
+      multipleAnswers: q.questionType === 'OBJECTIVE' && Boolean(q.multipleAnswers),
       points: q.points || 0,
       questionType: q.questionType || 'SUBJECTIVE',
       topic: q.topic || null
@@ -125,6 +128,24 @@ const totalPoints = computed(() => {
 
 const handleAnswerChange = () => {
   hasChanges.value = true
+}
+
+const handleQuestionTypeChange = (question: Question) => {
+  if (question.questionType !== 'OBJECTIVE') {
+    question.multipleAnswers = false
+  }
+  handleAnswerChange()
+}
+
+const handleMultipleAnswersChange = (question: Question, enabled: boolean) => {
+  const selected = parseMultipleAnswer(question.answer)
+  question.answer = enabled ? serializeMultipleAnswer(selected) : (selected[0] || '')
+  handleAnswerChange()
+}
+
+const setMultipleAnswer = (question: Question, selected: string[]) => {
+  question.answer = serializeMultipleAnswer(selected)
+  handleAnswerChange()
 }
 
 const goBack = () => {
@@ -265,7 +286,7 @@ onMounted(() => {
             <el-select
               v-model="row.questionType"
               placeholder="유형 선택"
-              @change="handleAnswerChange"
+              @change="handleQuestionTypeChange(row)"
               style="width: 100%"
             >
               <el-option label="객관식" value="OBJECTIVE">
@@ -292,19 +313,31 @@ onMounted(() => {
 
         <el-table-column prop="answer" label="정답" min-width="225">
           <template #default="{ row }">
-            <!-- 객관식: 라디오 버튼 -->
-            <el-radio-group
-              v-if="row.questionType === 'OBJECTIVE'"
-              v-model="row.answer"
-              @change="handleAnswerChange"
-              style="width: 100%"
-            >
-              <el-radio-button label="1">1</el-radio-button>
-              <el-radio-button label="2">2</el-radio-button>
-              <el-radio-button label="3">3</el-radio-button>
-              <el-radio-button label="4">4</el-radio-button>
-              <el-radio-button label="5">5</el-radio-button>
-            </el-radio-group>
+            <!-- 객관식: 단일/복수 선택 -->
+            <div v-if="row.questionType === 'OBJECTIVE'" style="display: grid; gap: 10px">
+              <el-switch
+                v-model="row.multipleAnswers"
+                active-text="복수정답"
+                inactive-text="단일정답"
+                @change="handleMultipleAnswersChange(row, Boolean($event))"
+              />
+              <el-checkbox-group
+                v-if="row.multipleAnswers"
+                :model-value="parseMultipleAnswer(row.answer)"
+                @update:model-value="setMultipleAnswer(row, $event as string[])"
+                style="width: 100%"
+              >
+                <el-checkbox-button v-for="choice in 5" :key="choice" :label="String(choice)">{{ choice }}</el-checkbox-button>
+              </el-checkbox-group>
+              <el-radio-group
+                v-else
+                v-model="row.answer"
+                @change="handleAnswerChange"
+                style="width: 100%"
+              >
+                <el-radio-button v-for="choice in 5" :key="choice" :label="String(choice)">{{ choice }}</el-radio-button>
+              </el-radio-group>
+            </div>
 
             <!-- 주관식: 텍스트 입력 -->
             <el-input

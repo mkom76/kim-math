@@ -49,6 +49,7 @@ public class LessonService {
                             .orElseThrow(() -> new RuntimeException("Academy not found"));
                     AcademyClass academyClass = academyClassRepository.findById(classId)
                             .orElseThrow(() -> new RuntimeException("Class not found"));
+                    AcademyClassPolicy.assertActive(academyClass);
 
                     Lesson lesson = Lesson.builder()
                             .lessonDate(lessonDate)
@@ -77,6 +78,7 @@ public class LessonService {
         AcademyClass academyClass = academyClassRepository.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
         authorizationService.assertCanModifyClass(academyClass);
+        AcademyClassPolicy.assertActive(academyClass);
 
         return lessonRepository.findByAcademyClassIdOrderByLessonDateDesc(classId)
                 .stream()

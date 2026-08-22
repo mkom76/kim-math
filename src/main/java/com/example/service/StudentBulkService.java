@@ -55,6 +55,7 @@ public class StudentBulkService {
         AcademyClass clazz = academyClassRepository.findById(req.getClassId())
                 .orElseThrow(() -> new RuntimeException("반을 찾을 수 없습니다"));
         authorizationService.assertCanModifyClass(clazz);
+        AcademyClassPolicy.assertActive(clazz);
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expires = now.plusDays(DEFAULT_TOKEN_TTL_DAYS);

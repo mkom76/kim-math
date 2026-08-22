@@ -112,8 +112,7 @@ public class SubmissionService {
             double maxPoints = question.getPoints() != null ? question.getPoints() : 0.0;
 
             if (questionType != QuestionType.ESSAY) {
-                isCorrect = question.getAnswer() != null &&
-                            question.getAnswer().equals(studentAnswer);
+                isCorrect = TestAnswerMatcher.matches(question, studentAnswer);
                 earnedPoints = isCorrect ? maxPoints : 0.0;
                 earnedPointsTotal += earnedPoints;
             } else {

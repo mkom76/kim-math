@@ -18,6 +18,7 @@ public class TestQuestionDto {
     private Long id;
     private Integer number;
     private String answer;
+    private Boolean multipleAnswers;
     private Double points;
     private QuestionType questionType;
     private String topic;
@@ -25,10 +26,15 @@ public class TestQuestionDto {
     private TextbookProblemMetaDto textbookProblem; // null = 수동 출제
 
     public static TestQuestionDto from(TestQuestion question) {
+        return from(question, true);
+    }
+
+    public static TestQuestionDto from(TestQuestion question, boolean includeAnswer) {
         return TestQuestionDto.builder()
                 .id(question.getId())
                 .number(question.getNumber())
-                .answer(question.getAnswer())
+                .answer(includeAnswer ? question.getAnswer() : null)
+                .multipleAnswers(Boolean.TRUE.equals(question.getMultipleAnswers()))
                 .points(question.getPoints())
                 .questionType(question.getQuestionType())
                 .topic(question.getTopic())

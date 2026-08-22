@@ -158,6 +158,89 @@ class TeacherSubmissionEntryControllerTest {
     }
 
     @Test
+    void multiple_choice_answers_are_graded_as_an_order_independent_exact_set() throws Exception {
+        com.example.entity.Test multipleExam = com.example.entity.Test.builder()
+                .title("복수정답 시험").academy(academy).academyClass(clazz).build();
+        em.persist(multipleExam);
+        em.persist(TestQuestion.builder()
+                .test(multipleExam).number(1).answer("1,3").multipleAnswers(true).points(100.0)
+                .questionType(QuestionType.OBJECTIVE).build());
+        em.flush();
+
+        mockMvc.perform(put("/api/submissions/students/{studentId}/tests/{testId}",
+                        studentA.getId(), multipleExam.getId())
+                        .session(teacherSession())
+                        .contentType("application/json")
+                        .content("{\"1\":\"3,1\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalScore").value(100))
+                .andExpect(jsonPath("$.details[0].isCorrect").value(true));
+
+        mockMvc.perform(put("/api/submissions/students/{studentId}/tests/{testId}",
+                        studentA.getId(), multipleExam.getId())
+                        .session(teacherSession())
+                        .contentType("application/json")
+                        .content("{\"1\":\"1\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalScore").value(0))
+                .andExpect(jsonPath("$.details[0].isCorrect").value(false));
+    }
+
+    @Test
+    void student_question_payload_exposes_multiple_selection_mode_but_not_the_answer() throws Exception {
+        q1.setMultipleAnswers(true);
+        q1.setAnswer("1,3");
+        em.flush();
+
+        mockMvc.perform(get("/api/tests/{id}/questions", exam.getId())
+                        .session(studentSession(studentA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].multipleAnswers").value(true))
+                .andExpect(jsonPath("$[0].answer").doesNotExist());
+    }
+
+    @Test
+    void changing_a_question_to_multiple_answers_recalculates_existing_submissions() throws Exception {
+        com.example.entity.Test changingExam = com.example.entity.Test.builder()
+                .title("재채점 시험").academy(academy).academyClass(clazz).build();
+        em.persist(changingExam);
+        TestQuestion changingQuestion = TestQuestion.builder()
+                .test(changingExam).number(1).answer("1").multipleAnswers(false).points(100.0)
+                .questionType(QuestionType.OBJECTIVE).build();
+        em.persist(changingQuestion);
+        em.flush();
+
+        mockMvc.perform(put("/api/submissions/students/{studentId}/tests/{testId}",
+                        studentA.getId(), changingExam.getId())
+                        .session(teacherSession())
+                        .contentType("application/json")
+                        .content("{\"1\":\"1\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalScore").value(100));
+
+        mockMvc.perform(put("/api/tests/{id}/answers", changingExam.getId())
+                        .session(teacherSession())
+                        .contentType("application/json")
+                        .content("""
+                                {"answers":[{"number":1,"answer":"3, 1","multipleAnswers":true,"points":100,"questionType":"OBJECTIVE"}]}
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/submissions")
+                        .param("studentId", String.valueOf(studentA.getId()))
+                        .param("testId", String.valueOf(changingExam.getId()))
+                        .session(teacherSession()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalScore").value(0));
+
+        mockMvc.perform(get("/api/tests/{id}/questions", changingExam.getId())
+                        .session(teacherSession()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].answer").value("1,3"))
+                .andExpect(jsonPath("$[0].multipleAnswers").value(true));
+    }
+
+    @Test
     void student_cannot_submit_for_another_student() throws Exception {
         mockMvc.perform(post("/api/submissions")
                         .param("studentId", String.valueOf(studentB.getId()))

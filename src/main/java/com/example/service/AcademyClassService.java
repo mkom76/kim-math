@@ -13,6 +13,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -22,8 +24,11 @@ public class AcademyClassService {
     private final MembershipService membershipService;
     private final AuthorizationService authorizationService;
 
-    public Page<AcademyClassDto> getClasses(Pageable pageable) {
-        return academyClassRepository.findAll(pageable).map(AcademyClassDto::from);
+    public Page<AcademyClassDto> getClasses(boolean includeEnded, Pageable pageable) {
+        Page<AcademyClass> classes = includeEnded
+                ? academyClassRepository.findAll(pageable)
+                : academyClassRepository.findByEndedAtIsNull(pageable);
+        return classes.map(AcademyClassDto::from);
     }
 
     public AcademyClassDto createClass(AcademyClassDto dto) {
@@ -111,5 +116,29 @@ public class AcademyClassService {
         }
 
         academyClassRepository.delete(academyClass);
+    }
+
+    public AcademyClassDto endClass(Long id) {
+        authorizationService.assertNotAssistant();
+
+        AcademyClass academyClass = academyClassRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Class not found"));
+        authorizationService.assertCanModifyClass(academyClass);
+
+        if (!academyClass.isEnded()) {
+            academyClass.setEndedAt(LocalDateTime.now());
+        }
+        return AcademyClassDto.from(academyClassRepository.save(academyClass));
+    }
+
+    public AcademyClassDto reopenClass(Long id) {
+        authorizationService.assertNotAssistant();
+
+        AcademyClass academyClass = academyClassRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Class not found"));
+        authorizationService.assertCanModifyClass(academyClass);
+
+        academyClass.setEndedAt(null);
+        return AcademyClassDto.from(academyClassRepository.save(academyClass));
     }
 }

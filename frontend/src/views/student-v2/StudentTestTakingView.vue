@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { authAPI, testAPI, submissionAPI } from '@/api/client'
 import type { Test, Question, AuthResponse } from '@/api/client'
+import { parseMultipleAnswer, serializeMultipleAnswer } from '@/utils/examAnswers'
 
 const router = useRouter()
 const route = useRoute()
@@ -13,6 +14,10 @@ const currentUser = ref<AuthResponse>({})
 const test = ref<Test | null>(null)
 const questions = ref<Question[]>([])
 const answers = ref<Record<number, string>>({})
+
+const setMultipleAnswer = (questionNumber: number, selected: string[]) => {
+  answers.value[questionNumber] = serializeMultipleAnswer(selected)
+}
 
 const openVideo = (url?: string | null) => {
   if (!url) return
@@ -151,7 +156,9 @@ onMounted(() => {
           <div class="question-meta">
             <strong>{{
               question.questionType === 'OBJECTIVE'
-                ? '객관식'
+                ? question.multipleAnswers
+                  ? '객관식 · 복수 선택'
+                  : '객관식'
                 : question.questionType === 'SUBJECTIVE'
                   ? '주관식'
                   : '서술형'
@@ -171,8 +178,20 @@ onMounted(() => {
           </button>
         </div>
 
+        <el-checkbox-group
+          v-if="question.questionType === 'OBJECTIVE' && question.multipleAnswers"
+          :model-value="parseMultipleAnswer(answers[question.number])"
+          class="answer-options"
+          :aria-label="`${question.number}번 복수 답`"
+          @update:model-value="setMultipleAnswer(question.number, $event as string[])"
+        >
+          <el-checkbox-button v-for="choice in 5" :key="choice" :label="String(choice)">{{
+            choice
+          }}</el-checkbox-button>
+        </el-checkbox-group>
+
         <el-radio-group
-          v-if="question.questionType === 'OBJECTIVE'"
+          v-else-if="question.questionType === 'OBJECTIVE'"
           v-model="answers[question.number]"
           class="answer-options"
           :aria-label="`${question.number}번 답`"
@@ -344,7 +363,11 @@ onMounted(() => {
 .answer-options :deep(.el-radio-button) {
   width: 100%;
 }
-.answer-options :deep(.el-radio-button__inner) {
+.answer-options :deep(.el-checkbox-button) {
+  width: 100%;
+}
+.answer-options :deep(.el-radio-button__inner),
+.answer-options :deep(.el-checkbox-button__inner) {
   display: grid;
   width: 100%;
   min-width: 0;
@@ -358,6 +381,11 @@ onMounted(() => {
   font-weight: 800;
 }
 .answer-options :deep(.el-radio-button.is-active .el-radio-button__inner) {
+  border-color: var(--student-primary) !important;
+  color: var(--student-surface);
+  background: var(--student-primary);
+}
+.answer-options :deep(.el-checkbox-button.is-checked .el-checkbox-button__inner) {
   border-color: var(--student-primary) !important;
   color: var(--student-surface);
   background: var(--student-primary);

@@ -21,8 +21,9 @@ public class AcademyClassController {
 
     @GetMapping
     public ResponseEntity<Page<AcademyClassDto>> getClasses(
+            @RequestParam(defaultValue = "false") boolean includeEnded,
             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(academyClassService.getClasses(pageable));
+        return ResponseEntity.ok(academyClassService.getClasses(includeEnded, pageable));
     }
 
     @PostMapping
@@ -42,5 +43,15 @@ public class AcademyClassController {
     public ResponseEntity<Void> deleteClass(@PathVariable Long id) {
         academyClassService.deleteClass(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/end")
+    public ResponseEntity<AcademyClassDto> endClass(@PathVariable Long id) {
+        return ResponseEntity.ok(academyClassService.endClass(id));
+    }
+
+    @PatchMapping("/{id}/reopen")
+    public ResponseEntity<AcademyClassDto> reopenClass(@PathVariable Long id) {
+        return ResponseEntity.ok(academyClassService.reopenClass(id));
     }
 }

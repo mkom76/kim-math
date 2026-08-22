@@ -86,6 +86,8 @@ interface AcademyClass {
   academyName?: string;
   clinicDayOfWeek?: string; // MONDAY, TUESDAY, ...
   clinicTime?: string; // HH:mm:ss
+  endedAt?: string | null;
+  ended?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -171,7 +173,8 @@ export interface TextbookProblemMeta {
 interface Question {
   id?: number;
   number: number;
-  answer: string;
+  answer?: string | null;
+  multipleAnswers?: boolean;
   points: number;
   questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY';
   /** Canonical math-topic path, e.g. "함수 › 일차함수". */
@@ -321,6 +324,8 @@ export const academyClassAPI = {
   createAcademyClass: (data: AcademyClass) => client.post('/classes', data),
   updateAcademyClass: (id: number, data: AcademyClass) => client.put(`/classes/${id}`, data),
   deleteAcademyClass: (id: number) => client.delete(`/classes/${id}`),
+  endAcademyClass: (id: number) => client.patch<AcademyClass>(`/classes/${id}/end`),
+  reopenAcademyClass: (id: number) => client.patch<AcademyClass>(`/classes/${id}/reopen`),
 };
 
 // Students API
@@ -422,7 +427,7 @@ export const testAPI = {
   getUnattachedTests: (academyId: number, classId: number) =>
     client.get('/tests/unattached', { params: { academyId, classId } }),
   recalculateScores: (id: number) => client.post(`/tests/${id}/recalculate`),
-  saveTestAnswers: (id: number, answers: Array<{ number: number; answer: string; points: number; questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY'; topic?: string | null }>) =>
+  saveTestAnswers: (id: number, answers: Array<{ number: number; answer: string; multipleAnswers?: boolean; points: number; questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY'; topic?: string | null }>) =>
     client.put(`/tests/${id}/answers`, { testId: id, answers }),
   addQuestionsFromTextbook: (testId: number, items: Array<{ textbookProblemId: number; number: number; points: number }>) =>
     client.post(`/tests/${testId}/questions/from-textbook`, items),
