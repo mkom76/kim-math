@@ -6,6 +6,8 @@ FRONTEND_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CHROME_BIN="${CHROME_BIN:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
 BRAND_TMP_DIR="$(mktemp -d /private/tmp/kim-math-brand.XXXXXX)"
 BRAND_LOG="$BRAND_TMP_DIR/chrome.log"
+BRAND_SWIFT_CACHE="$BRAND_TMP_DIR/swift-module-cache"
+mkdir -p "$BRAND_SWIFT_CACHE"
 
 render_svg() {
   local source_path="$1"
@@ -47,7 +49,7 @@ APP_ICON_SOURCE="$FRONTEND_DIR/store-assets/app-icon-source.png"
 ROUND_ICON_SOURCE="$BRAND_TMP_DIR/app-icon-round.png"
 FOREGROUND_SOURCE="$BRAND_TMP_DIR/app-icon-foreground.png"
 
-render_svg "$APP_ICON_SVG" "$APP_ICON_SOURCE" 1254 1254
+render_svg "$APP_ICON_SVG" "$APP_ICON_SOURCE" 1254 1254 "--default-background-color=00000000"
 resize_png "$APP_ICON_SOURCE" "$FRONTEND_DIR/store-assets/app-icon-1024.png" 1024 1024
 resize_png "$APP_ICON_SOURCE" "$FRONTEND_DIR/store-assets/app-icon-512.png" 512 512
 
@@ -91,7 +93,16 @@ resize_png "$FRONTEND_DIR/store-assets/splash-landscape-source.png" "$FRONTEND_D
 resize_png "$APP_ICON_SOURCE" "$FRONTEND_DIR/public/favicon-32.png" 32 32
 resize_png "$APP_ICON_SOURCE" "$FRONTEND_DIR/public/favicon-16.png" 16 16
 resize_png "$APP_ICON_SOURCE" "$FRONTEND_DIR/public/apple-touch-icon.png" 180 180
-cp "$FRONTEND_DIR/public/favicon-32.png" "$FRONTEND_DIR/public/favicon.ico"
 cp "$FRONTEND_DIR/store-assets/feature-graphic-1024x500.png" "$FRONTEND_DIR/public/og-image.png"
+
+SWIFT_MODULE_CACHE_PATH="$BRAND_SWIFT_CACHE" \
+CLANG_MODULE_CACHE_PATH="$BRAND_SWIFT_CACHE" \
+/usr/bin/swift "$FRONTEND_DIR/scripts/ensure-png-alpha.swift" \
+  "$FRONTEND_DIR/store-assets/app-icon-1024.png" \
+  "$FRONTEND_DIR/store-assets/app-icon-512.png" \
+  "$FRONTEND_DIR/public/apple-touch-icon.png" \
+  "$FRONTEND_DIR/public/favicon-32.png" \
+  "$FRONTEND_DIR/public/favicon-16.png"
+cp "$FRONTEND_DIR/public/favicon-32.png" "$FRONTEND_DIR/public/favicon.ico"
 
 echo "Brand assets rendered from SVG sources."
