@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth'
 import { isNativeApp } from '@/utils/platform'
 import { clearCredential } from '@/utils/credentialStore'
 import { initPushNotifications } from '@/utils/push'
+import appIconUrl from '@/assets/app-icon.svg'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -18,14 +19,14 @@ const loading = ref(false)
 const studentForm = ref({
   studentId: undefined as number | undefined,
   pin: '',
-  rememberMe: nativeApp
+  rememberMe: nativeApp,
 })
 
 // Teacher login form
 const teacherForm = ref({
   username: '',
   pin: '',
-  rememberMe: false
+  rememberMe: false,
 })
 
 const handleStudentLogin = async () => {
@@ -37,10 +38,18 @@ const handleStudentLogin = async () => {
     ElMessage.error('PIN을 입력해주세요')
     return
   }
-  await doStudentLogin(studentForm.value.studentId, studentForm.value.pin, studentForm.value.rememberMe)
+  await doStudentLogin(
+    studentForm.value.studentId,
+    studentForm.value.pin,
+    studentForm.value.rememberMe,
+  )
 }
 
-async function doStudentLogin(studentId: number, pin: string, rememberMe: boolean): Promise<boolean> {
+async function doStudentLogin(
+  studentId: number,
+  pin: string,
+  rememberMe: boolean,
+): Promise<boolean> {
   loading.value = true
   try {
     const response = await authAPI.studentLogin(studentId, pin, rememberMe)
@@ -52,7 +61,9 @@ async function doStudentLogin(studentId: number, pin: string, rememberMe: boolea
     ElMessage.success(data.message || '로그인 성공')
 
     // Request push permission and register device token (no-op on web).
-    initPushNotifications(router).catch(() => { /* best effort */ })
+    initPushNotifications(router).catch(() => {
+      /* best effort */
+    })
 
     router.push('/student/dashboard')
     return true
@@ -70,7 +81,9 @@ async function clearLegacyQuickLogin(): Promise<void> {
   await clearCredential()
 }
 
-onMounted(() => { clearLegacyQuickLogin() })
+onMounted(() => {
+  clearLegacyQuickLogin()
+})
 
 const handleTeacherLogin = async () => {
   if (!teacherForm.value.username) {
@@ -109,16 +122,30 @@ const handleTeacherLogin = async () => {
 </script>
 
 <template>
-  <div style="min-height: 80vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f5f7fa, #ffffff)">
+  <div
+    style="
+      min-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #f5f7fa, #ffffff);
+    "
+  >
     <div style="max-width: 500px; width: 100%; padding: 16px">
       <el-card shadow="always" style="border-radius: 16px">
         <template #header>
           <div style="text-align: center; padding: 16px 0">
-            <div style="display: inline-block; padding: 16px; background: linear-gradient(135deg, #409eff, #67c23a); border-radius: 16px; margin-bottom: 16px">
-              <el-icon size="48" color="white">
-                <Lock />
-              </el-icon>
-            </div>
+            <img
+              :src="appIconUrl"
+              alt="킴매스"
+              style="
+                display: block;
+                width: 80px;
+                height: 80px;
+                margin: 0 auto 16px;
+                border-radius: 20px;
+              "
+            />
             <h2 style="font-size: 28px; font-weight: 700; margin: 0; color: #303133">로그인</h2>
             <p style="color: #909399; margin-top: 8px; font-size: 14px">학원 관리 시스템</p>
           </div>
@@ -127,7 +154,12 @@ const handleTeacherLogin = async () => {
         <el-tabs v-model="activeTab" style="margin-top: 16px">
           <!-- Student Login Tab -->
           <el-tab-pane label="학생 로그인" name="student">
-            <el-form :model="studentForm" label-position="left" label-width="60px" style="margin-top: 24px">
+            <el-form
+              :model="studentForm"
+              label-position="left"
+              label-width="60px"
+              style="margin-top: 24px"
+            >
               <el-form-item label="학생 ID">
                 <el-input
                   v-model="studentForm.studentId"
@@ -148,9 +180,7 @@ const handleTeacherLogin = async () => {
                 />
               </el-form-item>
               <el-form-item>
-                <el-checkbox v-model="studentForm.rememberMe">
-                  로그인 유지
-                </el-checkbox>
+                <el-checkbox v-model="studentForm.rememberMe"> 로그인 유지 </el-checkbox>
               </el-form-item>
               <el-form-item>
                 <el-button
@@ -167,12 +197,14 @@ const handleTeacherLogin = async () => {
 
           <!-- Teacher Login Tab -->
           <el-tab-pane v-if="!nativeApp" label="선생님 로그인" name="teacher">
-            <el-form :model="teacherForm"  label-position="left" label-width="60px" style="margin-top: 24px">
+            <el-form
+              :model="teacherForm"
+              label-position="left"
+              label-width="60px"
+              style="margin-top: 24px"
+            >
               <el-form-item label="아이디">
-                <el-input
-                  v-model="teacherForm.username"
-                  placeholder="아이디를 입력하세요"
-                />
+                <el-input v-model="teacherForm.username" placeholder="아이디를 입력하세요" />
               </el-form-item>
               <el-form-item label="PIN">
                 <el-input
@@ -185,9 +217,7 @@ const handleTeacherLogin = async () => {
                 />
               </el-form-item>
               <el-form-item>
-                <el-checkbox v-model="teacherForm.rememberMe">
-                  로그인 유지
-                </el-checkbox>
+                <el-checkbox v-model="teacherForm.rememberMe"> 로그인 유지 </el-checkbox>
               </el-form-item>
               <el-form-item>
                 <el-button

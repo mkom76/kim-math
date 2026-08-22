@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1024 1536">
+  <defs>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#147DFF" stroke-opacity=".1"/>
+    </pattern>
+  </defs>
+  <path fill="#061A3A" d="M0 0h1024v1536H0z"/>
+  <path fill="url(#grid)" d="M0 0h1024v1536H0z"/>
+  <g fill="none" stroke="#147DFF" stroke-opacity=".14" stroke-width="3">
+    <path d="M-80 1040C250 960 310 690 510 742s270 290 650-170"/>
+    <path d="M-70 420c240 180 370 60 520-110s350-80 650 120"/>
+  </g>
+  <g transform="translate(190 440) scale(.63)">
+    <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M250 650C420 580 505 445 540 335C558 278 568 218 578 160" stroke-width="46"/>
+      <path d="M145 335H735M700 300L735 335L700 370" stroke-width="28"/>
+      <path d="M250 650H790V900H250Z" stroke-width="46"/>
+      <path d="M790 650V330" stroke-width="58"/>
+      <path d="M735 220H845M790 165V275" stroke-width="54"/>
+      <path d="M575 785H665M575 840H665" stroke-width="34"/>
+    </g>
+    <circle cx="540" cy="335" r="32" fill="#F5222D"/>
+  </g>
+</svg>

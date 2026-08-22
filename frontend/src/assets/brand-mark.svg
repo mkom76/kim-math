@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
-  <title id="title">킴매스 앱 아이콘</title>
-  <path fill="#061A3A" d="M0 0h1024v1024H0z"/>
+  <title id="title">킴매스 수학 그래프 로고</title>
   <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
     <path d="M250 650C420 580 505 445 540 335C558 278 568 218 578 160" stroke-width="46"/>
     <path d="M145 335H735M700 300L735 335L700 370" stroke-width="28"/>

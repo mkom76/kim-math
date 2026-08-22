@@ -8,6 +8,7 @@ import type { AuthResponse } from '@/api/client'
 import AcademySwitcher from '@/components/AcademySwitcher.vue'
 import StudentBottomNav from '@/components/StudentBottomNav.vue'
 import StudentBottomNavV2 from '@/components/StudentBottomNavV2.vue'
+import appIconUrl from '@/assets/app-icon.svg'
 import { useAuthStore } from '@/stores/auth'
 import { useStudentUiMode } from '@/composables/useStudentUiMode'
 import { initPushNotifications } from '@/utils/push'
@@ -23,20 +24,21 @@ const drawerVisible = ref(false)
 
 const isLoginPage = computed(() => route.path === '/login')
 const isExamTimer = computed(() => route.path === '/exam-timer')
-const isTeacherRoute = computed(() => currentUser.value.role === 'TEACHER' && !isLoginPage.value && !isExamTimer.value)
+const isTeacherRoute = computed(
+  () => currentUser.value.role === 'TEACHER' && !isLoginPage.value && !isExamTimer.value,
+)
 const isStudentRoute = computed(() => currentUser.value.role === 'STUDENT')
-const isStudentV2 = computed(() => (
-  studentUiMode.value === 'v2'
-  && isStudentRoute.value
-  && (route.path.startsWith('/student/') || route.path === '/settings')
-))
+const isStudentV2 = computed(
+  () =>
+    studentUiMode.value === 'v2' &&
+    isStudentRoute.value &&
+    (route.path.startsWith('/student/') || route.path === '/settings'),
+)
 // Test-taking screen wants the full viewport; suppress bottom nav there.
 const isTestTaking = computed(() => /^\/student\/tests\/[^/]+$/.test(route.path))
-const showStudentNav = computed(() => (
-  isStudentRoute.value
-  && route.path.startsWith('/student/')
-  && !isTestTaking.value
-))
+const showStudentNav = computed(
+  () => isStudentRoute.value && route.path.startsWith('/student/') && !isTestTaking.value,
+)
 
 const fetchCurrentUser = async () => {
   try {
@@ -72,20 +74,29 @@ const handleLogout = async () => {
 onMounted(async () => {
   await fetchCurrentUser()
   if (currentUser.value.role === 'STUDENT') {
-    initPushNotifications(router).catch(() => { /* best effort */ })
+    initPushNotifications(router).catch(() => {
+      /* best effort */
+    })
   }
 })
 
 // Refetch user when route changes (e.g., after login)
-watch(() => route.path, () => {
-  fetchCurrentUser()
-})
+watch(
+  () => route.path,
+  () => {
+    fetchCurrentUser()
+  },
+)
 
 // The legacy shell intentionally keeps its desktop padding. Remove it only while
 // the opt-in student UI is active so compact phones can use the full viewport.
-watch(isStudentV2, (enabled) => {
-  document.getElementById('app')?.classList.toggle('student-ui-v2-root', enabled)
-}, { immediate: true })
+watch(
+  isStudentV2,
+  (enabled) => {
+    document.getElementById('app')?.classList.toggle('student-ui-v2-root', enabled)
+  },
+  { immediate: true },
+)
 
 onBeforeUnmount(() => {
   document.getElementById('app')?.classList.remove('student-ui-v2-root')
@@ -96,10 +107,19 @@ onBeforeUnmount(() => {
   <el-container
     class="app-shell"
     :class="{ 'student-ui-v2': isStudentV2 }"
-    style="min-height: 100vh; min-height: 100dvh; background-color: #f5f7fa; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom)"
+    style="
+      min-height: 100vh;
+      min-height: 100dvh;
+      background-color: #f5f7fa;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    "
   >
     <!-- Header (Teacher only) -->
-    <el-header v-if="isTeacherRoute" style="background-color: #fff; border-bottom: 1px solid #dcdfe6; padding: 0 20px">
+    <el-header
+      v-if="isTeacherRoute"
+      style="background-color: #fff; border-bottom: 1px solid #dcdfe6; padding: 0 20px"
+    >
       <div style="display: flex; align-items: center; justify-content: space-between; height: 100%">
         <!-- Left: Hamburger Menu + Logo -->
         <div style="display: flex; align-items: center; gap: 16px">
@@ -109,19 +129,39 @@ onBeforeUnmount(() => {
             @click="drawerVisible = true"
             style="width: 40px; height: 40px"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <line x1="3" y1="6" x2="21" y2="6"></line>
               <line x1="3" y1="12" x2="21" y2="12"></line>
               <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
           </el-button>
 
-          <div style="display: flex; align-items: center; gap: 12px; cursor: pointer" @click="router.push('/')">
-            <el-icon size="32" color="#409eff">
-              <School />
-            </el-icon>
+          <div
+            style="display: flex; align-items: center; gap: 12px; cursor: pointer"
+            @click="router.push('/')"
+          >
+            <img :src="appIconUrl" alt="" style="width: 36px; height: 36px; border-radius: 9px" />
             <div style="line-height: 1.2">
-              <div style="font-size: 18px; font-weight: 700; background: linear-gradient(135deg, #409eff, #67c23a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 0.5px">
+              <div
+                style="
+                  font-size: 18px;
+                  font-weight: 700;
+                  background: linear-gradient(135deg, #409eff, #67c23a);
+                  -webkit-background-clip: text;
+                  -webkit-text-fill-color: transparent;
+                  letter-spacing: 0.5px;
+                "
+              >
                 KIM
               </div>
               <div style="font-size: 13px; font-weight: 600; color: #606266; letter-spacing: 1px">
@@ -139,24 +179,14 @@ onBeforeUnmount(() => {
           </el-button>
           <AcademySwitcher />
           <span style="color: #606266; font-size: 14px">{{ currentUser.name }}님</span>
-          <el-button type="danger" size="small" @click="handleLogout">
-            로그아웃
-          </el-button>
+          <el-button type="danger" size="small" @click="handleLogout"> 로그아웃 </el-button>
         </div>
       </div>
     </el-header>
 
     <!-- Navigation Drawer -->
-    <el-drawer
-      v-model="drawerVisible"
-      title="메뉴"
-      direction="ltr"
-      size="280px"
-    >
-      <el-menu
-        :default-active="route.path"
-        @select="handleSelect"
-      >
+    <el-drawer v-model="drawerVisible" title="메뉴" direction="ltr" size="280px">
+      <el-menu :default-active="route.path" @select="handleSelect">
         <el-menu-item index="/students">
           <el-icon><User /></el-icon>
           <span>학생 관리</span>
@@ -229,7 +259,10 @@ onBeforeUnmount(() => {
       }"
       :style="{
         padding: isLoginPage || isExamTimer || isStudentV2 ? '0' : '24px',
-        paddingBottom: showStudentNav && !isStudentV2 ? 'calc(56px + env(safe-area-inset-bottom) + 16px)' : undefined,
+        paddingBottom:
+          showStudentNav && !isStudentV2
+            ? 'calc(56px + env(safe-area-inset-bottom) + 16px)'
+            : undefined,
         backgroundColor: isLoginPage ? '#fff' : isStudentV2 ? undefined : '#f5f7fa',
       }"
     >
