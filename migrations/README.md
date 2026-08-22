@@ -2,6 +2,37 @@
 
 이 디렉토리의 SQL은 운영자가 직접 실행하는 일회성 마이그레이션입니다. 자동 마이그레이션 도구(예: Flyway, Liquibase)는 사용하지 않습니다.
 
+## 2026-08-22: 반 종강 상태와 시험 객관식 복수정답
+
+학생·수업·성적 이력을 삭제하지 않고 반을 종강 처리할 수 있도록
+`academy_classes.ended_at`을 추가합니다. 객관식 문항에서 여러 보기를 하나의 정답
+집합으로 채점할 수 있도록 `test_questions.multiple_answers`도 추가합니다.
+
+운영 환경은 `ddl-auto: validate`이므로 **코드 배포 전에 두 파일을 순서대로** 적용해야 합니다.
+
+```bash
+mysql -u root -p academy < migrations/2026-08-22-01-add-class-ended-at.sql
+mysql -u root -p academy < migrations/2026-08-22-02-add-test-question-multiple-answers.sql
+```
+
+적용 후 확인:
+
+```sql
+SHOW COLUMNS FROM academy_classes LIKE 'ended_at';
+SHOW COLUMNS FROM test_questions LIKE 'multiple_answers';
+SELECT COUNT(*) AS unexpected_multiple_answers
+FROM test_questions
+WHERE multiple_answers NOT IN (0, 1) OR multiple_answers IS NULL;
+```
+
+롤백은 기능 사용 데이터가 더는 필요 없을 때만 역순으로 수행합니다. 종강 상태와 복수정답
+설정을 보존해야 한다면 먼저 해당 컬럼을 별도 백업합니다.
+
+```bash
+mysql -u root -p academy < migrations/2026-08-22-02-add-test-question-multiple-answers_rollback.sql
+mysql -u root -p academy < migrations/2026-08-22-01-add-class-ended-at_rollback.sql
+```
+
 ## 2026-08-16: 학생 새 UI 의견 테이블
 
 새 학생 UI에서 보낸 만족도, 불편 유형, 자유 의견과 화면·기기 메타데이터를 저장합니다.

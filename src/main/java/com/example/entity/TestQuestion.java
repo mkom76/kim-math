@@ -37,6 +37,10 @@ public class TestQuestion {
 
     private String answer;
 
+    @Column(name = "multiple_answers", nullable = false)
+    @Builder.Default
+    private Boolean multipleAnswers = false;
+
     @Column(nullable = false)
     private Double points;
 

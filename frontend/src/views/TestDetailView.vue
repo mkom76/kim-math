@@ -11,6 +11,8 @@ import {
   type TestSubmissionRoster,
   type Question,
 } from '../api/client'
+import { parseMultipleAnswer, serializeMultipleAnswer } from '@/utils/examAnswers'
+import { copyTextToClipboard, formatIncorrectQuestionNumbers } from '@/utils/incorrectQuestions'
 
 const route = useRoute()
 const router = useRouter()
@@ -108,9 +110,14 @@ const handleGradeEssay = async () => {
 const answerDialogVisible = ref(false)
 const answerLoading = ref(false)
 const answerSaving = ref(false)
+const copyingSubmissionId = ref<number | null>(null)
 const selectedRoster = ref<TestSubmissionRoster | null>(null)
 const answerQuestions = ref<Question[]>([])
 const answerForm = ref<Record<number, string>>({})
+
+const setMultipleAnswer = (questionNumber: number, selected: string[]) => {
+  answerForm.value[questionNumber] = serializeMultipleAnswer(selected)
+}
 
 const submittedCount = computed(() => roster.value.filter(row => row.submitted).length)
 const hasEssayQuestions = computed(() =>
@@ -204,6 +211,28 @@ const openEssayGradeFromRoster = (row: TestSubmissionRoster) => {
     pendingEssayCount: row.pendingEssayCount,
     student: { name: row.studentName },
   })
+}
+
+const copyIncorrectQuestions = async (row: TestSubmissionRoster) => {
+  if (!row.submitted || !row.submissionId) return
+
+  copyingSubmissionId.value = row.submissionId
+  try {
+    const response = await submissionAPI.getSubmissionWithDetails(row.submissionId)
+    const incorrectQuestions = formatIncorrectQuestionNumbers(response.data.details || [])
+
+    if (!incorrectQuestions) {
+      ElMessage.info(`${row.studentName} 학생은 복사할 오답 문항이 없습니다.`)
+      return
+    }
+
+    await copyTextToClipboard(incorrectQuestions)
+    ElMessage.success(`${row.studentName} 학생의 오답 문항(${incorrectQuestions})을 복사했습니다.`)
+  } catch {
+    ElMessage.error('오답 문항을 클립보드에 복사하지 못했습니다.')
+  } finally {
+    copyingSubmissionId.value = null
+  }
 }
 
 const navigateToAnswers = () => {
@@ -578,7 +607,7 @@ onMounted(() => {
             </template>
           </el-table-column>
 
-          <el-table-column label="관리" width="320" align="center">
+          <el-table-column label="관리" width="430" align="center">
             <template #default="{ row }">
               <el-button
                 size="small"
@@ -587,6 +616,16 @@ onMounted(() => {
                 @click="openAnswerEntry(row)"
               >
                 {{ row.submitted ? '답안 수정' : '답안 입력' }}
+              </el-button>
+              <el-button
+                v-if="row.submitted"
+                size="small"
+                type="danger"
+                plain
+                :loading="copyingSubmissionId === row.submissionId"
+                @click="copyIncorrectQuestions(row)"
+              >
+                오답 복사
               </el-button>
               <el-button
                 v-if="row.submitted"
@@ -641,15 +680,19 @@ onMounted(() => {
               </span>
             </div>
 
+            <el-checkbox-group
+              v-if="question.questionType === 'OBJECTIVE' && question.multipleAnswers"
+              :model-value="parseMultipleAnswer(answerForm[question.number])"
+              @update:model-value="setMultipleAnswer(question.number, $event as string[])"
+            >
+              <el-checkbox-button v-for="choice in 5" :key="choice" :label="String(choice)">{{ choice }}</el-checkbox-button>
+            </el-checkbox-group>
+
             <el-radio-group
-              v-if="question.questionType === 'OBJECTIVE'"
+              v-else-if="question.questionType === 'OBJECTIVE'"
               v-model="answerForm[question.number]"
             >
-              <el-radio-button label="1">1</el-radio-button>
-              <el-radio-button label="2">2</el-radio-button>
-              <el-radio-button label="3">3</el-radio-button>
-              <el-radio-button label="4">4</el-radio-button>
-              <el-radio-button label="5">5</el-radio-button>
+              <el-radio-button v-for="choice in 5" :key="choice" :label="String(choice)">{{ choice }}</el-radio-button>
             </el-radio-group>
 
             <el-input

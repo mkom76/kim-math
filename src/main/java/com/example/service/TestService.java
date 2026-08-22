@@ -57,6 +57,7 @@ public class TestService {
         AcademyClass academyClass = academyClassRepository.findById(dto.getClassId())
                 .orElseThrow(() -> new RuntimeException("Class not found"));
         authorizationService.assertCanModifyClass(academyClass);
+        AcademyClassPolicy.assertActive(academyClass);
 
         Test test = Test.builder()
                 .title(dto.getTitle())
@@ -81,6 +82,7 @@ public class TestService {
         AcademyClass targetClass = academyClassRepository.findById(request.targetClassId())
                 .orElseThrow(() -> new IllegalArgumentException("대상 반을 찾을 수 없습니다"));
         authorizationService.assertCanModifyClass(targetClass);
+        AcademyClassPolicy.assertActive(targetClass);
 
         Long sourceAcademyId = sourceTest.getAcademy() != null ? sourceTest.getAcademy().getId() : null;
         Long targetAcademyId = targetClass.getAcademy() != null ? targetClass.getAcademy().getId() : null;
@@ -103,6 +105,7 @@ public class TestService {
                             .test(copiedTest)
                             .number(sourceQuestion.getNumber())
                             .answer(sourceQuestion.getAnswer())
+                            .multipleAnswers(Boolean.TRUE.equals(sourceQuestion.getMultipleAnswers()))
                             .points(sourceQuestion.getPoints())
                             .questionType(sourceQuestion.getQuestionType())
                             .textbookProblem(sourceQuestion.getTextbookProblem())
@@ -134,6 +137,7 @@ public class TestService {
             AcademyClass academyClass = academyClassRepository.findById(dto.getClassId())
                     .orElseThrow(() -> new RuntimeException("Class not found"));
             authorizationService.assertCanModifyClass(academyClass);
+            AcademyClassPolicy.assertActive(academyClass);
             test.setAcademyClass(academyClass);
         }
 
@@ -176,10 +180,14 @@ public class TestService {
             TestQuestion question = existingQuestionsMap.get(answer.getNumber());
             Double points = answer.getPoints() != null ? answer.getPoints() : 0.0;
             QuestionType questionType = answer.getQuestionType() != null ? answer.getQuestionType() : QuestionType.SUBJECTIVE;
+            boolean multipleAnswers = questionType == QuestionType.OBJECTIVE
+                    && Boolean.TRUE.equals(answer.getMultipleAnswers());
+            String correctAnswer = TestAnswerMatcher.canonicalize(answer.getAnswer(), multipleAnswers);
 
             if (question != null) {
                 // 기존 문제 업데이트 (ID 유지 - 학생 답안 보존)
-                question.setAnswer(answer.getAnswer());
+                question.setAnswer(correctAnswer);
+                question.setMultipleAnswers(multipleAnswers);
                 question.setPoints(points);
                 question.setQuestionType(questionType);
                 applyTopic(question, answer.getTopic());
@@ -188,7 +196,8 @@ public class TestService {
                 question = TestQuestion.builder()
                         .test(test)
                         .number(answer.getNumber())
-                        .answer(answer.getAnswer())
+                        .answer(correctAnswer)
+                        .multipleAnswers(multipleAnswers)
                         .points(points)
                         .questionType(questionType)
                         .build();
@@ -231,11 +240,20 @@ public class TestService {
                     // 배점 합산
                     totalPoints += question.getPoints();
 
-                    if (question.getAnswer() != null) {
-                        boolean isCorrect = question.getAnswer().equals(detail.getStudentAnswer());
+                    QuestionType questionType = question.getQuestionType() != null
+                            ? question.getQuestionType()
+                            : QuestionType.SUBJECTIVE;
+                    if (questionType != QuestionType.ESSAY) {
+                        boolean isCorrect = TestAnswerMatcher.matches(question, detail.getStudentAnswer());
                         detail.setIsCorrect(isCorrect);
+                        detail.setEarnedPoints(isCorrect ? question.getPoints() : 0.0);
                         if (isCorrect) {
                             earnedPoints += question.getPoints();
+                        }
+                    } else {
+                        detail.setIsCorrect(null);
+                        if (detail.getEarnedPoints() != null) {
+                            earnedPoints += detail.getEarnedPoints();
                         }
                     }
                 }
@@ -390,8 +408,10 @@ public class TestService {
         authorizationService.assertCanAccessTest(testForAuth);
 
         List<TestQuestion> questions = testQuestionRepository.findByTestIdOrderByNumber(testId);
+        TenantContext.Context ctx = TenantContext.current();
+        boolean includeAnswer = ctx != null && ctx.role() != null;
         return questions.stream()
-                .map(TestQuestionDto::from)
+                .map(question -> TestQuestionDto.from(question, includeAnswer))
                 .collect(Collectors.toList());
     }
 
@@ -422,6 +442,7 @@ public class TestService {
                     .test(test)
                     .number(item.number())
                     .answer(tp.getAnswer())
+                    .multipleAnswers(false)
                     .points(item.points())
                     .questionType(tp.getQuestionType() != null ? tp.getQuestionType() : QuestionType.SUBJECTIVE)
                     .textbookProblem(tp)
@@ -441,11 +462,14 @@ public class TestService {
         authorizationService.assertCanAccessTest(test);
 
         QuestionType questionType = dto.getQuestionType() != null ? dto.getQuestionType() : QuestionType.SUBJECTIVE;
+        boolean multipleAnswers = questionType == QuestionType.OBJECTIVE
+                && Boolean.TRUE.equals(dto.getMultipleAnswers());
 
         TestQuestion question = TestQuestion.builder()
                 .test(test)
                 .number(dto.getNumber())
-                .answer(dto.getAnswer())
+                .answer(TestAnswerMatcher.canonicalize(dto.getAnswer(), multipleAnswers))
+                .multipleAnswers(multipleAnswers)
                 .points(dto.getPoints())
                 .questionType(questionType)
                 .build();

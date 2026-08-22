@@ -1,6 +1,8 @@
 package com.example.repository;
 
 import com.example.entity.AcademyClass;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -9,6 +11,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface AcademyClassRepository extends JpaRepository<AcademyClass, Long> {
+    Page<AcademyClass> findByEndedAtIsNull(Pageable pageable);
+
     int countByAcademy_IdAndOwnerTeacherId(Long academyId, Long ownerTeacherId);
 
     @Modifying

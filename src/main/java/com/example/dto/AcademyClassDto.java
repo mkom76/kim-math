@@ -22,6 +22,8 @@ public class AcademyClassDto {
     private Long ownerTeacherId;
     private DayOfWeek clinicDayOfWeek;
     private LocalTime clinicTime;
+    private LocalDateTime endedAt;
+    private Boolean ended;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -34,6 +36,8 @@ public class AcademyClassDto {
                 .ownerTeacherId(academyClass.getOwnerTeacherId())
                 .clinicDayOfWeek(academyClass.getClinicDayOfWeek())
                 .clinicTime(academyClass.getClinicTime())
+                .endedAt(academyClass.getEndedAt())
+                .ended(academyClass.isEnded())
                 .createdAt(academyClass.getCreatedAt())
                 .updatedAt(academyClass.getUpdatedAt())
                 .build();

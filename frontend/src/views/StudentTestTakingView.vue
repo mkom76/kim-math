@@ -5,6 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { authAPI, testAPI, submissionAPI } from '@/api/client'
 import type { Test, Question, AuthResponse } from '@/api/client'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import { parseMultipleAnswer, serializeMultipleAnswer } from '@/utils/examAnswers'
 
 const router = useRouter()
 const route = useRoute()
@@ -14,6 +15,10 @@ const currentUser = ref<AuthResponse>({})
 const test = ref<Test | null>(null)
 const questions = ref<Question[]>([])
 const answers = ref<Record<number, string>>({})
+
+const setMultipleAnswer = (questionNumber: number, selected: string[]) => {
+  answers.value[questionNumber] = serializeMultipleAnswer(selected)
+}
 
 const { isMobile } = useBreakpoint()
 
@@ -207,17 +212,21 @@ onMounted(() => {
                 ▶ 해설 영상
               </el-button>
             </div>
-            <!-- 객관식: 라디오 버튼 -->
+            <el-checkbox-group
+              v-if="question.questionType === 'OBJECTIVE' && question.multipleAnswers"
+              :model-value="parseMultipleAnswer(answers[question.number])"
+              @update:model-value="setMultipleAnswer(question.number, $event as string[])"
+              style="width: 100%"
+            >
+              <el-checkbox-button v-for="choice in 5" :key="choice" :label="String(choice)">{{ choice }}</el-checkbox-button>
+            </el-checkbox-group>
+
             <el-radio-group
-              v-if="question.questionType === 'OBJECTIVE'"
+              v-else-if="question.questionType === 'OBJECTIVE'"
               v-model="answers[question.number]"
               style="width: 100%"
             >
-              <el-radio-button label="1">1</el-radio-button>
-              <el-radio-button label="2">2</el-radio-button>
-              <el-radio-button label="3">3</el-radio-button>
-              <el-radio-button label="4">4</el-radio-button>
-              <el-radio-button label="5">5</el-radio-button>
+              <el-radio-button v-for="choice in 5" :key="choice" :label="String(choice)">{{ choice }}</el-radio-button>
             </el-radio-group>
 
             <!-- 주관식: 텍스트 입력 -->

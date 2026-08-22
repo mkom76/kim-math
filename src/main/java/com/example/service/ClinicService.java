@@ -32,6 +32,7 @@ public class ClinicService {
         AcademyClass academyClass = academyClassRepository.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
         authorizationService.assertCanModifyClass(academyClass);
+        AcademyClassPolicy.assertActive(academyClass);
 
         Optional<Clinic> existing = clinicRepository.findByClassIdAndDate(classId, clinicDate);
         if (existing.isPresent()) {

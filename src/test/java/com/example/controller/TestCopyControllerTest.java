@@ -83,7 +83,8 @@ class TestCopyControllerTest {
         em.persist(TestQuestion.builder()
                 .test(sourceTest)
                 .number(1)
-                .answer("3")
+                .answer("1,3")
+                .multipleAnswers(true)
                 .points(40.0)
                 .questionType(QuestionType.OBJECTIVE)
                 .topic("함수 › 일차함수")
@@ -132,7 +133,9 @@ class TestCopyControllerTest {
         assertThat(copiedQuestions).extracting(TestQuestion::getNumber)
                 .containsExactly(1, 2);
         assertThat(copiedQuestions).extracting(TestQuestion::getAnswer)
-                .containsExactly("3", "x=2");
+                .containsExactly("1,3", "x=2");
+        assertThat(copiedQuestions).extracting(TestQuestion::getMultipleAnswers)
+                .containsExactly(true, false);
         assertThat(copiedQuestions).extracting(TestQuestion::getPoints)
                 .containsExactly(40.0, 60.0);
         assertThat(copiedQuestions).extracting(TestQuestion::getQuestionType)

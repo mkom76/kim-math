@@ -10,14 +10,21 @@ const loading = ref(false)
 const academyClasses = ref<AcademyClass[]>([])
 const academies = ref<Academy[]>([])
 const searchQuery = ref('')
+const statusFilter = ref<'ACTIVE' | 'ENDED' | 'ALL'>('ACTIVE')
 const dialogVisible = ref(false)
 const editMode = ref(false)
 const currentClass = ref<AcademyClass>({ name: '', academyId: undefined })
 const { currentPage, pageSize } = usePagination('academy-classes-view')
 
 const filteredData = computed(() => {
-  if (!searchQuery.value) return academyClasses.value
-  return academyClasses.value.filter(cls =>
+  let classes = academyClasses.value
+  if (statusFilter.value === 'ACTIVE') {
+    classes = classes.filter(cls => !cls.ended)
+  } else if (statusFilter.value === 'ENDED') {
+    classes = classes.filter(cls => cls.ended)
+  }
+  if (!searchQuery.value) return classes
+  return classes.filter(cls =>
     (cls.name || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
     (cls.academyName || '').toLowerCase().includes(searchQuery.value.toLowerCase())
   )
@@ -34,7 +41,7 @@ const totalItems = computed(() => filteredData.value.length)
 const fetchAcademyClasses = async () => {
   loading.value = true
   try {
-    const response = await academyClassAPI.getAcademyClasses({ size: 10000 })
+    const response = await academyClassAPI.getAcademyClasses({ size: 10000, includeEnded: true })
     academyClasses.value = response.data.content || response.data
   } catch (error) {
     ElMessage.error('반 목록을 불러오는데 실패했습니다.')
@@ -119,6 +126,53 @@ const handleDelete = async (cls: AcademyClass) => {
   }
 }
 
+const handleEnd = async (cls: AcademyClass) => {
+  if (!cls.id) return
+
+  try {
+    await ElMessageBox.confirm(
+      `${cls.name} 반을 종강 처리하시겠습니까? 학생·수업·시험 이력은 그대로 보존됩니다.`,
+      '종강 확인',
+      {
+        confirmButtonText: '종강 처리',
+        cancelButtonText: '취소',
+        type: 'warning',
+      }
+    )
+    await academyClassAPI.endAcademyClass(cls.id)
+    ElMessage.success('종강 처리되었습니다.')
+    fetchAcademyClasses()
+  } catch (error) {
+    if (error !== 'cancel') ElMessage.error('종강 처리에 실패했습니다.')
+  }
+}
+
+const handleReopen = async (cls: AcademyClass) => {
+  if (!cls.id) return
+
+  try {
+    await ElMessageBox.confirm(
+      `${cls.name} 반을 다시 운영 상태로 전환하시겠습니까?`,
+      '반 재개 확인',
+      {
+        confirmButtonText: '운영 재개',
+        cancelButtonText: '취소',
+        type: 'info',
+      }
+    )
+    await academyClassAPI.reopenAcademyClass(cls.id)
+    ElMessage.success('반 운영을 재개했습니다.')
+    fetchAcademyClasses()
+  } catch (error) {
+    if (error !== 'cancel') ElMessage.error('반 재개에 실패했습니다.')
+  }
+}
+
+const formatEndedAt = (endedAt?: string | null) => {
+  if (!endedAt) return '-'
+  return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium' }).format(new Date(endedAt))
+}
+
 const navigateToLessons = (cls: AcademyClass) => {
   router.push(`/lessons?academyId=${cls.academyId}&classId=${cls.id}`)
 }
@@ -144,6 +198,11 @@ onMounted(() => {
           <p style="margin: 8px 0 0; color: #909399">학원별 반 정보를 관리합니다</p>
         </div>
         <div style="display: flex; gap: 12px">
+          <el-radio-group v-model="statusFilter">
+            <el-radio-button label="ACTIVE">운영 중</el-radio-button>
+            <el-radio-button label="ENDED">종강</el-radio-button>
+            <el-radio-button label="ALL">전체</el-radio-button>
+          </el-radio-group>
           <el-input
             v-model="searchQuery"
             placeholder="반명 또는 학원명 검색"
@@ -172,14 +231,26 @@ onMounted(() => {
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="academyName" label="학원" width="150" />
         <el-table-column prop="name" label="반명" />
-        <el-table-column label="작업" width="250" align="center">
+        <el-table-column label="상태" width="110" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.ended ? 'info' : 'success'">
+              {{ row.ended ? '종강' : '운영 중' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="종강일" width="150" align="center">
+          <template #default="{ row }">{{ formatEndedAt(row.endedAt) }}</template>
+        </el-table-column>
+        <el-table-column label="작업" width="360" align="center">
           <template #default="{ row }">
             <el-button size="small" type="info" @click="navigateToLessons(row)">
               <el-icon style="margin-right: 4px"><Calendar /></el-icon>
               수업 보기
             </el-button>
-            <el-button size="small" @click="openEditDialog(row)">수정</el-button>
-            <el-button size="small" type="danger" @click="handleDelete(row)">삭제</el-button>
+            <el-button v-if="!row.ended" size="small" @click="openEditDialog(row)">수정</el-button>
+            <el-button v-if="!row.ended" size="small" type="warning" @click="handleEnd(row)">종강</el-button>
+            <el-button v-else size="small" type="success" plain @click="handleReopen(row)">운영 재개</el-button>
+            <el-button v-if="!row.ended" size="small" type="danger" @click="handleDelete(row)">삭제</el-button>
           </template>
         </el-table-column>
       </el-table>

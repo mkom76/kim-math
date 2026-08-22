@@ -53,6 +53,7 @@ public class HomeworkService {
         AcademyClass academyClass = academyClassRepository.findById(dto.getClassId())
                 .orElseThrow(() -> new RuntimeException("Class not found"));
         authorizationService.assertCanModifyClass(academyClass);
+        AcademyClassPolicy.assertActive(academyClass);
 
         Homework homework = Homework.builder()
                 .title(dto.getTitle())
@@ -88,6 +89,7 @@ public class HomeworkService {
             AcademyClass academyClass = academyClassRepository.findById(dto.getClassId())
                     .orElseThrow(() -> new RuntimeException("Class not found"));
             authorizationService.assertCanModifyClass(academyClass);
+            AcademyClassPolicy.assertActive(academyClass);
             homework.setAcademyClass(academyClass);
         }
 

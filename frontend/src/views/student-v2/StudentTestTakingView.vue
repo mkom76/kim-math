@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { authAPI, testAPI, submissionAPI } from '@/api/client'
 import type { Test, Question, AuthResponse } from '@/api/client'
+import { parseMultipleAnswer, serializeMultipleAnswer } from '@/utils/examAnswers'
 
 const router = useRouter()
 const route = useRoute()
@@ -13,6 +14,10 @@ const currentUser = ref<AuthResponse>({})
 const test = ref<Test | null>(null)
 const questions = ref<Question[]>([])
 const answers = ref<Record<number, string>>({})
+
+const setMultipleAnswer = (questionNumber: number, selected: string[]) => {
+  answers.value[questionNumber] = serializeMultipleAnswer(selected)
+}
 
 const openVideo = (url?: string | null) => {
   if (!url) return
@@ -146,7 +151,7 @@ onMounted(() => {
         <div class="question-card__header">
           <span class="question-number">{{ question.number }}</span>
           <div class="question-meta">
-            <strong>{{ question.questionType === 'OBJECTIVE' ? '객관식' : question.questionType === 'SUBJECTIVE' ? '주관식' : '서술형' }}</strong>
+            <strong>{{ question.questionType === 'OBJECTIVE' ? (question.multipleAnswers ? '객관식 · 복수 선택' : '객관식') : question.questionType === 'SUBJECTIVE' ? '주관식' : '서술형' }}</strong>
             <span>{{ question.points }}점<span v-if="question.textbookProblem?.topic"> · {{ question.textbookProblem.topic }}</span></span>
           </div>
           <button v-if="question.textbookProblem?.videoLink" class="question-video" @click="openVideo(question.textbookProblem.videoLink)">
@@ -154,7 +159,17 @@ onMounted(() => {
           </button>
         </div>
 
-        <el-radio-group v-if="question.questionType === 'OBJECTIVE'" v-model="answers[question.number]" class="answer-options" :aria-label="`${question.number}번 답`">
+        <el-checkbox-group
+          v-if="question.questionType === 'OBJECTIVE' && question.multipleAnswers"
+          :model-value="parseMultipleAnswer(answers[question.number])"
+          class="answer-options"
+          :aria-label="`${question.number}번 복수 답`"
+          @update:model-value="setMultipleAnswer(question.number, $event as string[])"
+        >
+          <el-checkbox-button v-for="choice in 5" :key="choice" :label="String(choice)">{{ choice }}</el-checkbox-button>
+        </el-checkbox-group>
+
+        <el-radio-group v-else-if="question.questionType === 'OBJECTIVE'" v-model="answers[question.number]" class="answer-options" :aria-label="`${question.number}번 답`">
           <el-radio-button v-for="choice in 5" :key="choice" :label="String(choice)">{{ choice }}</el-radio-button>
         </el-radio-group>
 
@@ -204,8 +219,11 @@ onMounted(() => {
 .question-video { display: flex; min-height: 44px; align-items: center; gap: 5px; padding: 0 9px; border: 0; border-radius: 10px; color: var(--student-primary); background: var(--student-primary-soft); font: inherit; font-size: 12px; font-weight: 750; cursor: pointer; }
 .answer-options { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 100%; }
 .answer-options :deep(.el-radio-button) { width: 100%; }
+.answer-options :deep(.el-checkbox-button) { width: 100%; }
 .answer-options :deep(.el-radio-button__inner) { display: grid; width: 100%; min-width: 0; height: 50px; padding: 0; place-items: center; border: 1px solid var(--student-border) !important; border-radius: 13px !important; box-shadow: none !important; font-size: 16px; font-weight: 800; }
+.answer-options :deep(.el-checkbox-button__inner) { display: grid; width: 100%; min-width: 0; height: 50px; padding: 0; place-items: center; border: 1px solid var(--student-border) !important; border-radius: 13px !important; box-shadow: none !important; font-size: 16px; font-weight: 800; }
 .answer-options :deep(.el-radio-button.is-active .el-radio-button__inner) { border-color: var(--student-primary) !important; color: #fff; background: var(--student-primary); }
+.answer-options :deep(.el-checkbox-button.is-checked .el-checkbox-button__inner) { border-color: var(--student-primary) !important; color: #fff; background: var(--student-primary); }
 .essay-guide { display: flex; align-items: center; gap: 12px; padding: 15px; border: 1px dashed #c7d2e3; border-radius: 14px; background: var(--student-surface-soft); }
 .essay-guide__icon { display: grid; flex: 0 0 38px; height: 38px; place-items: center; border-radius: 11px; color: var(--student-primary); background: var(--student-primary-soft); font-size: 19px; }
 .essay-guide strong { color: var(--student-ink); font-size: 14px; }

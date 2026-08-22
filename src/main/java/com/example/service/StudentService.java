@@ -60,6 +60,7 @@ public class StudentService {
 
         // Ensure target class belongs to the active academy and caller may access it
         authorizationService.assertCanModifyClass(academyClass);
+        AcademyClassPolicy.assertActive(academyClass);
 
         Student student = Student.builder()
                 .name(dto.getName())
@@ -93,6 +94,7 @@ public class StudentService {
             AcademyClass academyClass = academyClassRepository.findById(dto.getClassId())
                     .orElseThrow(() -> new RuntimeException("Class not found"));
             authorizationService.assertCanModifyClass(academyClass);
+            AcademyClassPolicy.assertActive(academyClass);
             student.setAcademyClass(academyClass);
         }
 

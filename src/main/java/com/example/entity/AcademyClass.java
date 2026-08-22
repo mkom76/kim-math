@@ -47,6 +47,9 @@ public class AcademyClass {
     @Column(name = "clinic_time")
     private LocalTime clinicTime;
 
+    @Column(name = "ended_at")
+    private LocalDateTime endedAt;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -66,4 +69,8 @@ public class AcademyClass {
     @OneToMany(mappedBy = "academyClass", cascade = CascadeType.ALL)
     @Builder.Default
     private List<Homework> homeworks = new ArrayList<>();
+
+    public boolean isEnded() {
+        return endedAt != null;
+    }
 }
