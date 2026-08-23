@@ -61,22 +61,18 @@ const fetchTestData = async () => {
   }
 }
 
-const allQuestionsAnswered = computed(() => {
-  return questions.value.every(q => {
-    if (q.questionType === 'ESSAY') return true
-    return answers.value[q.number]?.trim() !== ''
-  })
-})
+const unansweredCount = computed(() => questions.value.filter(q =>
+  q.questionType !== 'ESSAY' && !answers.value[q.number]?.trim()
+).length)
+
+const allQuestionsAnswered = computed(() => unansweredCount.value === 0)
 
 const handleSubmit = async () => {
-  if (!allQuestionsAnswered.value) {
-    ElMessage.warning('모든 문제에 답을 입력해주세요')
-    return
-  }
-
   try {
     await ElMessageBox.confirm(
-      '제출한 후에는 수정할 수 없습니다. 제출하시겠습니까?',
+      unansweredCount.value > 0
+        ? `미입력 ${unansweredCount.value}문항은 오답으로 처리됩니다. 제출한 후에는 수정할 수 없습니다. 제출하시겠습니까?`
+        : '제출한 후에는 수정할 수 없습니다. 제출하시겠습니까?',
       '시험 제출',
       {
         confirmButtonText: '제출',
@@ -261,14 +257,13 @@ onMounted(() => {
           :closable="false"
           style="margin-bottom: 16px"
         >
-          모든 문제에 답을 입력해주세요
+          미입력 {{ unansweredCount }}문항은 오답으로 처리됩니다
         </el-alert>
 
         <el-button
           type="primary"
           size="large"
           :loading="submitting"
-          :disabled="!allQuestionsAnswered"
           @click="handleSubmit"
           :style="{ minWidth: isMobile ? '100%' : '200px' }"
         >

@@ -2,6 +2,28 @@
 
 이 디렉토리의 SQL은 운영자가 직접 실행하는 일회성 마이그레이션입니다. 자동 마이그레이션 도구(예: Flyway, Liquibase)는 사용하지 않습니다.
 
+## 2026-08-24: 시험 미입력 답안 허용
+
+학생이 답하지 않은 문항을 `student_submission_details.student_answer = NULL`로 저장하고
+자동채점 문항에서 오답으로 처리할 수 있도록 해당 컬럼의 `NOT NULL` 제약을 제거합니다.
+운영 코드 배포 전에 적용합니다.
+
+```bash
+mysql -u root -p academy < migrations/2026-08-24-01-allow-null-student-answers.sql
+```
+
+적용 후 확인:
+
+```sql
+SHOW COLUMNS FROM student_submission_details LIKE 'student_answer';
+```
+
+롤백 SQL은 기존 `NULL` 답안을 빈 문자열로 바꾼 뒤 `NOT NULL` 제약을 복원합니다.
+
+```bash
+mysql -u root -p academy < migrations/2026-08-24-01-allow-null-student-answers_rollback.sql
+```
+
 ## 2026-08-22: 반 종강 상태와 시험 객관식 복수정답
 
 학생·수업·성적 이력을 삭제하지 않고 반을 종강 처리할 수 있도록

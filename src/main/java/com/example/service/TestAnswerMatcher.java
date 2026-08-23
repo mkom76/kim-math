@@ -13,7 +13,7 @@ public final class TestAnswerMatcher {
     }
 
     public static boolean matches(TestQuestion question, String studentAnswer) {
-        if (question.getAnswer() == null) {
+        if (studentAnswer == null || studentAnswer.isBlank() || question.getAnswer() == null) {
             return false;
         }
         if (!Boolean.TRUE.equals(question.getMultipleAnswers())) {

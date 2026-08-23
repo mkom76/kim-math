@@ -123,11 +123,10 @@ const submittedCount = computed(() => roster.value.filter(row => row.submitted).
 const hasEssayQuestions = computed(() =>
   (stats.value?.questionStats || []).some((row: any) => row.questionType === 'ESSAY'),
 )
-const allRequiredAnswersFilled = computed(() =>
-  answerQuestions.value.every(question => {
-    if (question.questionType === 'ESSAY') return true
-    return answerForm.value[question.number]?.trim() !== ''
-  }),
+const unansweredAutoGradedCount = computed(
+  () => answerQuestions.value.filter(question =>
+    question.questionType !== 'ESSAY' && !answerForm.value[question.number]?.trim()
+  ).length,
 )
 
 const openAnswerEntry = async (row: TestSubmissionRoster) => {
@@ -166,17 +165,17 @@ const openAnswerEntry = async (row: TestSubmissionRoster) => {
 const saveStudentAnswers = async () => {
   const row = selectedRoster.value
   if (!row) return
-  if (!allRequiredAnswersFilled.value) {
-    ElMessage.warning('객관식/주관식 답안을 모두 입력해주세요')
-    return
-  }
 
   try {
     const isEditing = row.submitted
+    const unansweredNotice = unansweredAutoGradedCount.value > 0
+      ? `미입력 객관식/주관식 ${unansweredAutoGradedCount.value}문항은 오답으로 처리됩니다. `
+      : ''
+    const editNotice = isEditing
+      ? '기존 답안을 수정하면 점수와 통계가 다시 계산됩니다. '
+      : ''
     await ElMessageBox.confirm(
-      isEditing
-        ? '기존 답안을 수정하면 점수와 통계가 다시 계산됩니다. 저장하시겠습니까?'
-        : '이 학생의 답안을 저장하시겠습니까?',
+      `${editNotice}${unansweredNotice}이 학생의 답안을 저장하시겠습니까?`,
       isEditing ? '답안 수정' : '답안 입력',
       {
         confirmButtonText: '저장',

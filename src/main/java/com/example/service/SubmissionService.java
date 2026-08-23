@@ -102,7 +102,7 @@ public class SubmissionService {
         double totalPoints = 0.0;
 
         for (TestQuestion question : questions) {
-            String studentAnswer = answers.get(question.getNumber());
+            String studentAnswer = normalizeStudentAnswer(answers.get(question.getNumber()));
             Boolean isCorrect = null;
             Double earnedPoints = null;
             String teacherComment = null;
@@ -156,6 +156,10 @@ public class SubmissionService {
                 .collect(Collectors.toList()));
         
         return dto;
+    }
+
+    private String normalizeStudentAnswer(String studentAnswer) {
+        return studentAnswer == null || studentAnswer.isBlank() ? null : studentAnswer;
     }
 
     private void assertStudentBelongsToTest(Student student, Test test) {

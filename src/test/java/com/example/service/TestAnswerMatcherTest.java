@@ -41,6 +41,18 @@ class TestAnswerMatcherTest {
     }
 
     @Test
+    void an_unanswered_question_is_always_incorrect() {
+        TestQuestion question = TestQuestion.builder()
+                .answer("3")
+                .multipleAnswers(false)
+                .build();
+
+        assertThat(TestAnswerMatcher.matches(question, null)).isFalse();
+        assertThat(TestAnswerMatcher.matches(question, "")).isFalse();
+        assertThat(TestAnswerMatcher.matches(question, "   ")).isFalse();
+    }
+
+    @Test
     void canonicalize_deduplicates_and_orders_multiple_answers() {
         assertThat(TestAnswerMatcher.canonicalize("3, 1,3", true)).isEqualTo("1,3");
     }

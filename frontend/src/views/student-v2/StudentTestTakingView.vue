@@ -54,13 +54,6 @@ const fetchTestData = async () => {
   }
 }
 
-const allQuestionsAnswered = computed(() => {
-  return questions.value.every((q) => {
-    if (q.questionType === 'ESSAY') return true
-    return answers.value[q.number]?.trim() !== ''
-  })
-})
-
 const answeredCount = computed(
   () =>
     questions.value.filter((question) => {
@@ -69,18 +62,20 @@ const answeredCount = computed(
     }).length,
 )
 
+const unansweredCount = computed(() => questions.value.length - answeredCount.value)
+
+const allQuestionsAnswered = computed(() => unansweredCount.value === 0)
+
 const answerProgress = computed(() =>
   questions.value.length ? Math.round((answeredCount.value / questions.value.length) * 100) : 0,
 )
 
 const handleSubmit = async () => {
-  if (!allQuestionsAnswered.value) {
-    ElMessage.warning('모든 문제에 답을 입력해주세요')
-    return
-  }
-
   try {
-    await ElMessageBox.confirm('제출한 후에는 수정할 수 없습니다. 제출하시겠습니까?', '시험 제출', {
+    const message = unansweredCount.value > 0
+      ? `미입력 ${unansweredCount.value}문항은 오답으로 처리됩니다. 제출한 후에는 수정할 수 없습니다. 제출하시겠습니까?`
+      : '제출한 후에는 수정할 수 없습니다. 제출하시겠습니까?'
+    await ElMessageBox.confirm(message, '시험 제출', {
       confirmButtonText: '제출',
       cancelButtonText: '취소',
       type: 'warning',
@@ -224,18 +219,15 @@ onMounted(() => {
 
     <div class="student-sticky-action test-submit">
       <div v-if="!allQuestionsAnswered" class="test-submit__status">
-        <el-icon><WarningFilled /></el-icon> 답하지 않은 문제가 있어요
+        <el-icon><WarningFilled /></el-icon> 미입력 {{ unansweredCount }}문항은 오답 처리돼요
       </div>
       <el-button
         type="primary"
         size="large"
         :loading="submitting"
-        :disabled="!allQuestionsAnswered"
         @click="handleSubmit"
       >
-        {{
-          allQuestionsAnswered ? '답안 제출하기' : `${questions.length - answeredCount}문제 더 풀기`
-        }}
+        답안 제출하기
       </el-button>
     </div>
   </div>
