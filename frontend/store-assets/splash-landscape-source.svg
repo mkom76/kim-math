@@ -4,7 +4,7 @@
       <path d="M64 0H0V64" fill="none" stroke="#59E1D1" stroke-opacity=".08"/>
     </pattern>
   </defs>
-  <path fill="#0B315D" d="M0 0h1536v1024H0z"/>
+  <path fill="#727E8E" d="M0 0h1536v1024H0z"/>
   <path fill="url(#grid)" d="M0 0h1536v1024H0z"/>
   <g fill="none" stroke="#59E1D1" stroke-opacity=".12" stroke-width="3">
     <path d="M-80 730C320 660 430 410 700 492s400 250 940-210"/>

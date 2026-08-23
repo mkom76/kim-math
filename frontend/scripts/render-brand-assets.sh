@@ -39,6 +39,7 @@ resize_png() {
 }
 
 APP_ICON_SVG="$FRONTEND_DIR/src/assets/app-icon.svg"
+GRAY_ICON_SVG="$FRONTEND_DIR/src/assets/app-icon-grayscale.svg"
 BRAND_MARK_SVG="$FRONTEND_DIR/store-assets/app-icon-foreground-source.svg"
 ROUND_ICON_SVG="$FRONTEND_DIR/store-assets/app-icon-round-source.svg"
 FEATURE_SVG="$FRONTEND_DIR/store-assets/feature-graphic-source.svg"
@@ -46,12 +47,17 @@ SPLASH_PORTRAIT_SVG="$FRONTEND_DIR/store-assets/splash-portrait-source.svg"
 SPLASH_LANDSCAPE_SVG="$FRONTEND_DIR/store-assets/splash-landscape-source.svg"
 
 APP_ICON_SOURCE="$FRONTEND_DIR/store-assets/app-icon-source.png"
+GRAY_ICON_SOURCE="$FRONTEND_DIR/store-assets/app-icon-grayscale-source.png"
 ROUND_ICON_SOURCE="$BRAND_TMP_DIR/app-icon-round.png"
 FOREGROUND_SOURCE="$BRAND_TMP_DIR/app-icon-foreground.png"
 
 render_svg "$APP_ICON_SVG" "$APP_ICON_SOURCE" 1254 1254 "--default-background-color=00000000"
 resize_png "$APP_ICON_SOURCE" "$FRONTEND_DIR/store-assets/app-icon-1024.png" 1024 1024
 resize_png "$APP_ICON_SOURCE" "$FRONTEND_DIR/store-assets/app-icon-512.png" 512 512
+
+render_svg "$GRAY_ICON_SVG" "$GRAY_ICON_SOURCE" 1254 1254 "--default-background-color=00000000"
+resize_png "$GRAY_ICON_SOURCE" "$FRONTEND_DIR/store-assets/app-icon-grayscale-1024.png" 1024 1024
+resize_png "$GRAY_ICON_SOURCE" "$FRONTEND_DIR/store-assets/app-icon-grayscale-512.png" 512 512
 
 render_svg "$ROUND_ICON_SVG" "$ROUND_ICON_SOURCE" 1024 1024 "--default-background-color=00000000"
 render_svg "$BRAND_MARK_SVG" "$FOREGROUND_SOURCE" 432 432 "--default-background-color=00000000"
@@ -100,6 +106,8 @@ CLANG_MODULE_CACHE_PATH="$BRAND_SWIFT_CACHE" \
 /usr/bin/swift "$FRONTEND_DIR/scripts/ensure-png-alpha.swift" \
   "$FRONTEND_DIR/store-assets/app-icon-1024.png" \
   "$FRONTEND_DIR/store-assets/app-icon-512.png" \
+  "$FRONTEND_DIR/store-assets/app-icon-grayscale-1024.png" \
+  "$FRONTEND_DIR/store-assets/app-icon-grayscale-512.png" \
   "$FRONTEND_DIR/public/apple-touch-icon.png" \
   "$FRONTEND_DIR/public/favicon-32.png" \
   "$FRONTEND_DIR/public/favicon-16.png"

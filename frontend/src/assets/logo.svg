@@ -2,9 +2,9 @@
   <title id="title">킴매스 앱 아이콘</title>
   <defs>
     <linearGradient id="logo-bg" x1="128" y1="96" x2="896" y2="928" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#08172F"/>
-      <stop offset=".56" stop-color="#0B315D"/>
-      <stop offset="1" stop-color="#0E536D"/>
+      <stop stop-color="#8E98A8"/>
+      <stop offset=".56" stop-color="#727E8E"/>
+      <stop offset="1" stop-color="#5D6979"/>
     </linearGradient>
   </defs>
   <path fill="url(#logo-bg)" d="M0 0h1024v1024H0z"/>
