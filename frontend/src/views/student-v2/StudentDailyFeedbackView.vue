@@ -279,15 +279,20 @@ const incorrectQuestionsWithRate = computed(() => {
   if (!feedback.value?.todayTest) return []
 
   const accuracyMap = new Map(
-    feedback.value.todayTest.questionAccuracyRates.map((q) => [q.questionNumber, q.correctRate]),
+    feedback.value.todayTest.questionAccuracyRates.map((q) => [q.questionNumber, q]),
   )
 
   return feedback.value.todayTest.incorrectQuestions
-    .map((qNum) => ({
-      questionNumber: qNum,
-      academyCorrectRate: accuracyMap.get(qNum) || 0,
-      difficulty: getDifficulty(accuracyMap.get(qNum) || 0),
-    }))
+    .map((qNum) => {
+      const question = accuracyMap.get(qNum)
+      const correctRate = question?.correctRate ?? 0
+      return {
+        questionNumber: qNum,
+        topic: question?.topic,
+        academyCorrectRate: correctRate,
+        difficulty: getDifficulty(correctRate),
+      }
+    })
     .sort((a, b) => a.questionNumber - b.questionNumber)
 })
 
@@ -863,8 +868,8 @@ onMounted(() => {
           >
             <el-table-column
               prop="questionNumber"
-              label="문제 번호"
-              :width="isMobile ? 70 : 120"
+              :label="isMobile ? '문제 / 유형' : '문제 번호'"
+              :width="isMobile ? 130 : 120"
               align="center"
             >
               <template #default="{ row }">
@@ -873,6 +878,27 @@ onMounted(() => {
                   :size="isMobile ? 'small' : 'default'"
                   :style="{ fontSize: tableFontSize }"
                   >{{ row.questionNumber }}번</el-tag
+                >
+                <div
+                  v-if="isMobile"
+                  :style="{
+                    marginTop: '4px',
+                    color: row.topic ? 'var(--student-primary)' : 'var(--student-muted)',
+                    fontSize: smallTextFontSize,
+                    lineHeight: 1.3,
+                  }"
+                >
+                  {{ row.topic || '유형 미지정' }}
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column v-if="!isMobile" label="유형" min-width="160">
+              <template #default="{ row }">
+                <span
+                  :style="{
+                    color: row.topic ? 'var(--student-primary)' : 'var(--student-muted)',
+                  }"
+                  >{{ row.topic || '유형 미지정' }}</span
                 >
               </template>
             </el-table-column>
@@ -956,13 +982,34 @@ onMounted(() => {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                flex-wrap: wrap;
+                gap: 8px;
                 margin-bottom: 10px;
               "
             >
-              <div style="display: flex; align-items: center; gap: 8px">
-                <el-tag type="warning" :size="isMobile ? 'small' : 'default'"
-                  >{{ essay.questionNumber }}번 (서술형)</el-tag
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+                <div
+                  :style="{
+                    display: 'flex',
+                    flexDirection: isMobile ? 'column' : 'row',
+                    alignItems: 'center',
+                    gap: isMobile ? '4px' : '8px',
+                  }"
                 >
+                  <el-tag type="warning" :size="isMobile ? 'small' : 'default'"
+                    >{{ essay.questionNumber }}번 (서술형)</el-tag
+                  >
+                  <span
+                    :style="{
+                      color: essay.topic ? 'var(--student-primary)' : 'var(--student-muted)',
+                      fontSize: smallTextFontSize,
+                      lineHeight: 1.3,
+                      textAlign: 'center',
+                    }"
+                  >
+                    {{ essay.topic || '유형 미지정' }}
+                  </span>
+                </div>
                 <el-tag
                   type="info"
                   effect="plain"
