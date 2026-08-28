@@ -15,6 +15,7 @@ const editIncorrectQuestionsMap = ref<Record<string, string[]>>({})
 const editUnsolvedQuestionsMap = ref<Record<string, string[]>>({})
 const incorrectTagInput = ref<Record<string, string>>({})
 const unsolvedTagInput = ref<Record<string, string>>({})
+const assigningStudentId = ref<number | null>(null)
 
 const clinicId = computed(() => Number(route.params.id))
 
@@ -256,6 +257,61 @@ const updateAttendance = async (registrationId: number, status: string) => {
   }
 }
 
+const getApiMessage = (error: unknown, fallback: string) =>
+  (error as { response?: { data?: { message?: string } } }).response?.data?.message || fallback
+
+const assignStudentToClinic = async (student: StudentClinicHomework) => {
+  if (clinicDetail.value?.clinic.status !== 'OPEN') return
+
+  try {
+    await ElMessageBox.confirm(
+      `${student.studentName} 학생을 이 클리닉에 배정하시겠습니까?`,
+      '클리닉 배정',
+      {
+        confirmButtonText: '배정',
+        cancelButtonText: '취소',
+        type: 'warning',
+      }
+    )
+
+    assigningStudentId.value = student.studentId
+    await clinicAPI.assignStudentToClinic(clinicId.value, student.studentId)
+    ElMessage.success(`${student.studentName} 학생을 클리닉에 배정했습니다.`)
+    await fetchClinicDetail()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(getApiMessage(error, '클리닉 배정에 실패했습니다.'))
+    }
+  } finally {
+    assigningStudentId.value = null
+  }
+}
+
+const cancelStudentAssignment = async (student: StudentClinicHomework) => {
+  try {
+    await ElMessageBox.confirm(
+      `${student.studentName} 학생의 클리닉 신청·배정을 취소하시겠습니까?`,
+      '클리닉 배정 취소',
+      {
+        confirmButtonText: '배정 취소',
+        cancelButtonText: '돌아가기',
+        type: 'warning',
+      }
+    )
+
+    assigningStudentId.value = student.studentId
+    await clinicAPI.cancelStudentAssignment(clinicId.value, student.studentId)
+    ElMessage.success(`${student.studentName} 학생의 클리닉 배정을 취소했습니다.`)
+    await fetchClinicDetail()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(getApiMessage(error, '클리닉 배정 취소에 실패했습니다.'))
+    }
+  } finally {
+    assigningStudentId.value = null
+  }
+}
+
 const getStatusTag = (status: string) => {
   if (status === 'ATTENDED') return 'success'
   if (status === 'REGISTERED') return 'primary'
@@ -339,6 +395,17 @@ onMounted(() => {
               :disabled="student.registration!.status === 'ATTENDED'"
             >
               참석 체크
+            </el-button>
+            <el-button
+              v-if="clinicDetail?.clinic.status === 'OPEN' && student.registration!.status === 'REGISTERED'"
+              size="small"
+              type="danger"
+              plain
+              :loading="assigningStudentId === student.studentId"
+              :disabled="assigningStudentId !== null && assigningStudentId !== student.studentId"
+              @click="cancelStudentAssignment(student)"
+            >
+              배정 취소
             </el-button>
           </div>
         </div>
@@ -495,11 +562,23 @@ onMounted(() => {
       </template>
 
       <div v-for="student in unregisteredStudents" :key="student.studentId" style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #ebeef5">
-        <div style="margin-bottom: 12px">
-          <h4 style="margin: 0; font-size: 16px; font-weight: 600; color: #606266">{{ student.studentName }}</h4>
-          <div v-if="student.homeworks.length > 0" style="margin-top: 8px">
-            <el-tag type="warning" size="small">완성도 낮은 숙제: {{ student.homeworks.length }}개</el-tag>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px">
+          <div>
+            <h4 style="margin: 0; font-size: 16px; font-weight: 600; color: #606266">{{ student.studentName }}</h4>
+            <div v-if="student.homeworks.length > 0" style="margin-top: 8px">
+              <el-tag type="warning" size="small">완성도 낮은 숙제: {{ student.homeworks.length }}개</el-tag>
+            </div>
           </div>
+          <el-button
+            v-if="clinicDetail?.clinic.status === 'OPEN'"
+            type="primary"
+            size="small"
+            :loading="assigningStudentId === student.studentId"
+            :disabled="assigningStudentId !== null && assigningStudentId !== student.studentId"
+            @click="assignStudentToClinic(student)"
+          >
+            클리닉 배정
+          </el-button>
         </div>
 
         <div v-if="student.homeworks.length > 0">

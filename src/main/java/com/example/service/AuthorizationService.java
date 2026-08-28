@@ -97,6 +97,16 @@ public class AuthorizationService {
     }
 
     /**
+     * Require a student caller to act on their own student record.
+     */
+    public void assertCurrentStudent(Long studentId) {
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null || ctx.role() != null || !ctx.teacherId().equals(studentId)) {
+            throw new ForbiddenException("본인의 클리닉 신청만 변경할 수 있습니다");
+        }
+    }
+
+    /**
      * Unified check for modifying an AcademyClass. Preserves the previous
      * behavior (academy match → admin pass → owner check) by delegating to
      * {@link #assertCanAccess(Long, Long)}.

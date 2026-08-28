@@ -875,6 +875,10 @@ export const clinicAPI = {
     client.post<ClinicRegistration>(`/clinics/${clinicId}/register`, { studentId }),
   cancelRegistration: (clinicId: number, studentId: number) =>
     client.delete(`/clinics/${clinicId}/register/${studentId}`),
+  assignStudentToClinic: (clinicId: number, studentId: number) =>
+    client.post<ClinicRegistration>(`/clinics/${clinicId}/assign`, { studentId }),
+  cancelStudentAssignment: (clinicId: number, studentId: number) =>
+    client.delete(`/clinics/${clinicId}/assign/${studentId}`),
   updateAttendance: (registrationId: number, status: string) =>
     client.put<ClinicRegistration>(`/clinics/registrations/${registrationId}/attendance`, { status }),
   getStudentClinicInfo: (studentId: number) =>

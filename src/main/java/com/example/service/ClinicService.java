@@ -166,12 +166,25 @@ public class ClinicService {
      * 학생이 클리닉 신청
      */
     public ClinicRegistrationDto registerForClinic(Long clinicId, Long studentId) {
+        authorizationService.assertCurrentStudent(studentId);
+        return registerStudent(clinicId, studentId);
+    }
+
+    /**
+     * 선생님이 학생을 클리닉에 배정
+     */
+    public ClinicRegistrationDto assignStudentToClinic(Long clinicId, Long studentId) {
+        return registerStudent(clinicId, studentId);
+    }
+
+    private ClinicRegistrationDto registerStudent(Long clinicId, Long studentId) {
         Clinic clinic = clinicRepository.findById(clinicId)
                 .orElseThrow(() -> new RuntimeException("Clinic not found"));
         authorizationService.assertCanAccessClinic(clinic);
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
+        assertStudentBelongsToClinicClass(clinic, student);
 
         // Check if clinic is open
         if (clinic.getStatus() != ClinicStatus.OPEN) {
@@ -209,13 +222,34 @@ public class ClinicService {
      * 신청 취소
      */
     public void cancelRegistration(Long clinicId, Long studentId) {
+        authorizationService.assertCurrentStudent(studentId);
+        cancelStudentRegistration(clinicId, studentId);
+    }
+
+    /**
+     * 선생님이 학생의 클리닉 배정을 취소
+     */
+    public void cancelStudentAssignment(Long clinicId, Long studentId) {
+        cancelStudentRegistration(clinicId, studentId);
+    }
+
+    private void cancelStudentRegistration(Long clinicId, Long studentId) {
         ClinicRegistration registration = clinicRegistrationRepository
                 .findByClinicIdAndStudentId(clinicId, studentId)
                 .orElseThrow(() -> new RuntimeException("Registration not found"));
         authorizationService.assertCanAccessClinic(registration.getClinic());
+        authorizationService.assertCanAccessStudent(registration.getStudent());
+        assertStudentBelongsToClinicClass(registration.getClinic(), registration.getStudent());
 
         registration.setStatus(ClinicRegistrationStatus.CANCELLED);
         clinicRegistrationRepository.save(registration);
+    }
+
+    private void assertStudentBelongsToClinicClass(Clinic clinic, Student student) {
+        if (student.getAcademyClass() == null
+                || !clinic.getAcademyClass().getId().equals(student.getAcademyClass().getId())) {
+            throw new IllegalArgumentException("해당 클리닉과 같은 반의 학생만 배정할 수 있습니다");
+        }
     }
 
     /**

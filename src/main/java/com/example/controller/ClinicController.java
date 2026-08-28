@@ -38,6 +38,7 @@ public class ClinicController {
         return ResponseEntity.ok(clinicService.getClinicDetail(clinicId));
     }
 
+    @PreAuthorize("hasRole('STUDENT')")
     @PostMapping("/{clinicId}/register")
     public ResponseEntity<ClinicRegistrationDto> registerForClinic(
             @PathVariable Long clinicId,
@@ -45,11 +46,29 @@ public class ClinicController {
         return ResponseEntity.ok(clinicService.registerForClinic(clinicId, request.getStudentId()));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
+    @PostMapping("/{clinicId}/assign")
+    public ResponseEntity<ClinicRegistrationDto> assignStudentToClinic(
+            @PathVariable Long clinicId,
+            @RequestBody RegisterRequest request) {
+        return ResponseEntity.ok(clinicService.assignStudentToClinic(clinicId, request.getStudentId()));
+    }
+
+    @PreAuthorize("hasRole('STUDENT')")
     @DeleteMapping("/{clinicId}/register/{studentId}")
     public ResponseEntity<Void> cancelRegistration(
             @PathVariable Long clinicId,
             @PathVariable Long studentId) {
         clinicService.cancelRegistration(clinicId, studentId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @DeleteMapping("/{clinicId}/assign/{studentId}")
+    public ResponseEntity<Void> cancelStudentAssignment(
+            @PathVariable Long clinicId,
+            @PathVariable Long studentId) {
+        clinicService.cancelStudentAssignment(clinicId, studentId);
         return ResponseEntity.noContent().build();
     }
 
