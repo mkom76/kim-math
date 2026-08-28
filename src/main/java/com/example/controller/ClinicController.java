@@ -3,6 +3,8 @@ package com.example.controller;
 import com.example.dto.*;
 import com.example.entity.ClinicRegistrationStatus;
 import com.example.service.ClinicService;
+import com.example.service.StudentClassContextService;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,6 +20,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ClinicController {
     private final ClinicService clinicService;
+    private final StudentClassContextService studentClassContextService;
 
     @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/class/{classId}")
@@ -81,8 +84,12 @@ public class ClinicController {
     }
 
     @GetMapping("/student/{studentId}/info")
-    public ResponseEntity<StudentClinicInfoDto> getStudentClinicInfo(@PathVariable Long studentId) {
-        return ResponseEntity.ok(clinicService.getStudentClinicInfo(studentId));
+    public ResponseEntity<StudentClinicInfoDto> getStudentClinicInfo(
+            @PathVariable Long studentId,
+            HttpSession session) {
+        Long activeClassId = studentClassContextService
+                .activeClassIdForStudentRequest(session, studentId);
+        return ResponseEntity.ok(clinicService.getStudentClinicInfo(studentId, activeClassId));
     }
 
     @PreAuthorize("hasRole('TEACHER')")
@@ -112,8 +119,13 @@ public class ClinicController {
     }
 
     @GetMapping("/student/{studentId}/recent-result")
-    public ResponseEntity<RecentClinicResultDto> getRecentClinicResult(@PathVariable Long studentId) {
-        Optional<RecentClinicResultDto> result = clinicService.getRecentClinicResult(studentId);
+    public ResponseEntity<RecentClinicResultDto> getRecentClinicResult(
+            @PathVariable Long studentId,
+            HttpSession session) {
+        Long activeClassId = studentClassContextService
+                .activeClassIdForStudentRequest(session, studentId);
+        Optional<RecentClinicResultDto> result =
+                clinicService.getRecentClinicResult(studentId, activeClassId);
         return result.map(ResponseEntity::ok)
                      .orElse(ResponseEntity.noContent().build());
     }

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface AcademyClassRepository extends JpaRepository<AcademyClass, Long> {
     Page<AcademyClass> findByEndedAtIsNull(Pageable pageable);
+    boolean existsByIdAndEndedAtIsNotNull(Long id);
 
     int countByAcademy_IdAndOwnerTeacherId(Long academyId, Long ownerTeacherId);
 

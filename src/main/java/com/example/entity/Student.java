@@ -102,4 +102,8 @@ public class Student {
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<StudentVideoProgress> videoProgresses = new ArrayList<>();
+
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<StudentClassEnrollment> classEnrollments = new ArrayList<>();
 }

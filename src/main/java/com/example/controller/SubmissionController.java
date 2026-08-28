@@ -4,6 +4,8 @@ import com.example.dto.EssayGradeRequest;
 import com.example.dto.StudentSubmissionDto;
 import com.example.dto.SubmissionDetailDto;
 import com.example.service.SubmissionService;
+import com.example.service.StudentClassContextService;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +20,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SubmissionController {
     private final SubmissionService submissionService;
+    private final StudentClassContextService studentClassContextService;
     
     @PostMapping
     public ResponseEntity<StudentSubmissionDto> submitAnswers(
@@ -63,8 +66,12 @@ public class SubmissionController {
     }
     
     @GetMapping("/student/{studentId}")
-    public ResponseEntity<List<StudentSubmissionDto>> getStudentSubmissions(@PathVariable Long studentId) {
-        return ResponseEntity.ok(submissionService.getStudentSubmissions(studentId));
+    public ResponseEntity<List<StudentSubmissionDto>> getStudentSubmissions(
+            @PathVariable Long studentId,
+            HttpSession session) {
+        Long activeClassId = studentClassContextService
+                .activeClassIdForStudentRequest(session, studentId);
+        return ResponseEntity.ok(submissionService.getStudentSubmissions(studentId, activeClassId));
     }
 
     @GetMapping("/test/{testId}")

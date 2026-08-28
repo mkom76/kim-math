@@ -8,6 +8,7 @@ import type { AuthResponse } from '@/api/client'
 import AcademySwitcher from '@/components/AcademySwitcher.vue'
 import StudentBottomNav from '@/components/StudentBottomNav.vue'
 import StudentBottomNavV2 from '@/components/StudentBottomNavV2.vue'
+import StudentClassSwitcher from '@/components/StudentClassSwitcher.vue'
 import appIconUrl from '@/assets/app-icon.svg'
 import { useAuthStore } from '@/stores/auth'
 import { useStudentUiMode } from '@/composables/useStudentUiMode'
@@ -37,6 +38,9 @@ const isStudentV2 = computed(
 // Test-taking screen wants the full viewport; suppress bottom nav there.
 const isTestTaking = computed(() => /^\/student\/tests\/[^/]+$/.test(route.path))
 const showStudentNav = computed(
+  () => isStudentRoute.value && route.path.startsWith('/student/') && !isTestTaking.value,
+)
+const showStudentClassSwitcher = computed(
   () => isStudentRoute.value && route.path.startsWith('/student/') && !isTestTaking.value,
 )
 
@@ -266,6 +270,7 @@ onBeforeUnmount(() => {
         backgroundColor: isLoginPage ? '#fff' : isStudentV2 ? undefined : '#f5f7fa',
       }"
     >
+      <StudentClassSwitcher v-if="showStudentClassSwitcher" />
       <RouterView />
     </el-main>
 

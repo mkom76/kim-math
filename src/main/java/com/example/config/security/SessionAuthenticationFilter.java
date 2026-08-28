@@ -45,8 +45,16 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
                         }
                     } else if ("STUDENT".equals(userRole)) {
                         Long studentAcademyId = (Long) session.getAttribute("studentAcademyId");
+                        Long activeStudentClassId =
+                                (Long) session.getAttribute("activeStudentClassId");
+                        boolean activeStudentClassReadOnly = Boolean.TRUE.equals(
+                                session.getAttribute("activeStudentClassReadOnly"));
                         if (studentAcademyId != null) {
-                            TenantContext.setStudent(userId, studentAcademyId);
+                            TenantContext.setStudent(
+                                    userId,
+                                    studentAcademyId,
+                                    activeStudentClassId,
+                                    activeStudentClassReadOnly);
                         }
                     }
 

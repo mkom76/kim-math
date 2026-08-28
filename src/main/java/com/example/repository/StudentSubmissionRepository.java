@@ -13,6 +13,7 @@ import java.util.Optional;
 public interface StudentSubmissionRepository extends JpaRepository<StudentSubmission, Long> {
     List<StudentSubmission> findByTestId(Long testId);
     List<StudentSubmission> findByStudentId(Long studentId);
+    List<StudentSubmission> findByStudentIdAndTestAcademyClassId(Long studentId, Long classId);
     Optional<StudentSubmission> findByStudentIdAndTestId(Long studentId, Long testId);
     
     @Query("SELECT AVG(s.totalScore) FROM StudentSubmission s WHERE s.test.id = :testId")

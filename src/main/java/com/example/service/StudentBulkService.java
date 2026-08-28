@@ -29,6 +29,7 @@ public class StudentBulkService {
     private final AuthorizationService authorizationService;
     private final PinCredentialService pinCredentialService;
     private final StudentConsentIssuer studentConsentIssuer;
+    private final StudentClassEnrollmentService studentClassEnrollmentService;
 
     public StudentBulkCreateResponse bulkCreate(StudentBulkCreateRequest req) {
         TenantContext.Context ctx = TenantContext.current();
@@ -68,6 +69,8 @@ public class StudentBulkService {
                     .build();
             pinCredentialService.setStudentPin(student, pin);
             student = studentRepository.save(student);
+            studentClassEnrollmentService.ensureActiveEnrollment(
+                    student, clazz, ctx.teacherId());
 
             String token = studentConsentIssuer.issue(student, now);
 

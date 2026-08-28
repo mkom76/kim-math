@@ -16,14 +16,19 @@ import com.example.entity.TeacherAcademyRole;
  */
 public final class TenantContext {
 
-    public record Context(Long teacherId, Long academyId, TeacherAcademyRole role) {}
+    public record Context(
+            Long teacherId,
+            Long academyId,
+            TeacherAcademyRole role,
+            Long studentClassId,
+            boolean studentClassReadOnly) {}
 
     private static final ThreadLocal<Context> CONTEXT = new ThreadLocal<>();
 
     private TenantContext() {}
 
     public static void set(Long teacherId, Long academyId, TeacherAcademyRole role) {
-        CONTEXT.set(new Context(teacherId, academyId, role));
+        CONTEXT.set(new Context(teacherId, academyId, role, null, false));
     }
 
     /**
@@ -32,7 +37,20 @@ public final class TenantContext {
      * owner filter.
      */
     public static void setStudent(Long studentId, Long academyId) {
-        CONTEXT.set(new Context(studentId, academyId, null));
+        setStudent(studentId, academyId, null);
+    }
+
+    public static void setStudent(Long studentId, Long academyId, Long studentClassId) {
+        setStudent(studentId, academyId, studentClassId, false);
+    }
+
+    public static void setStudent(
+            Long studentId,
+            Long academyId,
+            Long studentClassId,
+            boolean studentClassReadOnly) {
+        CONTEXT.set(new Context(
+                studentId, academyId, null, studentClassId, studentClassReadOnly));
     }
 
     public static Context current() {

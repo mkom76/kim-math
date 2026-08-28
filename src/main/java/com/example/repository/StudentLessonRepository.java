@@ -54,6 +54,9 @@ public interface StudentLessonRepository extends JpaRepository<StudentLesson, Lo
 
     @Query("SELECT sl.attendanceStatus, COUNT(sl) FROM StudentLesson sl " +
            "WHERE sl.student.id = :studentId " +
+           "AND sl.lesson.academyClass.id = :classId " +
            "GROUP BY sl.attendanceStatus")
-    List<Object[]> countByStudentIdGroupByAttendanceStatus(@Param("studentId") Long studentId);
+    List<Object[]> countByStudentIdAndClassIdGroupByAttendanceStatus(
+            @Param("studentId") Long studentId,
+            @Param("classId") Long classId);
 }

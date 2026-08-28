@@ -7,6 +7,8 @@ import com.example.dto.LessonStudentStatsDto;
 import com.example.dto.StudentHomeworkAssignmentDto;
 import com.example.dto.StudentLessonDto;
 import com.example.service.LessonService;
+import com.example.service.StudentClassContextService;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +26,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class LessonController {
     private final LessonService lessonService;
+    private final StudentClassContextService studentClassContextService;
 
     @GetMapping
     public ResponseEntity<Page<LessonDto>> getLessons(
@@ -100,8 +103,12 @@ public class LessonController {
     }
 
     @GetMapping("/student/{studentId}")
-    public ResponseEntity<List<LessonDto>> getLessonsByStudent(@PathVariable Long studentId) {
-        return ResponseEntity.ok(lessonService.getLessonsByStudent(studentId));
+    public ResponseEntity<List<LessonDto>> getLessonsByStudent(
+            @PathVariable Long studentId,
+            HttpSession session) {
+        Long activeClassId = studentClassContextService
+                .activeClassIdForStudentRequest(session, studentId);
+        return ResponseEntity.ok(lessonService.getLessonsByStudent(studentId, activeClassId));
     }
 
     @GetMapping("/{lessonId}/stats")
@@ -141,8 +148,12 @@ public class LessonController {
     }
 
     @GetMapping("/attendance/student/{studentId}")
-    public ResponseEntity<AttendanceStatsDto> getAttendanceStats(@PathVariable Long studentId) {
-        return ResponseEntity.ok(lessonService.getAttendanceStats(studentId));
+    public ResponseEntity<AttendanceStatsDto> getAttendanceStats(
+            @PathVariable Long studentId,
+            HttpSession session) {
+        Long activeClassId = studentClassContextService
+                .activeClassIdForStudentRequest(session, studentId);
+        return ResponseEntity.ok(lessonService.getAttendanceStats(studentId, activeClassId));
     }
 
     // Request DTO for attendance

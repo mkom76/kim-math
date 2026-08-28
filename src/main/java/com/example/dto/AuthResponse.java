@@ -20,4 +20,7 @@ public class AuthResponse {
     private Long activeAcademyId;
     private String activeRole;
     private String studentUiDefaultMode;
+    private List<StudentClassMembershipDto> studentClasses;
+    private Long activeStudentClassId;
+    private Boolean studentClassReadOnly;
 }

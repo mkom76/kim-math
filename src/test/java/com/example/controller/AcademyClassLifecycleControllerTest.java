@@ -5,6 +5,10 @@ import com.example.entity.AcademyClass;
 import com.example.entity.Teacher;
 import com.example.entity.TeacherAcademy;
 import com.example.entity.TeacherAcademyRole;
+import com.example.entity.Student;
+import com.example.entity.StudentClassEnrollment;
+import com.example.entity.StudentClassEnrollmentStatus;
+import com.example.repository.StudentClassEnrollmentRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +39,7 @@ class AcademyClassLifecycleControllerTest {
 
     @Autowired private MockMvc mockMvc;
     @PersistenceContext private EntityManager em;
+    @Autowired private StudentClassEnrollmentRepository enrollmentRepository;
 
     private Academy academy;
     private Teacher teacher;
@@ -113,6 +118,49 @@ class AcademyClassLifecycleControllerTest {
                                 """.formatted(academy.getId(), endedClass.getId())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("종강한 반에는 새 항목을 등록할 수 없습니다. 먼저 반 운영을 재개해주세요."));
+    }
+
+    @Test
+    void ending_and_reopening_class_updates_only_class_ended_enrollments() throws Exception {
+        Student student = Student.builder()
+                .name("종강 대상 학생")
+                .grade("고1")
+                .school("테스트고")
+                .academy(academy)
+                .academyClass(activeClass)
+                .build();
+        em.persist(student);
+        StudentClassEnrollment enrollment = StudentClassEnrollment.builder()
+                .student(student)
+                .academyClass(activeClass)
+                .status(StudentClassEnrollmentStatus.ACTIVE)
+                .startedAt(LocalDateTime.now().minusMonths(1))
+                .build();
+        em.persist(enrollment);
+        em.flush();
+
+        mockMvc.perform(patch("/api/classes/{id}/end", activeClass.getId())
+                        .session(teacherSession()))
+                .andExpect(status().isOk());
+
+        em.flush();
+        em.clear();
+        StudentClassEnrollment completed = enrollmentRepository.findById(enrollment.getId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(completed.getStatus())
+                .isEqualTo(StudentClassEnrollmentStatus.COMPLETED);
+        org.assertj.core.api.Assertions.assertThat(completed.getEndedAt()).isNotNull();
+        org.assertj.core.api.Assertions.assertThat(completed.getEndReason()).isEqualTo("CLASS_ENDED");
+
+        mockMvc.perform(patch("/api/classes/{id}/reopen", activeClass.getId())
+                        .session(teacherSession()))
+                .andExpect(status().isOk());
+
+        em.flush();
+        em.clear();
+        StudentClassEnrollment reopened = enrollmentRepository.findById(enrollment.getId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(reopened.getStatus())
+                .isEqualTo(StudentClassEnrollmentStatus.ACTIVE);
+        org.assertj.core.api.Assertions.assertThat(reopened.getEndedAt()).isNull();
     }
 
     private MockHttpSession teacherSession() {

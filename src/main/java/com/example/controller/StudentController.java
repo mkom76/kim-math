@@ -7,6 +7,8 @@ import com.example.dto.StudentCreateResponse;
 import com.example.dto.StudentDto;
 import com.example.service.StudentBulkService;
 import com.example.service.StudentService;
+import com.example.service.StudentClassContextService;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 public class StudentController {
     private final StudentService studentService;
     private final StudentBulkService studentBulkService;
+    private final StudentClassContextService studentClassContextService;
 
     @PreAuthorize("hasRole('TEACHER')")
     @GetMapping
@@ -34,8 +37,10 @@ public class StudentController {
     }
     
     @GetMapping("/{id}")
-    public ResponseEntity<StudentDto> getStudent(@PathVariable Long id) {
-        return ResponseEntity.ok(studentService.getStudent(id));
+    public ResponseEntity<StudentDto> getStudent(@PathVariable Long id, HttpSession session) {
+        Long activeClassId = studentClassContextService
+                .activeClassIdForStudentRequest(session, id);
+        return ResponseEntity.ok(studentService.getStudent(id, activeClassId));
     }
     
     @PreAuthorize("hasRole('TEACHER')")

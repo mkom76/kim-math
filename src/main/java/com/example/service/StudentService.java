@@ -30,6 +30,7 @@ public class StudentService {
     private final AuthorizationService authorizationService;
     private final PinCredentialService pinCredentialService;
     private final StudentConsentIssuer studentConsentIssuer;
+    private final StudentClassEnrollmentService studentClassEnrollmentService;
 
     public Page<StudentDto> getStudents(String name, Pageable pageable) {
         Page<Student> students;
@@ -41,11 +42,18 @@ public class StudentService {
         return students.map(StudentDto::from);
     }
 
-    public StudentDto getStudent(Long id) {
+    public StudentDto getStudent(Long id, Long activeClassId) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
-        return StudentDto.from(student);
+        StudentDto dto = StudentDto.from(student);
+        if (activeClassId != null) {
+            AcademyClass activeClass = academyClassRepository.findById(activeClassId)
+                    .orElseThrow(() -> new RuntimeException("Class not found"));
+            dto.setClassId(activeClass.getId());
+            dto.setClassName(activeClass.getName());
+        }
+        return dto;
     }
 
     public StudentCreateResponse createStudent(StudentCreateRequest dto) {
@@ -88,6 +96,8 @@ public class StudentService {
         pinCredentialService.setStudentPin(student, pin);
 
         student = studentRepository.save(student);
+        studentClassEnrollmentService.ensureActiveEnrollment(
+                student, academyClass, currentTeacherId());
         String consentToken = studentConsentIssuer.issue(student, LocalDateTime.now());
         return StudentCreateResponse.builder()
                 .student(StudentDto.from(student))
@@ -105,9 +115,7 @@ public class StudentService {
         student.setSchool(dto.getSchool());
 
         if (dto.getAcademyId() != null && !dto.getAcademyId().equals(student.getAcademy().getId())) {
-            Academy academy = academyRepository.findById(dto.getAcademyId())
-                    .orElseThrow(() -> new RuntimeException("Academy not found"));
-            student.setAcademy(academy);
+            throw new ForbiddenException("학생 계정의 소속 학원은 변경할 수 없습니다");
         }
 
         if (dto.getClassId() != null && !dto.getClassId().equals(student.getAcademyClass().getId())) {
@@ -116,6 +124,8 @@ public class StudentService {
             authorizationService.assertCanModifyClass(academyClass);
             AcademyClassPolicy.assertActive(academyClass);
             student.setAcademyClass(academyClass);
+            studentClassEnrollmentService.ensureActiveEnrollment(
+                    student, academyClass, currentTeacherId());
         }
 
         student = studentRepository.save(student);
@@ -154,5 +164,10 @@ public class StudentService {
 
     private static String emptyToNull(String value) {
         return value == null || value.isEmpty() ? null : value;
+    }
+
+    private Long currentTeacherId() {
+        TenantContext.Context ctx = TenantContext.current();
+        return ctx != null && ctx.role() != null ? ctx.teacherId() : null;
     }
 }

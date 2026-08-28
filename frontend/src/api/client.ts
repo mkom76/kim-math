@@ -316,6 +316,18 @@ interface Membership {
   role: 'TEACHER' | 'ACADEMY_ADMIN' | 'ASSISTANT';
 }
 
+interface StudentClassMembership {
+  classId: number;
+  className: string;
+  academyId: number;
+  academyName: string;
+  status: 'SCHEDULED' | 'ACTIVE' | 'COMPLETED' | 'WITHDRAWN';
+  startedAt?: string;
+  endedAt?: string;
+  selectable: boolean;
+  readOnly: boolean;
+}
+
 interface AuthResponse {
   userId?: number;
   name?: string;
@@ -324,6 +336,9 @@ interface AuthResponse {
   activeAcademyId?: number;
   activeRole?: 'TEACHER' | 'ACADEMY_ADMIN' | 'ASSISTANT';
   studentUiDefaultMode?: 'legacy' | 'v2';
+  studentClasses?: StudentClassMembership[];
+  activeStudentClassId?: number;
+  studentClassReadOnly?: boolean;
   message?: string;
 }
 
@@ -721,6 +736,8 @@ export const authAPI = {
   getCurrentUser: () => client.get<AuthResponse>('/auth/me'),
   switchAcademy: (academyId: number) =>
     client.post<AuthResponse>('/auth/switch-academy', { academyId }),
+  switchStudentClass: (classId: number) =>
+    client.post<AuthResponse>('/auth/switch-class', { classId }),
   changePin: (currentPin: string, newPin: string) =>
     client.put<AuthResponse>('/auth/change-pin', { currentPin, newPin }),
 };
@@ -1070,6 +1087,7 @@ export type {
   Lesson,
   LoginDto,
   AuthResponse,
+  StudentClassMembership,
   Membership
 };
 

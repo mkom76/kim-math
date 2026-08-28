@@ -62,8 +62,13 @@ public class AuthorizationService {
         if (ctx.role() == TeacherAcademyRole.ACADEMY_ADMIN) {
             return;
         }
-        // Student: academy match is enough (filters cover ownership)
+        // Student: academy and the active class selected in the session must match.
         if (ctx.role() == null) {
+            if (ctx.studentClassId() != null
+                    && entityClassId != null
+                    && !ctx.studentClassId().equals(entityClassId)) {
+                throw new ForbiddenException("현재 선택한 반의 리소스만 접근할 수 있습니다");
+            }
             return;
         }
         // Teacher / Assistant: must own the class OR be registered as its assistant
@@ -106,6 +111,13 @@ public class AuthorizationService {
         }
     }
 
+    public void assertStudentClassWritable() {
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx != null && ctx.role() == null && ctx.studentClassReadOnly()) {
+            throw new ForbiddenException("종강한 반은 조회만 할 수 있습니다");
+        }
+    }
+
     /**
      * Unified check for modifying an AcademyClass. Preserves the previous
      * behavior (academy match → admin pass → owner check) by delegating to
@@ -135,8 +147,16 @@ public class AuthorizationService {
                 : (student.getAcademyClass() != null && student.getAcademyClass().getAcademy() != null
                     ? student.getAcademyClass().getAcademy().getId()
                     : null);
-        Long classId = student.getAcademyClass() != null ? student.getAcademyClass().getId() : null;
-        assertCanAccess(academyId, classId);
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx != null && ctx.role() == null) {
+            if (!student.getId().equals(ctx.teacherId())) {
+                throw new ForbiddenException("본인의 학생 정보만 접근할 수 있습니다");
+            }
+            assertCanAccess(academyId, null);
+            return;
+        }
+        Long legacyClassId = student.getAcademyClass() != null ? student.getAcademyClass().getId() : null;
+        assertCanAccess(academyId, legacyClassId);
     }
 
     public void assertCanAccessLesson(Lesson lesson) {
@@ -186,5 +206,8 @@ public class AuthorizationService {
             throw new ForbiddenException("제출 기록의 학생 정보가 없습니다");
         }
         assertCanAccessStudent(submission.getStudent());
+        if (submission.getTest() != null) {
+            assertCanAccessTest(submission.getTest());
+        }
     }
 }

@@ -3,7 +3,9 @@ package com.example.controller;
 import com.example.dto.AuthResponse;
 import com.example.dto.LoginDto;
 import com.example.dto.MembershipDto;
+import com.example.dto.StudentClassMembershipDto;
 import com.example.dto.SwitchAcademyRequest;
+import com.example.dto.SwitchStudentClassRequest;
 import com.example.entity.Student;
 import com.example.entity.StudentStatus;
 import com.example.entity.Teacher;
@@ -16,6 +18,8 @@ import com.example.service.PinCredentialService;
 import com.example.service.AuthSessionService;
 import com.example.service.RememberMeService;
 import com.example.service.StudentUiPolicyService;
+import com.example.service.StudentClassContextService;
+import com.example.service.StudentClassEnrollmentService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -46,6 +50,8 @@ public class AuthController {
     private final AuthSessionService authSessionService;
     private final RememberMeService rememberMeService;
     private final StudentUiPolicyService studentUiPolicyService;
+    private final StudentClassContextService studentClassContextService;
+    private final StudentClassEnrollmentService studentClassEnrollmentService;
 
     @GetMapping("/csrf")
     public ResponseEntity<Map<String, String>> csrf(CsrfToken token) {
@@ -112,7 +118,9 @@ public class AuthController {
 
         loginSecurityService.recordSuccess(student, now);
 
-        authSessionService.bindStudent(authSessionService.startAuthenticatedSession(request), student);
+        HttpSession session = authSessionService.startAuthenticatedSession(request);
+        authSessionService.bindStudent(session, student);
+        StudentClassMembershipDto activeClass = studentClassContextService.current(session, student.getId());
         refreshRememberMe(request, response, "STUDENT", student.getId(), loginDto.getRememberMe());
 
         return ResponseEntity.ok(AuthResponse.builder()
@@ -120,6 +128,9 @@ public class AuthController {
                 .name(student.getName())
                 .role("STUDENT")
                 .studentUiDefaultMode(studentUiPolicyService.defaultModeForStudent(student))
+                .studentClasses(studentClassEnrollmentService.getMemberships(student.getId()))
+                .activeStudentClassId(activeClass.getClassId())
+                .studentClassReadOnly(activeClass.isReadOnly())
                 .message("로그인 성공")
                 .build());
     }
@@ -216,6 +227,37 @@ public class AuthController {
                 .build());
     }
 
+    @PostMapping("/switch-class")
+    public ResponseEntity<AuthResponse> switchStudentClass(
+            @Valid @RequestBody SwitchStudentClassRequest req,
+            HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        String userRole = (String) session.getAttribute("userRole");
+
+        if (userId == null || !"STUDENT".equals(userRole)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        StudentClassMembershipDto activeClass;
+        try {
+            activeClass = studentClassContextService.switchClass(session, userId, req.getClassId());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(AuthResponse.builder().message(e.getMessage()).build());
+        }
+
+        return ResponseEntity.ok(AuthResponse.builder()
+                .userId(userId)
+                .name((String) session.getAttribute("userName"))
+                .role("STUDENT")
+                .studentClasses(studentClassEnrollmentService.getMemberships(userId))
+                .activeStudentClassId(activeClass.getClassId())
+                .studentClassReadOnly(activeClass.isReadOnly())
+                .studentUiDefaultMode(studentUiPolicyService.defaultModeForAcademy(
+                        (Long) session.getAttribute("studentAcademyId")))
+                .build());
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request,
                                        HttpServletResponse response) {
@@ -253,6 +295,14 @@ public class AuthController {
         } else if ("STUDENT".equals(userRole)) {
             builder.studentUiDefaultMode(studentUiPolicyService.defaultModeForAcademy(
                     (Long) session.getAttribute("studentAcademyId")));
+            // Keep the existing UI-policy response usable for a stale/test session,
+            // while real students receive the class context below.
+            if (studentRepository.existsById(userId)) {
+                StudentClassMembershipDto activeClass = studentClassContextService.current(session, userId);
+                builder.studentClasses(studentClassEnrollmentService.getMemberships(userId));
+                builder.activeStudentClassId(activeClass.getClassId());
+                builder.studentClassReadOnly(activeClass.isReadOnly());
+            }
         }
 
         return ResponseEntity.ok(builder.build());
