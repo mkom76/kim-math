@@ -312,15 +312,24 @@ interface AuthResponse {
   message?: string;
 }
 
+interface ListQueryParams {
+  page?: number;
+  size?: number;
+  sort?: string;
+  includeEnded?: boolean;
+}
+
+type SubmissionAnswers = Record<number, string>;
+
 // Academies API
 export const academyAPI = {
-  getAcademies: (params?: any) => client.get('/academies', { params }),
+  getAcademies: (params?: ListQueryParams) => client.get('/academies', { params }),
   updateAcademy: (id: number, data: Academy) => client.put(`/academies/${id}`, data),
 };
 
 // Academy Classes API
 export const academyClassAPI = {
-  getAcademyClasses: (params?: any) => client.get('/classes', { params }),
+  getAcademyClasses: (params?: ListQueryParams) => client.get('/classes', { params }),
   createAcademyClass: (data: AcademyClass) => client.post('/classes', data),
   updateAcademyClass: (id: number, data: AcademyClass) => client.put(`/classes/${id}`, data),
   deleteAcademyClass: (id: number) => client.delete(`/classes/${id}`),
@@ -330,7 +339,7 @@ export const academyClassAPI = {
 
 // Students API
 export const studentAPI = {
-  getStudents: (params?: any) => client.get('/students', { params }),
+  getStudents: (params?: ListQueryParams) => client.get('/students', { params }),
   getStudent: (id: number) => client.get(`/students/${id}`),
   createStudent: (data: Student) => client.post('/students', data),
   updateStudent: (id: number, data: Student) => client.put(`/students/${id}`, data),
@@ -411,7 +420,7 @@ export const studentUiFeedbackAPI = {
 
 // Tests API
 export const testAPI = {
-  getTests: (params?: any) => client.get('/tests', { params }),
+  getTests: (params?: ListQueryParams) => client.get('/tests', { params }),
   getTest: (id: number) => client.get(`/tests/${id}`),
   createTest: (data: Test) => client.post('/tests', data),
   copyTest: (sourceTestId: number, data: { targetClassId: number; title: string }) =>
@@ -435,11 +444,11 @@ export const testAPI = {
 
 // Submissions API
 export const submissionAPI = {
-  submitAnswers: (studentId: number, testId: number, answers: any) =>
+  submitAnswers: (studentId: number, testId: number, answers: SubmissionAnswers) =>
     client.post('/submissions', answers, { params: { studentId, testId } }),
-  submitMyAnswers: (testId: number, answers: any) =>
+  submitMyAnswers: (testId: number, answers: SubmissionAnswers) =>
     client.post('/submissions/me/test/' + testId, answers),
-  saveAnswersForStudent: (studentId: number, testId: number, answers: any) =>
+  saveAnswersForStudent: (studentId: number, testId: number, answers: SubmissionAnswers) =>
     client.put<SubmissionResult>(`/submissions/students/${studentId}/tests/${testId}`, answers),
   getByTestId: (testId: number) => client.get(`/submissions/test/${testId}`),
   getStudentSubmissions: (studentId: number) => client.get(`/submissions/student/${studentId}`),
@@ -458,7 +467,7 @@ export const submissionAPI = {
 
 // Homeworks API
 export const homeworkAPI = {
-  getHomeworks: (params?: any) => client.get('/homeworks', { params }),
+  getHomeworks: (params?: ListQueryParams) => client.get('/homeworks', { params }),
   createHomework: (data: Homework) => client.post('/homeworks', data),
   updateHomework: (id: number, data: Homework) => client.put(`/homeworks/${id}`, data),
   deleteHomework: (id: number) => client.delete(`/homeworks/${id}`),
@@ -614,7 +623,7 @@ export interface AttendanceStats {
 
 // Lessons API
 export const lessonAPI = {
-  getLessons: (params?: any) => client.get<{ content: Lesson[] }>('/lessons', { params }),
+  getLessons: (params?: ListQueryParams) => client.get<{ content: Lesson[] }>('/lessons', { params }),
   getLesson: (id: number) => client.get<Lesson>(`/lessons/${id}`),
   getLessonsByClass: (classId: number) => client.get<Lesson[]>(`/lessons/class/${classId}`),
   getLessonsByStudent: (studentId: number) => client.get<Lesson[]>(`/lessons/student/${studentId}`),

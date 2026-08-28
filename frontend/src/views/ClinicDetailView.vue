@@ -35,7 +35,7 @@ const fetchClinicDetail = async () => {
     const response = await clinicAPI.getClinicDetail(clinicId.value)
     clinicDetail.value = response.data
     await fetchClinicProgress()
-  } catch (error) {
+  } catch {
     ElMessage.error('클리닉 상세 정보를 불러오는데 실패했습니다.')
   } finally {
     loading.value = false
@@ -46,7 +46,7 @@ const fetchClinicProgress = async () => {
   try {
     const response = await clinicAPI.getClinicProgress(clinicId.value)
     progressData.value = response.data
-  } catch (error) {
+  } catch {
     // Progress data is optional
     progressData.value = []
   }
@@ -229,7 +229,7 @@ const saveHomework = async (studentId: number, homework: HomeworkProgress) => {
     ElMessage.success('숙제 정보가 업데이트되었습니다.')
     cancelEditingHomework(studentId, homework.homeworkId)
     fetchClinicDetail()
-  } catch (error) {
+  } catch {
     ElMessage.error('업데이트에 실패했습니다.')
   }
 }
@@ -241,7 +241,7 @@ const toggleFollowUp = async (studentId: number, homework: HomeworkProgress) => 
   try {
     await studentHomeworkAPI.setFollowUp(studentId, homework.homeworkId, newValue)
     ElMessage.success(newValue ? 'RED 표시했습니다' : '표시를 해제했습니다')
-  } catch (error) {
+  } catch {
     homework.followUpFlag = prev  // rollback on failure
     ElMessage.error('마킹 변경에 실패했습니다')
   }
@@ -252,7 +252,7 @@ const updateAttendance = async (registrationId: number, status: string) => {
     await clinicAPI.updateAttendance(registrationId, status)
     ElMessage.success('참석 상태가 업데이트되었습니다.')
     fetchClinicDetail()
-  } catch (error) {
+  } catch {
     ElMessage.error('업데이트에 실패했습니다.')
   }
 }
