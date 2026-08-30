@@ -22,6 +22,7 @@ import type {
 import { useStudentUiMode } from '@/composables/useStudentUiMode'
 import StudentUiFeedbackDialog from '@/components/student-v2/StudentUiFeedbackDialog.vue'
 import StudentPageHeader from '@/components/student-v2/StudentPageHeader.vue'
+import StudentClassSwitcher from '@/components/StudentClassSwitcher.vue'
 
 const router = useRouter()
 const { leavePreview } = useStudentUiMode()
@@ -119,47 +120,51 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="student-page dashboard-page" v-loading="loading">
-    <StudentPageHeader
-      eyebrow="MY STUDY"
-      :title="`${displayName}님, 반가워요`"
-      :subtitle="`${studentInfo?.academyName || 'KIM MATH'}${studentInfo?.className ? ` · ${studentInfo.className}` : ''}`"
-    >
-      <template #meta>
-        <p v-if="studentInfo?.school || studentInfo?.grade" class="dashboard-student-meta">
-          <span v-if="studentInfo?.id">ID {{ studentInfo.id }}</span>
-          <span v-if="studentInfo?.school">{{ studentInfo.school }}</span>
-          <span v-if="studentInfo?.grade">{{ studentInfo.grade }}</span>
-        </p>
-      </template>
-      <template #action>
-        <div class="dashboard-header__actions">
-          <button class="dashboard-preview-exit" @click="returnToLegacyUi">기존 UI</button>
-          <button
-            class="student-icon-button dashboard-notification-button"
-            :aria-label="
-              unreadNotificationCount
-                ? `알림 ${unreadNotificationCount}개 확인하기`
-                : '알림 확인하기'
-            "
-            @click="router.push('/student/notifications')"
-          >
-            <el-icon><Bell /></el-icon>
-            <span
-              v-if="unreadNotificationCount"
-              class="dashboard-notification-button__badge"
-              aria-hidden="true"
-            />
-          </button>
-          <button
-            class="student-icon-button"
-            aria-label="설정 열기"
-            @click="router.push('/settings')"
-          >
-            <el-icon><Setting /></el-icon>
-          </button>
-        </div>
-      </template>
-    </StudentPageHeader>
+    <div class="dashboard-intro">
+      <StudentPageHeader
+        eyebrow="MY STUDY"
+        :title="`${displayName}님, 반가워요`"
+        :subtitle="studentInfo?.academyName || 'KIM MATH'"
+      >
+        <template #meta>
+          <p v-if="studentInfo?.school || studentInfo?.grade" class="dashboard-student-meta">
+            <span v-if="studentInfo?.id">ID {{ studentInfo.id }}</span>
+            <span v-if="studentInfo?.school">{{ studentInfo.school }}</span>
+            <span v-if="studentInfo?.grade">{{ studentInfo.grade }}</span>
+          </p>
+        </template>
+        <template #action>
+          <div class="dashboard-header__actions">
+            <button class="dashboard-preview-exit" @click="returnToLegacyUi">기존 UI</button>
+            <button
+              class="student-icon-button dashboard-notification-button"
+              :aria-label="
+                unreadNotificationCount
+                  ? `알림 ${unreadNotificationCount}개 확인하기`
+                  : '알림 확인하기'
+              "
+              @click="router.push('/student/notifications')"
+            >
+              <el-icon><Bell /></el-icon>
+              <span
+                v-if="unreadNotificationCount"
+                class="dashboard-notification-button__badge"
+                aria-hidden="true"
+              />
+            </button>
+            <button
+              class="student-icon-button"
+              aria-label="설정 열기"
+              @click="router.push('/settings')"
+            >
+              <el-icon><Setting /></el-icon>
+            </button>
+          </div>
+        </template>
+      </StudentPageHeader>
+
+      <StudentClassSwitcher variant="home" :reload-on-switch="false" @switched="fetchDashboard" />
+    </div>
 
     <div class="dashboard-learning-cards" aria-label="학습 바로가기">
       <RouterLink
@@ -283,6 +288,14 @@ onBeforeUnmount(() => {
   display: grid;
   min-width: 0;
   gap: 28px;
+}
+.dashboard-intro {
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+}
+.dashboard-page :deep(.student-page__header) {
+  margin-bottom: 0;
 }
 .dashboard-header__actions {
   display: flex;

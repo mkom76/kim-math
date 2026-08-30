@@ -41,7 +41,11 @@ const showStudentNav = computed(
   () => isStudentRoute.value && route.path.startsWith('/student/') && !isTestTaking.value,
 )
 const showStudentClassSwitcher = computed(
-  () => isStudentRoute.value && route.path.startsWith('/student/') && !isTestTaking.value,
+  () =>
+    isStudentRoute.value &&
+    route.path.startsWith('/student/') &&
+    !isTestTaking.value &&
+    !isStudentV2.value,
 )
 
 const fetchCurrentUser = async () => {
