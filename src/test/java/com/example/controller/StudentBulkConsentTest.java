@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * End-to-end coverage for bulk student registration + parent consent flow:
+ * End-to-end coverage for student registration + parent consent flow:
  *
  * <ul>
  *   <li>Admin bulk-creates students with status=PENDING_CONSENT, PIN auto-derived
@@ -125,6 +125,92 @@ class StudentBulkConsentTest {
 
         JsonNode root = objectMapper.readTree(res.getResponse().getContentAsString());
         return root.get("created").get(0).get("consentToken").asText();
+    }
+
+    private String createOne(String name, String parentPhone, Teacher creator,
+                             TeacherAcademyRole role) throws Exception {
+        String body = """
+                {
+                  "name": "%s",
+                  "grade": "고2",
+                  "school": "A고",
+                  "academyId": %d,
+                  "classId": %d,
+                  "parentName": "%s",
+                  "parentPhone": "%s"
+                }
+                """.formatted(name, academy.getId(), clazz.getId(), name + "부모", parentPhone);
+
+        MvcResult res = mockMvc.perform(post("/api/students")
+                        .session(session(creator, role))
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value(name))
+                .andExpect(jsonPath("$.status").value("PENDING_CONSENT"))
+                .andReturn();
+
+        return objectMapper.readTree(res.getResponse().getContentAsString())
+                .get("consentToken").asText();
+    }
+
+    // ---------------- single create ----------------
+
+    @Test
+    void single_create_issues_consent_and_sets_pending_status() throws Exception {
+        String token = createOne("김개별", "010-1111-4321", admin,
+                TeacherAcademyRole.ACADEMY_ADMIN);
+        em.flush();
+        em.clear();
+
+        Student created = studentRepository.findAll().stream()
+                .filter(s -> "김개별".equals(s.getName())).findFirst().orElseThrow();
+        assertThat(created.getStatus()).isEqualTo(StudentStatus.PENDING_CONSENT);
+        assertThat(created.getParentName()).isEqualTo("김개별부모");
+        assertThat(created.getParentPhone()).isEqualTo("010-1111-4321");
+        assertThat(created.getPin()).isNull();
+        assertThat(created.getPinHash()).isNotBlank();
+        assertThat(studentConsentRepository.findByToken(token)).isPresent();
+    }
+
+    @Test
+    void single_create_requires_parent_information() throws Exception {
+        String body = """
+                {
+                  "name": "보호자없음",
+                  "grade": "고2",
+                  "school": "A고",
+                  "academyId": %d,
+                  "classId": %d
+                }
+                """.formatted(academy.getId(), clazz.getId());
+
+        mockMvc.perform(post("/api/students")
+                        .session(session(admin, TeacherAcademyRole.ACADEMY_ADMIN))
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void assistant_cannot_single_create() throws Exception {
+        String body = """
+                {
+                  "name": "조교등록",
+                  "grade": "고2",
+                  "school": "A고",
+                  "academyId": %d,
+                  "classId": %d,
+                  "parentName": "보호자",
+                  "parentPhone": "010-1111-2222"
+                }
+                """.formatted(academy.getId(), clazz.getId());
+
+        mockMvc.perform(post("/api/students")
+                        .session(session(assistant, TeacherAcademyRole.ASSISTANT))
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isForbidden());
     }
 
     // ---------------- bulk create ----------------
