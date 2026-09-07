@@ -30,6 +30,7 @@ public class DataInitializer {
             AcademyRepository academyRepository,
             AcademyClassRepository academyClassRepository,
             StudentRepository studentRepository,
+            StudentClassEnrollmentRepository studentClassEnrollmentRepository,
             TestRepository testRepository,
             TestQuestionRepository testQuestionRepository,
             StudentSubmissionRepository studentSubmissionRepository,
@@ -154,6 +155,7 @@ public class DataInitializer {
             //  class4 → 최선생   (대치 일반 선생님)
             //  class5 → 정선생   (대치 컨텍스트로 보면 본인 반)
             //  class6 → 박원장   (어드민 본인 담당)
+            //  class7 → 박원장   (종강 이력/조회 전용 테스트)
             AcademyClass class1 = new AcademyClass();
             class1.setName("고1 수학 기본반");
             class1.setAcademy(academy1);
@@ -202,7 +204,16 @@ public class DataInitializer {
             class6.setClinicTime(LocalTime.of(16, 0));
             class6 = academyClassRepository.save(class6);
 
-            log.info("Created {} classes", 6);
+            AcademyClass class7 = new AcademyClass();
+            class7.setName("고3 수학 종강반");
+            class7.setAcademy(academy2);
+            class7.setOwnerTeacherId(teacherPark.getId());
+            class7.setClinicDayOfWeek(DayOfWeek.SUNDAY);
+            class7.setClinicTime(LocalTime.of(18, 0));
+            class7.setEndedAt(LocalDateTime.now().minusDays(30));
+            class7 = academyClassRepository.save(class7);
+
+            log.info("Created {} classes (including one completed class)", 7);
 
             // 3. 학생 데이터 생성 (30명)
             List<Student> students = new ArrayList<>();
@@ -242,12 +253,14 @@ public class DataInitializer {
             students.add(createStudent("오지안", "고3", "서울고등학교", academy2, class5, "5552"));
             students.add(createStudent("백현우", "고3", "강남고등학교", academy2, class5, "5553"));
 
-            // Class 6 (고3 수학 특강반) - 5명
+            // Class 6 (고3 수학 특강반) - 4명
             students.add(createStudent("한지우", "고3", "대치고등학교", academy2, class6, "9999"));
             students.add(createStudent("서민준", "고3", "서울고등학교", academy2, class6, "6661"));
             students.add(createStudent("권서연", "고3", "강남고등학교", academy2, class6, "6662"));
             students.add(createStudent("남주원", "고3", "대치고등학교", academy2, class6, "6663"));
-            students.add(createStudent("문지훈", "고3", "서울고등학교", academy2, class6, "6664"));
+
+            // Class 7 (고3 수학 종강반) - 1명: 종강 후 조회 전용 동선 테스트
+            students.add(createStudent("문지훈", "고3", "서울고등학교", academy2, class7, "6664"));
 
             students = (List<Student>) studentRepository.saveAll(students);
 
@@ -265,8 +278,50 @@ public class DataInitializer {
             Student student7 = students.get(20);
             Student student8 = students.get(21);
             Student student9 = students.get(25);
+            Student studentClass1Third = students.get(2);
+            Student completedClassStudent = students.get(29);
+
+            LocalDateTime enrollmentSeededAt = LocalDateTime.now();
+            List<StudentClassEnrollment> enrollments = new ArrayList<>();
+            for (Student student : students) {
+                AcademyClass primaryClass = student.getAcademyClass();
+                boolean completed = primaryClass.isEnded();
+                LocalDateTime endedAt = primaryClass.getEndedAt();
+                enrollments.add(createEnrollment(
+                        student,
+                        primaryClass,
+                        completed ? endedAt.minusMonths(3) : enrollmentSeededAt.minusDays(1),
+                        completed ? StudentClassEnrollmentStatus.COMPLETED : StudentClassEnrollmentStatus.ACTIVE,
+                        endedAt,
+                        completed ? "CLASS_ENDED" : null,
+                        primaryClass.getOwnerTeacherId()));
+            }
+
+            // 김민준: 현재 반 2개 + 과거 이력 1개. 로그인 시 기존 기본반(class1)이 기본 선택된다.
+            enrollments.add(createEnrollment(
+                    student1,
+                    class2,
+                    enrollmentSeededAt.minusWeeks(2),
+                    StudentClassEnrollmentStatus.ACTIVE,
+                    null,
+                    null,
+                    teacherJung.getId()));
+            enrollments.add(createEnrollment(
+                    student1,
+                    class3,
+                    enrollmentSeededAt.minusMonths(6),
+                    StudentClassEnrollmentStatus.COMPLETED,
+                    enrollmentSeededAt.minusMonths(4),
+                    "TRANSFERRED",
+                    teacherKim.getId()));
+
+            enrollments = (List<StudentClassEnrollment>) studentClassEnrollmentRepository.saveAll(enrollments);
 
             log.info("Created {} students", students.size());
+            log.info("Created {} student-class enrollments", enrollments.size());
+            log.info("Multi-class test account: studentId={}, name={}, PIN=1111", student1.getId(), student1.getName());
+            log.info("Completed-class test account: studentId={}, name={}, PIN=6664",
+                    completedClassStudent.getId(), completedClassStudent.getName());
 
             // 4. 수업(Lesson) 데이터 생성
             Lesson lesson1 = new Lesson();
@@ -333,7 +388,15 @@ public class DataInitializer {
             lesson8.setAnnouncement("교재 추가 구매가 필요한 학생은 다음 수업 전까지 말씀해 주세요.");
             lesson8 = lessonRepository.save(lesson8);
 
-            log.info("Created {} lessons", 8);
+            Lesson completedClassLesson = new Lesson();
+            completedClassLesson.setLessonDate(class7.getEndedAt().toLocalDate().minusDays(7));
+            completedClassLesson.setAcademy(academy2);
+            completedClassLesson.setAcademyClass(class7);
+            completedClassLesson.setCommonFeedback("종강 전 마지막 총정리 수업입니다. 종강 후에는 이 내용을 조회만 할 수 있습니다.");
+            completedClassLesson.setAnnouncement("이 반은 종강되었습니다.");
+            completedClassLesson = lessonRepository.save(completedClassLesson);
+
+            log.info("Created {} lessons (including one completed-class lesson)", 9);
 
             // 5. 시험 데이터 생성 (Lesson과 연결) - 모두 수학 시험
             Test test1 = new Test();
@@ -682,7 +745,17 @@ public class DataInitializer {
             homework7.setLesson(lesson7);
             homeworkRepository.save(homework7);
 
-            log.info("Created {} homeworks", 9); // homework1, 1a, 1b + 6개 = 9개
+            Homework completedClassHomework = new Homework();
+            completedClassHomework.setTitle("종강반 마지막 복습");
+            completedClassHomework.setQuestionCount(20);
+            completedClassHomework.setMemo("종강 전에 제출한 복습 숙제입니다.");
+            completedClassHomework.setDueDate(class7.getEndedAt().toLocalDate().minusDays(1));
+            completedClassHomework.setAcademy(academy2);
+            completedClassHomework.setAcademyClass(class7);
+            completedClassHomework.setLesson(completedClassLesson);
+            completedClassHomework = homeworkRepository.save(completedClassHomework);
+
+            log.info("Created {} homeworks", 10);
 
             // 7. 학생-숙제 할당 및 완성도 데이터 생성
             // Lesson1(class1) 학생들 - 각각 다른 숙제 할당
@@ -699,7 +772,7 @@ public class DataInitializer {
             studentHomeworkRepository.save(sh2);
 
             StudentHomework sh3 = new StudentHomework();
-            sh3.setStudent(student3); // 박지호
+            sh3.setStudent(studentClass1Third); // 박도현
             sh3.setHomework(homework1b); // 복습 문제
             sh3.setIncorrectCount(1); // 15문제 중 1개 오답 (93% 정답률)
             studentHomeworkRepository.save(sh3);
@@ -717,6 +790,13 @@ public class DataInitializer {
             sh4.setHomework(homework2);
             sh4.setIncorrectCount(3); // 25문제 중 3개 오답 (88% 정답률)
             studentHomeworkRepository.save(sh4);
+
+            // 김민준이 두 번째 활성 반(class2)으로 전환했을 때 보이는 숙제
+            StudentHomework shMultiClass = new StudentHomework();
+            shMultiClass.setStudent(student1);
+            shMultiClass.setHomework(homework2);
+            shMultiClass.setIncorrectCount(null);
+            studentHomeworkRepository.save(shMultiClass);
 
             StudentHomework sh5 = new StudentHomework();
             sh5.setStudent(student4);
@@ -754,7 +834,13 @@ public class DataInitializer {
             sh10.setIncorrectCount(21); // 60문제 중 21개 오답 (65% 정답률)
             studentHomeworkRepository.save(sh10);
 
-            log.info("Created {} student homework records", 10);
+            StudentHomework shCompletedClass = new StudentHomework();
+            shCompletedClass.setStudent(completedClassStudent);
+            shCompletedClass.setHomework(completedClassHomework);
+            shCompletedClass.setIncorrectCount(4);
+            studentHomeworkRepository.save(shCompletedClass);
+
+            log.info("Created {} student homework records", 13);
 
             // 10.5 교재(Textbook) 시드 데이터
             // teacherKim의 교재 한 권 — 다양한 유형/형식 + 해설 영상 일부
@@ -940,7 +1026,7 @@ public class DataInitializer {
             // 12. 클리닉 신청 데이터 생성 (완성도 낮은 학생들이 신청)
             // student1 - homework1: 20개 중 8개 오답 (60% 완성도) -> 신청해야 함
             // student2 - homework1: 20개 중 3개 오답 (85% 완성도) -> 신청해야 함
-            // student3 - homework2: 30개 중 9개 오답 (70% 완성도) -> 신청해야 함
+            // 박도현 - homework1b: 15개 중 1개 오답 (93% 완성도)
 
             ClinicRegistration reg1 = new ClinicRegistration();
             reg1.setClinic(clinic1);
@@ -956,7 +1042,7 @@ public class DataInitializer {
 
             ClinicRegistration reg3 = new ClinicRegistration();
             reg3.setClinic(clinic1);
-            reg3.setStudent(student3);
+            reg3.setStudent(studentClass1Third);
             reg3.setStatus(ClinicRegistrationStatus.REGISTERED);
             clinicRegistrationRepository.save(reg3);
 
@@ -1347,23 +1433,23 @@ public class DataInitializer {
             }
 
             // student3(박도현, id=3)은 class1 소속 → lessonEssay(class1)를 통해 시험이 보이지만 제출 기록 없음
-            Student student3InClass1 = students.get(2); // 박도현
             log.info("Created essay test '{}' with submissions for student1({}) and student2({}). student3({}) can see the test but has not submitted.",
-                    testEssay.getTitle(), student1.getName(), student2.getName(), student3InClass1.getName());
+                    testEssay.getTitle(), student1.getName(), student2.getName(), studentClass1Third.getName());
 
             log.info("Sample data initialization completed successfully!");
             log.info("===================================================");
             log.info("Summary:");
-            log.info("- Teachers: 1");
+            log.info("- Teachers: 6");
             log.info("- Academies: 2 (수학 전문)");
-            log.info("- Classes: 6 (모두 수학반, 클리닉 설정 포함)");
+            log.info("- Classes: 7 (6 active, 1 completed)");
             log.info("- Students: 30");
-            log.info("- Lessons: 8");
-            log.info("- Tests: 5 (모두 수학 시험)");
-            log.info("- Test Questions: 82");
-            log.info("- Student Submissions: 8");
-            log.info("- Homeworks: 9 (모두 수학 숙제, lesson1에 3개 숙제 등록 예시)");
-            log.info("- Student Homework Records: 11 (학생별 다른 숙제 할당 예시)");
+            log.info("- Student Class Enrollments: 32 (multi-class and completed history included)");
+            log.info("- Lessons: 10 (essay/completed-class lessons included)");
+            log.info("- Tests: 6 (essay test included)");
+            log.info("- Test Questions: 92");
+            log.info("- Student Submissions: 10");
+            log.info("- Homeworks: 10 (multi-class/completed-class fixtures included)");
+            log.info("- Student Homework Records: 13");
             log.info("- Upcoming Clinics: 2 (이번주, 다음주 토요일)");
             log.info("- Clinic Registrations: 3 (완성도 낮은 학생들 신청)");
             log.info("- Past Clinics (CLOSED): 2 (1주 전, 2주 전)");
@@ -1384,5 +1470,24 @@ public class DataInitializer {
         student.setAcademyClass(academyClass);
         pinCredentialService.setStudentPin(student, pin);
         return student;
+    }
+
+    private StudentClassEnrollment createEnrollment(
+            Student student,
+            AcademyClass academyClass,
+            LocalDateTime startedAt,
+            StudentClassEnrollmentStatus status,
+            LocalDateTime endedAt,
+            String endReason,
+            Long createdByTeacherId) {
+        return StudentClassEnrollment.builder()
+                .student(student)
+                .academyClass(academyClass)
+                .status(status)
+                .startedAt(startedAt)
+                .endedAt(endedAt)
+                .endReason(endReason)
+                .createdByTeacherId(createdByTeacherId)
+                .build();
     }
 }

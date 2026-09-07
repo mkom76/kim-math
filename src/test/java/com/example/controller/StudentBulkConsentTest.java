@@ -3,12 +3,14 @@ package com.example.controller;
 import com.example.entity.Academy;
 import com.example.entity.AcademyClass;
 import com.example.entity.Student;
+import com.example.entity.StudentClassEnrollmentStatus;
 import com.example.entity.StudentConsent;
 import com.example.entity.StudentStatus;
 import com.example.entity.Teacher;
 import com.example.entity.TeacherAcademy;
 import com.example.entity.TeacherAcademyRole;
 import com.example.repository.StudentConsentRepository;
+import com.example.repository.StudentClassEnrollmentRepository;
 import com.example.repository.StudentRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -58,6 +60,7 @@ class StudentBulkConsentTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private StudentRepository studentRepository;
     @Autowired private StudentConsentRepository studentConsentRepository;
+    @Autowired private StudentClassEnrollmentRepository studentClassEnrollmentRepository;
     @Autowired private ObjectMapper objectMapper;
     @PersistenceContext private EntityManager em;
 
@@ -171,6 +174,10 @@ class StudentBulkConsentTest {
         assertThat(created.getPin()).isNull();
         assertThat(created.getPinHash()).isNotBlank();
         assertThat(studentConsentRepository.findByToken(token)).isPresent();
+        assertThat(studentClassEnrollmentRepository.findByStudentIdAndAcademyClassId(
+                created.getId(), clazz.getId()))
+                .hasValueSatisfying(enrollment -> assertThat(enrollment.getStatus())
+                        .isEqualTo(StudentClassEnrollmentStatus.ACTIVE));
     }
 
     @Test
@@ -229,6 +236,10 @@ class StudentBulkConsentTest {
         assertThat(created.getParentPhone()).isEqualTo("010-1234-5678");
 
         assertThat(studentConsentRepository.findByToken(token)).isPresent();
+        assertThat(studentClassEnrollmentRepository.findByStudentIdAndAcademyClassId(
+                created.getId(), clazz.getId()))
+                .hasValueSatisfying(enrollment -> assertThat(enrollment.getStatus())
+                        .isEqualTo(StudentClassEnrollmentStatus.ACTIVE));
     }
 
     @Test

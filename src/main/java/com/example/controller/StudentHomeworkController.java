@@ -2,6 +2,8 @@ package com.example.controller;
 
 import com.example.dto.StudentHomeworkDto;
 import com.example.service.StudentHomeworkService;
+import com.example.service.StudentClassContextService;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,10 +17,15 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class StudentHomeworkController {
     private final StudentHomeworkService studentHomeworkService;
+    private final StudentClassContextService studentClassContextService;
 
     @GetMapping("/student/{studentId}")
-    public ResponseEntity<List<StudentHomeworkDto>> getByStudentId(@PathVariable Long studentId) {
-        return ResponseEntity.ok(studentHomeworkService.getByStudentId(studentId));
+    public ResponseEntity<List<StudentHomeworkDto>> getByStudentId(
+            @PathVariable Long studentId,
+            HttpSession session) {
+        Long activeClassId = studentClassContextService
+                .activeClassIdForStudentRequest(session, studentId);
+        return ResponseEntity.ok(studentHomeworkService.getByStudentId(studentId, activeClassId));
     }
 
     @PutMapping("/student/{studentId}/homework/{homeworkId}")

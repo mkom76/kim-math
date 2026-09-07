@@ -25,12 +25,16 @@ public class StudentHomeworkService {
     private final HomeworkRepository homeworkRepository;
     private final AuthorizationService authorizationService;
 
-    public List<StudentHomeworkDto> getByStudentId(Long studentId) {
+    public List<StudentHomeworkDto> getByStudentId(Long studentId, Long activeClassId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
 
-        return studentHomeworkRepository.findByStudentId(studentId).stream()
+        List<StudentHomework> homeworks = activeClassId == null
+                ? studentHomeworkRepository.findByStudentId(studentId)
+                : studentHomeworkRepository.findByStudentIdAndHomeworkAcademyClassId(
+                        studentId, activeClassId);
+        return homeworks.stream()
                 .map(StudentHomeworkDto::from)
                 .collect(Collectors.toList());
     }
@@ -47,6 +51,7 @@ public class StudentHomeworkService {
     }
 
     public StudentHomeworkDto updateIncorrectCount(Long studentId, Long homeworkId, Integer incorrectCount, Integer unsolvedCount, String incorrectQuestions, String unsolvedQuestions) {
+        authorizationService.assertStudentClassWritable();
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
@@ -71,6 +76,7 @@ public class StudentHomeworkService {
     }
 
     public StudentHomeworkDto updateQuestionedQuestions(Long studentId, Long homeworkId, String questionedQuestions) {
+        authorizationService.assertStudentClassWritable();
         TenantContext.Context ctx = TenantContext.current();
         if (ctx == null || ctx.role() != null || !studentId.equals(ctx.teacherId())) {
             throw new ForbiddenException("본인의 숙제만 수정할 수 있습니다");
@@ -80,6 +86,7 @@ public class StudentHomeworkService {
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         Homework homework = homeworkRepository.findById(homeworkId)
                 .orElseThrow(() -> new RuntimeException("Homework not found"));
+        authorizationService.assertCanAccessHomework(homework);
 
         String normalized = QuestionNumberNormalizer.normalize(questionedQuestions, homework.getQuestionCount());
 

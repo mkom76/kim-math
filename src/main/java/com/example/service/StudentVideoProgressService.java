@@ -32,6 +32,7 @@ public class StudentVideoProgressService {
     private final LessonVideoRepository lessonVideoRepository;
     private final StudentLessonRepository studentLessonRepository;
     private final AuthorizationService authorizationService;
+    private final StudentClassEnrollmentService studentClassEnrollmentService;
 
     private void assertCanAccessOwnProgress(Long studentId) {
         TenantContext.Context ctx = TenantContext.current();
@@ -60,6 +61,7 @@ public class StudentVideoProgressService {
      */
     public StudentVideoProgressDto updateProgress(Long studentId, Long videoId,
                                                    Integer currentTime, Integer duration) {
+        authorizationService.assertStudentClassWritable();
         assertCanAccessOwnProgress(studentId);
 
         Student student = studentRepository.findById(studentId)
@@ -110,10 +112,14 @@ public class StudentVideoProgressService {
      * Get all video progress for a student
      */
     @Transactional(readOnly = true)
-    public List<StudentVideoProgressDto> getStudentProgress(Long studentId) {
+    public List<StudentVideoProgressDto> getStudentProgress(Long studentId, Long activeClassId) {
         assertCanAccessOwnProgress(studentId);
 
-        return progressRepository.findByStudentId(studentId).stream()
+        List<StudentVideoProgress> progress = activeClassId == null
+                ? progressRepository.findByStudentId(studentId)
+                : progressRepository.findByStudentIdAndLessonVideoLessonAcademyClassId(
+                        studentId, activeClassId);
+        return progress.stream()
                 .map(StudentVideoProgressDto::from)
                 .collect(Collectors.toList());
     }
@@ -135,7 +141,7 @@ public class StudentVideoProgressService {
         Lesson lesson = firstVideo.getLesson();
         authorizationService.assertCanAccessLesson(lesson);
         Long classId = lesson.getAcademyClass().getId();
-        List<Student> students = studentRepository.findByAcademyClassId(classId);
+        List<Student> students = studentClassEnrollmentService.getActiveStudentsForClass(classId);
 
         // 3. 각 영상에 대해 학생들의 시청 진행률 통계 생성
         return videos.stream()

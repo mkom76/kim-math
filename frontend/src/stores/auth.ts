@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { authAPI, type Membership } from '@/api/client'
+import { authAPI, type Membership, type StudentClassMembership } from '@/api/client'
 import { clearCredential } from '@/utils/credentialStore'
 import { unregisterPushToken } from '@/utils/push'
 
@@ -14,11 +14,17 @@ export const useAuthStore = defineStore('auth', () => {
   const activeAcademyId = ref<number | null>(null)
   const activeRole = ref<'TEACHER' | 'ACADEMY_ADMIN' | 'ASSISTANT' | null>(null)
   const studentUiDefaultMode = ref<'legacy' | 'v2'>('legacy')
+  const studentClasses = ref<StudentClassMembership[]>([])
+  const activeStudentClassId = ref<number | null>(null)
+  const studentClassReadOnly = ref(false)
 
   const isAdmin = computed(() => activeRole.value === 'ACADEMY_ADMIN')
   const isAssistant = computed(() => activeRole.value === 'ASSISTANT')
   const activeAcademy = computed(() =>
     memberships.value.find(m => m.academyId === activeAcademyId.value)
+  )
+  const activeStudentClass = computed(() =>
+    studentClasses.value.find(item => item.classId === activeStudentClassId.value)
   )
 
   async function loadCurrentUser() {
@@ -31,6 +37,9 @@ export const useAuthStore = defineStore('auth', () => {
     activeAcademyId.value = data.activeAcademyId ?? null
     activeRole.value = data.activeRole ?? null
     studentUiDefaultMode.value = data.studentUiDefaultMode ?? 'legacy'
+    studentClasses.value = data.studentClasses ?? []
+    activeStudentClassId.value = data.activeStudentClassId ?? null
+    studentClassReadOnly.value = data.studentClassReadOnly ?? false
     return data
   }
 
@@ -59,6 +68,13 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function switchStudentClass(classId: number) {
+    const res = await authAPI.switchStudentClass(classId)
+    studentClasses.value = res.data.studentClasses ?? studentClasses.value
+    activeStudentClassId.value = res.data.activeStudentClassId ?? null
+    studentClassReadOnly.value = res.data.studentClassReadOnly ?? false
+  }
+
   async function logout() {
     // Unregister push token first while the session is still valid.
     await unregisterPushToken()
@@ -70,6 +86,9 @@ export const useAuthStore = defineStore('auth', () => {
     activeAcademyId.value = null
     activeRole.value = null
     studentUiDefaultMode.value = 'legacy'
+    studentClasses.value = []
+    activeStudentClassId.value = null
+    studentClassReadOnly.value = false
     // localStorage.lastAcademyId는 유지 (다음 로그인 기본값)
     // Clear stored biometric quick-login credential — logout is the explicit
     // "switch user / hand off device" signal.
@@ -78,7 +97,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   return {
     userId, name, role, memberships, activeAcademyId, activeRole, studentUiDefaultMode,
-    isAdmin, isAssistant, activeAcademy,
-    loadCurrentUser, ensureActiveAcademy, switchAcademy, logout
+    studentClasses, activeStudentClassId, studentClassReadOnly,
+    isAdmin, isAssistant, activeAcademy, activeStudentClass,
+    loadCurrentUser, ensureActiveAcademy, switchAcademy, switchStudentClass, logout
   }
 })

@@ -42,6 +42,8 @@ class SubmissionServiceTest {
     private TestRepository testRepository;
     @Mock
     private AuthorizationService authorizationService;
+    @Mock
+    private StudentClassEnrollmentService studentClassEnrollmentService;
 
     @InjectMocks
     private SubmissionService submissionService;
@@ -80,6 +82,8 @@ class SubmissionServiceTest {
                 .thenReturn(Optional.empty());
         when(studentRepository.findById(student.getId())).thenReturn(Optional.of(student));
         when(testRepository.findById(test.getId())).thenReturn(Optional.of(test));
+        when(studentClassEnrollmentService.isActivelyEnrolled(student.getId(), academyClass.getId()))
+                .thenReturn(true);
         when(questionRepository.findByTestIdOrderByNumber(test.getId())).thenReturn(List.of(question));
         when(submissionRepository.save(any(StudentSubmission.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));

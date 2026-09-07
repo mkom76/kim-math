@@ -24,6 +24,7 @@ public class ClinicService {
     private final StudentHomeworkRepository studentHomeworkRepository;
     private final ClinicHomeworkProgressRepository clinicHomeworkProgressRepository;
     private final AuthorizationService authorizationService;
+    private final StudentClassEnrollmentService studentClassEnrollmentService;
 
     /**
      * 특정 날짜로 클리닉 생성
@@ -94,10 +95,8 @@ public class ClinicService {
         authorizationService.assertCanAccessClinic(clinic);
 
         // Get all students in the class
-        List<Student> students = studentRepository.findAll().stream()
-                .filter(s -> s.getAcademyClass() != null &&
-                            s.getAcademyClass().getId().equals(clinic.getAcademyClass().getId()))
-                .collect(Collectors.toList());
+        List<Student> students = studentClassEnrollmentService
+                .getActiveStudentsForClass(clinic.getAcademyClass().getId());
 
         // Get all registrations for this clinic
         List<ClinicRegistration> registrations = clinicRegistrationRepository.findByClinicId(clinicId);
@@ -166,6 +165,7 @@ public class ClinicService {
      * 학생이 클리닉 신청
      */
     public ClinicRegistrationDto registerForClinic(Long clinicId, Long studentId) {
+        authorizationService.assertStudentClassWritable();
         authorizationService.assertCurrentStudent(studentId);
         return registerStudent(clinicId, studentId);
     }
@@ -222,6 +222,7 @@ public class ClinicService {
      * 신청 취소
      */
     public void cancelRegistration(Long clinicId, Long studentId) {
+        authorizationService.assertStudentClassWritable();
         authorizationService.assertCurrentStudent(studentId);
         cancelStudentRegistration(clinicId, studentId);
     }
@@ -246,8 +247,8 @@ public class ClinicService {
     }
 
     private void assertStudentBelongsToClinicClass(Clinic clinic, Student student) {
-        if (student.getAcademyClass() == null
-                || !clinic.getAcademyClass().getId().equals(student.getAcademyClass().getId())) {
+        if (!studentClassEnrollmentService.isActivelyEnrolled(
+                student.getId(), clinic.getAcademyClass().getId())) {
             throw new IllegalArgumentException("해당 클리닉과 같은 반의 학생만 배정할 수 있습니다");
         }
     }
@@ -269,13 +270,16 @@ public class ClinicService {
      * 학생용 클리닉 정보 조회 (완성도 체크 포함)
      */
     @Transactional(readOnly = true)
-    public StudentClinicInfoDto getStudentClinicInfo(Long studentId) {
+    public StudentClinicInfoDto getStudentClinicInfo(Long studentId, Long activeClassId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
 
         // Get upcoming clinic for student's class
-        Optional<ClinicDto> upcomingClinic = getUpcomingClinic(student.getAcademyClass().getId());
+        Long classId = activeClassId != null
+                ? activeClassId
+                : student.getAcademyClass().getId();
+        Optional<ClinicDto> upcomingClinic = getUpcomingClinic(classId);
 
         if (upcomingClinic.isEmpty()) {
             return StudentClinicInfoDto.builder()
@@ -292,7 +296,7 @@ public class ClinicService {
 
         // Get incomplete homeworks (completion < 100% or not submitted)
         List<StudentHomework> incompleteHomeworks = studentHomeworkRepository
-                .findByStudentId(studentId).stream()
+                .findByStudentIdAndHomeworkAcademyClassId(studentId, classId).stream()
                 .filter(sh -> sh.getCompletion() == null || sh.getCompletion() < 100)
                 .collect(Collectors.toList());
 
@@ -339,10 +343,8 @@ public class ClinicService {
         authorizationService.assertCanAccessClinic(clinic);
 
         // Get all students in the class
-        List<Student> students = studentRepository.findAll().stream()
-                .filter(s -> s.getAcademyClass() != null &&
-                            s.getAcademyClass().getId().equals(clinic.getAcademyClass().getId()))
-                .collect(Collectors.toList());
+        List<Student> students = studentClassEnrollmentService
+                .getActiveStudentsForClass(clinic.getAcademyClass().getId());
 
         // For each student, snapshot all incomplete homeworks (completion < 100%)
         List<ClinicHomeworkProgress> progressList = new ArrayList<>();
@@ -437,7 +439,9 @@ public class ClinicService {
      * 학생의 최근 클리닉 결과 조회
      */
     @Transactional(readOnly = true)
-    public Optional<RecentClinicResultDto> getRecentClinicResult(Long studentId) {
+    public Optional<RecentClinicResultDto> getRecentClinicResult(
+            Long studentId,
+            Long activeClassId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
@@ -446,9 +450,13 @@ public class ClinicService {
             return Optional.empty();
         }
 
-        // Get all CLOSED clinics for the student's class
+        Long classId = activeClassId != null
+                ? activeClassId
+                : student.getAcademyClass().getId();
+
+        // Get all CLOSED clinics for the selected class
         List<Clinic> closedClinics = clinicRepository
-                .findByAcademyClassIdOrderByClinicDateDesc(student.getAcademyClass().getId()).stream()
+                .findByAcademyClassIdOrderByClinicDateDesc(classId).stream()
                 .filter(c -> c.getStatus() == ClinicStatus.CLOSED)
                 .collect(Collectors.toList());
 

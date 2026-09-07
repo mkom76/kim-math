@@ -30,6 +30,7 @@ public class SubmissionService {
     private final StudentRepository studentRepository;
     private final TestRepository testRepository;
     private final AuthorizationService authorizationService;
+    private final StudentClassEnrollmentService studentClassEnrollmentService;
 
     public StudentSubmissionDto submitMyAnswers(Long testId, Map<Integer, String> answers) {
         TenantContext.Context ctx = TenantContext.current();
@@ -54,6 +55,7 @@ public class SubmissionService {
     }
 
     private StudentSubmissionDto submitAnswersAsStudent(Long studentId, Long testId, Map<Integer, String> answers) {
+        authorizationService.assertStudentClassWritable();
         if (submissionRepository.findByStudentIdAndTestId(studentId, testId).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 제출한 시험은 수정할 수 없습니다");
         }
@@ -163,9 +165,9 @@ public class SubmissionService {
     }
 
     private void assertStudentBelongsToTest(Student student, Test test) {
-        Long studentClassId = student.getAcademyClass() != null ? student.getAcademyClass().getId() : null;
         Long testClassId = test.getAcademyClass() != null ? test.getAcademyClass().getId() : null;
-        if (!Objects.equals(studentClassId, testClassId)) {
+        if (testClassId == null
+                || !studentClassEnrollmentService.isActivelyEnrolled(student.getId(), testClassId)) {
             throw new ForbiddenException("해당 시험 반의 학생만 답안을 제출할 수 있습니다");
         }
     }
@@ -232,12 +234,14 @@ public class SubmissionService {
         return dto;
     }
     
-    public List<StudentSubmissionDto> getStudentSubmissions(Long studentId) {
+    public List<StudentSubmissionDto> getStudentSubmissions(Long studentId, Long activeClassId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
 
-        List<StudentSubmission> submissions = submissionRepository.findByStudentId(studentId);
+        List<StudentSubmission> submissions = activeClassId == null
+                ? submissionRepository.findByStudentId(studentId)
+                : submissionRepository.findByStudentIdAndTestAcademyClassId(studentId, activeClassId);
 
         return submissions.stream()
                 .map(submission -> {

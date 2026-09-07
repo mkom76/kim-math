@@ -2,6 +2,8 @@ package com.example.controller;
 
 import com.example.dto.StudentVideoProgressDto;
 import com.example.service.StudentVideoProgressService;
+import com.example.service.StudentClassContextService;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +15,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class StudentVideoProgressController {
     private final StudentVideoProgressService progressService;
+    private final StudentClassContextService studentClassContextService;
 
     @PutMapping("/api/students/{studentId}/videos/{videoId}/progress")
     public ResponseEntity<StudentVideoProgressDto> updateProgress(
@@ -36,8 +39,11 @@ public class StudentVideoProgressController {
 
     @GetMapping("/api/students/{studentId}/videos/progress")
     public ResponseEntity<List<StudentVideoProgressDto>> getStudentProgress(
-            @PathVariable Long studentId
+            @PathVariable Long studentId,
+            HttpSession session
     ) {
-        return ResponseEntity.ok(progressService.getStudentProgress(studentId));
+        Long activeClassId = studentClassContextService
+                .activeClassIdForStudentRequest(session, studentId);
+        return ResponseEntity.ok(progressService.getStudentProgress(studentId, activeClassId));
     }
 }

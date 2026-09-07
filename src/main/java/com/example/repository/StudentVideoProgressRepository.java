@@ -11,5 +11,8 @@ import java.util.Optional;
 public interface StudentVideoProgressRepository extends JpaRepository<StudentVideoProgress, Long> {
     Optional<StudentVideoProgress> findByStudentIdAndLessonVideoId(Long studentId, Long lessonVideoId);
     List<StudentVideoProgress> findByStudentId(Long studentId);
+    List<StudentVideoProgress> findByStudentIdAndLessonVideoLessonAcademyClassId(
+            Long studentId,
+            Long classId);
     List<StudentVideoProgress> findByLessonVideoId(Long lessonVideoId);
 }

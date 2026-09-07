@@ -2,6 +2,31 @@
 
 이 디렉토리의 SQL은 운영자가 직접 실행하는 일회성 마이그레이션입니다. 자동 마이그레이션 도구(예: Flyway, Liquibase)는 사용하지 않습니다.
 
+## 2026-08-29: 학생-반 다중 소속
+
+학생 계정과 반 소속을 분리하는 `student_class_enrollments` 테이블을 추가합니다.
+기존 `students.class_id`는 전환 기간의 호환 컬럼으로 유지하며, 기존 학생은 반이
+운영 중이면 `ACTIVE`, 종강했으면 `COMPLETED` 상태로 백필됩니다.
+
+운영 코드 배포 전에 적용하고, 파일 마지막의 검증 쿼리 두 결과가 모두 `0`인지 확인합니다.
+
+```bash
+mysql -u root -p academy < migrations/2026-08-29-01-add-student-class-enrollments.sql
+```
+
+적용 후 추가 확인:
+
+```sql
+SHOW CREATE TABLE student_class_enrollments \G
+SELECT status, COUNT(*) FROM student_class_enrollments GROUP BY status;
+```
+
+롤백은 다중 반 소속과 이력 데이터가 아직 필요 없을 때만 실행합니다.
+
+```bash
+mysql -u root -p academy < migrations/2026-08-29-01-add-student-class-enrollments_rollback.sql
+```
+
 ## 2026-08-24: 시험 미입력 답안 허용
 
 학생이 답하지 않은 문항을 `student_submission_details.student_answer = NULL`로 저장하고

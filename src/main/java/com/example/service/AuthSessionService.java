@@ -2,12 +2,17 @@ package com.example.service;
 
 import com.example.entity.Student;
 import com.example.entity.Teacher;
+import com.example.repository.AcademyClassRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class AuthSessionService {
+
+    private final AcademyClassRepository academyClassRepository;
 
     public HttpSession startAuthenticatedSession(HttpServletRequest request) {
         HttpSession session = request.getSession();
@@ -19,6 +24,8 @@ public class AuthSessionService {
         session.removeAttribute("activeAcademyId");
         session.removeAttribute("activeRole");
         session.removeAttribute("studentAcademyId");
+        session.removeAttribute(StudentClassContextService.ACTIVE_STUDENT_CLASS_ID);
+        session.removeAttribute(StudentClassContextService.ACTIVE_STUDENT_CLASS_READ_ONLY);
         session.setAttribute("userId", student.getId());
         session.setAttribute("userRole", "STUDENT");
         session.setAttribute("userName", student.getName());
@@ -27,12 +34,23 @@ public class AuthSessionService {
         if (academyId != null) {
             session.setAttribute("studentAcademyId", academyId);
         }
+        if (student.getAcademyClass() != null) {
+            session.setAttribute(
+                    StudentClassContextService.ACTIVE_STUDENT_CLASS_ID,
+                    student.getAcademyClass().getId());
+            session.setAttribute(
+                    StudentClassContextService.ACTIVE_STUDENT_CLASS_READ_ONLY,
+                    academyClassRepository.existsByIdAndEndedAtIsNotNull(
+                            student.getAcademyClass().getId()));
+        }
     }
 
     public void bindTeacher(HttpSession session, Teacher teacher) {
         session.removeAttribute("activeAcademyId");
         session.removeAttribute("activeRole");
         session.removeAttribute("studentAcademyId");
+        session.removeAttribute(StudentClassContextService.ACTIVE_STUDENT_CLASS_ID);
+        session.removeAttribute(StudentClassContextService.ACTIVE_STUDENT_CLASS_READ_ONLY);
         session.setAttribute("userId", teacher.getId());
         session.setAttribute("userRole", "TEACHER");
         session.setAttribute("userName", teacher.getName());

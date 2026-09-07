@@ -37,6 +37,7 @@ public class LessonService {
     private final StudentHomeworkRepository studentHomeworkRepository;
     private final StudentLessonRepository studentLessonRepository;
     private final AuthorizationService authorizationService;
+    private final StudentClassEnrollmentService studentClassEnrollmentService;
 
     /**
      * Get or create lesson for a specific date/class
@@ -237,12 +238,16 @@ public class LessonService {
      * Get lessons for a specific student (based on their class)
      */
     @Transactional(readOnly = true)
-    public List<LessonDto> getLessonsByStudent(Long studentId) {
+    public List<LessonDto> getLessonsByStudent(Long studentId, Long activeClassId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
 
-        return lessonRepository.findByAcademyClassIdOrderByLessonDateDesc(student.getAcademyClass().getId())
+        Long classId = activeClassId != null
+                ? activeClassId
+                : student.getAcademyClass().getId();
+
+        return lessonRepository.findByAcademyClassIdOrderByLessonDateDesc(classId)
                 .stream()
                 .map(LessonDto::from)
                 .collect(Collectors.toList());
@@ -296,9 +301,8 @@ public class LessonService {
         authorizationService.assertCanAccessLesson(lesson);
 
         // Get all students in this class
-        List<Student> students = studentRepository.findAll().stream()
-                .filter(s -> s.getAcademyClass() != null && s.getAcademyClass().getId().equals(lesson.getAcademyClass().getId()))
-                .collect(Collectors.toList());
+        List<Student> students = studentClassEnrollmentService
+                .getActiveStudentsForClass(lesson.getAcademyClass().getId());
 
         LessonStudentStatsDto stats = new LessonStudentStatsDto();
 
@@ -514,10 +518,8 @@ public class LessonService {
         authorizationService.assertCanAccessLesson(lesson);
 
         // Get all students in this class
-        List<Student> students = studentRepository.findAll().stream()
-                .filter(s -> s.getAcademyClass() != null &&
-                             s.getAcademyClass().getId().equals(lesson.getAcademyClass().getId()))
-                .collect(Collectors.toList());
+        List<Student> students = studentClassEnrollmentService
+                .getActiveStudentsForClass(lesson.getAcademyClass().getId());
 
         // Get all homework IDs for this lesson
         List<Long> homeworkIds = lesson.getHomeworks().stream()
@@ -558,8 +560,8 @@ public class LessonService {
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
         authorizationService.assertCanAccessLesson(lesson);
 
-        List<Student> students = studentRepository.findByAcademyClassId(
-                lesson.getAcademyClass().getId());
+        List<Student> students = studentClassEnrollmentService
+                .getActiveStudentsForClass(lesson.getAcademyClass().getId());
 
         List<StudentLesson> existing = studentLessonRepository.findByLessonId(lessonId);
         Map<Long, StudentLesson> existingMap = existing.stream()
@@ -613,16 +615,20 @@ public class LessonService {
      * 학생별 출석 통계 조회
      */
     @Transactional(readOnly = true)
-    public AttendanceStatsDto getAttendanceStats(Long studentId) {
+    public AttendanceStatsDto getAttendanceStats(Long studentId, Long activeClassId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
 
+        Long classId = activeClassId != null
+                ? activeClassId
+                : student.getAcademyClass().getId();
+
         long totalLessons = lessonRepository.findByAcademyClassIdOrderByLessonDateDesc(
-                student.getAcademyClass().getId()).size();
+                classId).size();
 
         List<Object[]> counts = studentLessonRepository
-                .countByStudentIdGroupByAttendanceStatus(studentId);
+                .countByStudentIdAndClassIdGroupByAttendanceStatus(studentId, classId);
 
         int presentCount = 0, absentCount = 0, lateCount = 0, earlyLeaveCount = 0, videoCount = 0, uncheckedCount = 0;
 

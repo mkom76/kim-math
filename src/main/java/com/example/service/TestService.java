@@ -25,12 +25,12 @@ public class TestService {
     private final TestQuestionRepository testQuestionRepository;
     private final StudentSubmissionRepository studentSubmissionRepository;
     private final StudentSubmissionDetailRepository studentSubmissionDetailRepository;
-    private final StudentRepository studentRepository;
     private final AcademyRepository academyRepository;
     private final AcademyClassRepository academyClassRepository;
     private final LessonService lessonService;
     private final AuthorizationService authorizationService;
     private final TextbookProblemRepository textbookProblemRepository;
+    private final StudentClassEnrollmentService studentClassEnrollmentService;
 
     public Page<TestDto> getTests(Pageable pageable) {
         return testRepository.findAll(pageable).map(TestDto::from);
@@ -371,7 +371,7 @@ public class TestService {
         authorizationService.assertCanAccessTest(test);
 
         Long classId = test.getAcademyClass() != null ? test.getAcademyClass().getId() : null;
-        List<Student> students = studentRepository.findByAcademyClassId(classId).stream()
+        List<Student> students = studentClassEnrollmentService.getActiveStudentsForClass(classId).stream()
                 .sorted((a, b) -> a.getName().compareToIgnoreCase(b.getName()))
                 .collect(Collectors.toList());
 

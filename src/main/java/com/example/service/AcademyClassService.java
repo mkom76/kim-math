@@ -23,6 +23,7 @@ public class AcademyClassService {
     private final AcademyRepository academyRepository;
     private final MembershipService membershipService;
     private final AuthorizationService authorizationService;
+    private final StudentClassEnrollmentService studentClassEnrollmentService;
 
     public Page<AcademyClassDto> getClasses(boolean includeEnded, Pageable pageable) {
         Page<AcademyClass> classes = includeEnded
@@ -114,6 +115,9 @@ public class AcademyClassService {
         if (academyClass.getStudents() != null && !academyClass.getStudents().isEmpty()) {
             throw new ForbiddenException("학생이 등록된 반은 삭제할 수 없습니다. 학생을 다른 반으로 이동한 뒤 다시 시도하세요.");
         }
+        if (studentClassEnrollmentService.hasEnrollmentForClass(id)) {
+            throw new ForbiddenException("학생 소속 이력이 있는 반은 삭제할 수 없습니다. 종강 처리해 주세요.");
+        }
 
         academyClassRepository.delete(academyClass);
     }
@@ -126,7 +130,9 @@ public class AcademyClassService {
         authorizationService.assertCanModifyClass(academyClass);
 
         if (!academyClass.isEnded()) {
-            academyClass.setEndedAt(LocalDateTime.now());
+            LocalDateTime endedAt = LocalDateTime.now();
+            academyClass.setEndedAt(endedAt);
+            studentClassEnrollmentService.completeClassEnrollments(id, endedAt);
         }
         return AcademyClassDto.from(academyClassRepository.save(academyClass));
     }
@@ -139,6 +145,7 @@ public class AcademyClassService {
         authorizationService.assertCanModifyClass(academyClass);
 
         academyClass.setEndedAt(null);
+        studentClassEnrollmentService.reopenClassEnrollments(id);
         return AcademyClassDto.from(academyClassRepository.save(academyClass));
     }
 }

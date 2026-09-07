@@ -150,7 +150,7 @@ public class LessonVideoService {
      * 학생용: 자기 반의 모든 수업 영상 조회
      */
     @Transactional(readOnly = true)
-    public List<StudentLessonVideosDto> getStudentVideos(Long studentId) {
+    public List<StudentLessonVideosDto> getStudentVideos(Long studentId, Long activeClassId) {
         TenantContext.Context ctx = TenantContext.current();
         if (ctx == null) {
             throw new ForbiddenException("인증 컨텍스트가 없습니다");
@@ -170,7 +170,9 @@ public class LessonVideoService {
             throw new RuntimeException("Student is not assigned to a class");
         }
 
-        Long classId = student.getAcademyClass().getId();
+        Long classId = activeClassId != null
+                ? activeClassId
+                : student.getAcademyClass().getId();
 
         // 결석한 수업 ID 조회
         Set<Long> absentLessonIds = new HashSet<>(
