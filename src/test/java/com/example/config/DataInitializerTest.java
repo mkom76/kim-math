@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 @SpringBootTest
-@ActiveProfiles({"test", "local"})
+@ActiveProfiles({"local", "test"})
 @Transactional
 class DataInitializerTest {
 
