@@ -24,6 +24,8 @@ LessonRepository extends JpaRepository<Lesson, Long> {
            "ORDER BY l.lessonDate DESC")
     List<Lesson> findByAcademyClassIdOrderByLessonDateDesc(@Param("classId") Long classId);
 
+    List<Lesson> findByAcademyClassIdInOrderByLessonDateDesc(List<Long> classIds);
+
     @Query("SELECT l FROM Lesson l WHERE l.academyClass.id = :classId " +
            "AND l.lessonDate > :currentDate ORDER BY l.lessonDate ASC")
     List<Lesson> findNextLessonsAfter(@Param("classId") Long classId,

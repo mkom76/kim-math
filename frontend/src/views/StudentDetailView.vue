@@ -27,6 +27,11 @@ const loading = ref(false)
 const currentUser = ref<any>({})
 const studentId = ref<string>('')
 const student = ref<Student | null>(null)
+const studentClassNames = computed(() => student.value?.enrollments
+  ? student.value.enrollments
+      .filter(enrollment => enrollment.status === 'ACTIVE' || enrollment.status === 'SCHEDULED')
+      .map(enrollment => enrollment.className).join(', ') || '수강 중인 반 없음'
+  : student.value?.className)
 const submissions = ref<Submission[]>([])
 const testStats = ref<Record<number, any>>({})
 const studentHomeworks = ref<StudentHomework[]>([])
@@ -421,8 +426,8 @@ onMounted(() => {
                 <div style="margin-top: 4px; font-weight: 500">{{ student?.academyName }}</div>
               </div>
               <div style="padding: 12px 0">
-                <span :style="{ color: '#909399', fontSize: bodyFontSize }">반</span>
-                <div style="margin-top: 4px; font-weight: 500">{{ student?.className }}</div>
+                <span :style="{ color: '#909399', fontSize: bodyFontSize }">소속 반</span>
+                <div style="margin-top: 4px; font-weight: 500">{{ studentClassNames }}</div>
               </div>
 
               <div v-if="isTeacher" style="padding: 12px 0; border-top: 1px solid #ebeef5; margin-top: 4px">

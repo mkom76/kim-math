@@ -15,6 +15,7 @@ import {
 import { usePagination } from '../composables/usePagination'
 import { useAuthStore } from '@/stores/auth'
 import StudentBulkImportDialog from '../components/StudentBulkImportDialog.vue'
+import StudentEnrollmentDialog from '../components/StudentEnrollmentDialog.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -26,6 +27,8 @@ const allClasses = ref<AcademyClass[]>([])
 const searchQuery = ref('')
 const dialogVisible = ref(false)
 const bulkDialogVisible = ref(false)
+const enrollmentDialogVisible = ref(false)
+const enrollmentStudent = ref<Student | null>(null)
 const consentDialogVisible = ref(false)
 const createdConsent = ref<StudentCreateResponse | null>(null)
 const editMode = ref(false)
@@ -34,11 +37,11 @@ const { currentPage, pageSize } = usePagination('students-view')
 
 const availableClasses = computed(() => {
   if (!currentStudent.value.academyId) return []
-  return allClasses.value.filter(cls => cls.academyId === currentStudent.value.academyId)
+  return allClasses.value.filter(cls => cls.academyId === currentStudent.value.academyId && !cls.ended && !cls.endedAt)
 })
 
 const bulkCandidateClasses = computed(() =>
-  allClasses.value.filter(c => c.academyId === authStore.activeAcademyId)
+  allClasses.value.filter(c => c.academyId === authStore.activeAcademyId && !c.ended && !c.endedAt)
 )
 const existingStudentNames = computed(() => students.value.map(s => s.name))
 
@@ -49,7 +52,8 @@ const filteredData = computed(() => {
     (student.grade || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
     (student.school || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
     (student.academyName || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    (student.className || '').toLowerCase().includes(searchQuery.value.toLowerCase())
+    (student.className || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+    student.enrollments?.some(enrollment => enrollment.className.toLowerCase().includes(searchQuery.value.toLowerCase()))
   )
 })
 
@@ -68,11 +72,20 @@ const consentLink = computed(() =>
 const canSubmitStudent = computed(() => {
   const student = currentStudent.value
   const commonFieldsPresent = Boolean(
-    student.name && student.grade && student.school && student.academyId && student.classId
+    student.name && student.grade && student.school && student.academyId
   )
   if (!commonFieldsPresent) return false
-  return editMode.value || Boolean(student.parentName && student.parentPhone)
+  return editMode.value || Boolean(student.classId && student.parentName && student.parentPhone)
 })
+
+const currentClassNames = (student: Student) => student.enrollments
+  ? student.enrollments.filter(enrollment => enrollment.status === 'ACTIVE' || enrollment.status === 'SCHEDULED').map(enrollment => enrollment.className)
+  : student.className ? [student.className] : []
+
+const openEnrollmentDialog = (student: Student) => {
+  enrollmentStudent.value = student
+  enrollmentDialogVisible.value = true
+}
 
 watch(() => currentStudent.value.academyId, () => {
   currentStudent.value.classId = undefined
@@ -130,7 +143,7 @@ const openEditDialog = (student: Student) => {
 }
 
 const handleSubmit = async () => {
-  if (!currentStudent.value.academyId || !currentStudent.value.classId) {
+  if (!currentStudent.value.academyId || (!editMode.value && !currentStudent.value.classId)) {
     ElMessage.error('학원과 반을 선택해주세요.')
     return
   }
@@ -147,7 +160,16 @@ const handleSubmit = async () => {
 
   try {
     if (editMode.value && currentStudent.value.id) {
-      await studentAPI.updateStudent(currentStudent.value.id, currentStudent.value)
+      const student = currentStudent.value
+      await studentAPI.updateStudent(student.id!, {
+        name: student.name,
+        grade: student.grade,
+        school: student.school,
+        academyId: student.academyId,
+        parentName: student.parentName,
+        parentPhone: student.parentPhone,
+        contactPhone: student.contactPhone,
+      })
 
       // PIN이 입력된 경우 별도로 업데이트
       if (currentStudent.value.pin && currentStudent.value.pin.trim() !== '') {
@@ -258,13 +280,21 @@ onMounted(() => {
       @imported="fetchStudents"
     />
 
+    <StudentEnrollmentDialog
+      v-model:visible="enrollmentDialogVisible"
+      :student="enrollmentStudent"
+      :classes="allClasses"
+      :read-only="authStore.isAssistant"
+      @updated="fetchStudents"
+    />
+
     <!-- Search and Filters -->
     <el-card shadow="never" style="margin-bottom: 24px">
       <el-row :gutter="16" align="middle">
         <el-col :span="8">
           <el-input
             v-model="searchQuery"
-            placeholder="학생명, 학년, 학교, 학원으로 검색"
+            placeholder="학생명, 학년, 학교, 반으로 검색"
             :prefix-icon="Search"
             clearable
             size="large"
@@ -332,25 +362,40 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column prop="className" label="반" min-width="150">
+        <el-table-column prop="className" label="소속 반" min-width="210">
           <template #default="{ row }">
-            <el-tag type="success">{{ row.className }}</el-tag>
+            <div class="student-classes">
+              <el-tag v-for="(className, index) in currentClassNames(row).slice(0, 2)" :key="index" type="success" size="small">
+                {{ className }}
+              </el-tag>
+              <span v-if="currentClassNames(row).length > 2" class="class-count" :title="currentClassNames(row).join(', ')">
+                +{{ currentClassNames(row).length - 2 }}
+              </span>
+              <span v-if="!currentClassNames(row).length" class="class-count">수강 중인 반 없음</span>
+              <el-button link type="primary" size="small" @click="openEnrollmentDialog(row)">
+                {{ authStore.isAssistant ? '소속 보기' : '반 관리' }}
+              </el-button>
+            </div>
           </template>
         </el-table-column>
 
         <el-table-column label="작업" width="100" fixed="right">
           <template #default="{ row }">
             <el-button
+              v-if="!authStore.isAssistant"
               size="small"
               type="primary"
+              data-test="edit-student"
               circle
               @click="openEditDialog(row)"
             >
               <el-icon><Edit /></el-icon>
             </el-button>
             <el-button
+              v-if="authStore.isAdmin"
               size="small"
               type="danger"
+              data-test="delete-student"
               circle
               @click="handleDelete(row)"
             >
@@ -425,7 +470,7 @@ onMounted(() => {
           </el-select>
         </el-form-item>
 
-        <el-form-item label="반" required>
+        <el-form-item v-if="!editMode" label="반" required>
           <el-select
             v-model="currentStudent.classId"
             placeholder="반을 선택하세요"
@@ -439,6 +484,10 @@ onMounted(() => {
               :value="cls.id"
             />
           </el-select>
+        </el-form-item>
+
+        <el-form-item v-else label="소속 반">
+          <span style="color: var(--el-text-color-secondary); font-size: 12px">반 배정은 학생 목록의 ‘반 관리’에서 변경할 수 있습니다.</span>
         </el-form-item>
 
         <template v-if="!editMode">
@@ -487,6 +536,7 @@ onMounted(() => {
           <el-button
             type="primary"
             @click="handleSubmit"
+            data-test="submit-student"
             :disabled="!canSubmitStudent"
           >
             {{ editMode ? '수정' : '추가' }}
@@ -525,4 +575,7 @@ onMounted(() => {
   border-radius: 8px;
   overflow: hidden;
 }
+
+.student-classes { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.class-count { font-size: 12px; color: var(--el-text-color-secondary); }
 </style>

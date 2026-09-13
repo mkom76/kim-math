@@ -4,9 +4,11 @@ import com.example.config.security.TenantContext;
 import com.example.dto.StudentCreateRequest;
 import com.example.dto.StudentCreateResponse;
 import com.example.dto.StudentDto;
+import com.example.dto.StudentEnrollmentDto;
 import com.example.entity.Academy;
 import com.example.entity.AcademyClass;
 import com.example.entity.Student;
+import com.example.entity.StudentClassEnrollmentStatus;
 import com.example.entity.StudentStatus;
 import com.example.exception.ForbiddenException;
 import com.example.repository.AcademyRepository;
@@ -31,6 +33,7 @@ public class StudentService {
     private final PinCredentialService pinCredentialService;
     private final StudentConsentIssuer studentConsentIssuer;
     private final StudentClassEnrollmentService studentClassEnrollmentService;
+    private final StudentEnrollmentManagementService enrollmentManagementService;
 
     public Page<StudentDto> getStudents(String name, Pageable pageable) {
         Page<Student> students;
@@ -39,14 +42,14 @@ public class StudentService {
         } else {
             students = studentRepository.findAll(pageable);
         }
-        return students.map(StudentDto::from);
+        return students.map(this::toDto);
     }
 
     public StudentDto getStudent(Long id, Long activeClassId) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
-        StudentDto dto = StudentDto.from(student);
+        StudentDto dto = toDto(student);
         if (activeClassId != null) {
             AcademyClass activeClass = academyClassRepository.findById(activeClassId)
                     .orElseThrow(() -> new RuntimeException("Class not found"));
@@ -100,7 +103,7 @@ public class StudentService {
                 student, academyClass, currentTeacherId());
         String consentToken = studentConsentIssuer.issue(student, LocalDateTime.now());
         return StudentCreateResponse.builder()
-                .student(StudentDto.from(student))
+                .student(toDto(student))
                 .consentToken(consentToken)
                 .build();
     }
@@ -110,29 +113,25 @@ public class StudentService {
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
 
-        student.setName(dto.getName());
-        student.setGrade(dto.getGrade());
-        student.setSchool(dto.getSchool());
-
         if (dto.getAcademyId() != null && !dto.getAcademyId().equals(student.getAcademy().getId())) {
             throw new ForbiddenException("학생 계정의 소속 학원은 변경할 수 없습니다");
         }
 
         if (dto.getClassId() != null && !dto.getClassId().equals(student.getAcademyClass().getId())) {
-            AcademyClass academyClass = academyClassRepository.findById(dto.getClassId())
-                    .orElseThrow(() -> new RuntimeException("Class not found"));
-            authorizationService.assertCanModifyClass(academyClass);
-            AcademyClassPolicy.assertActive(academyClass);
-            student.setAcademyClass(academyClass);
-            studentClassEnrollmentService.ensureActiveEnrollment(
-                    student, academyClass, currentTeacherId());
+            throw new IllegalArgumentException("반 변경은 반 관리의 추가·수강 종료·이동 기능을 사용해주세요");
         }
 
+        student.setName(dto.getName());
+        student.setGrade(dto.getGrade());
+        student.setSchool(dto.getSchool());
+
         student = studentRepository.save(student);
-        return StudentDto.from(student);
+        return toDto(student);
     }
 
     public void deleteStudent(Long id) {
+        // A personal student record now owns history across multiple teachers' classes.
+        authorizationService.assertIsAcademyAdmin();
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
@@ -145,7 +144,7 @@ public class StudentService {
         authorizationService.assertCanAccessStudent(student);
         pinCredentialService.setStudentPin(student, newPin);
         student = studentRepository.save(student);
-        return StudentDto.from(student);
+        return toDto(student);
     }
 
     public StudentDto setScoreVisibility(Long id, boolean hide) {
@@ -154,7 +153,24 @@ public class StudentService {
         authorizationService.assertCanAccessStudent(student);
         student.setHideScoresFromStudent(hide);
         student = studentRepository.save(student);
-        return StudentDto.from(student);
+        return toDto(student);
+    }
+
+    private StudentDto toDto(Student student) {
+        StudentDto dto = StudentDto.from(student);
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx != null && ctx.role() != null) {
+            var enrollments = enrollmentManagementService.visibleEnrollments(student);
+            dto.setEnrollments(enrollments);
+            // Do not expose another teacher's representative class through the shared profile.
+            StudentEnrollmentDto displayClass = enrollments.stream()
+                    .filter(enrollment -> enrollment.getStatus() == StudentClassEnrollmentStatus.ACTIVE)
+                    .findFirst()
+                    .orElse(enrollments.isEmpty() ? null : enrollments.get(0));
+            dto.setClassId(displayClass == null ? null : displayClass.getClassId());
+            dto.setClassName(displayClass == null ? null : displayClass.getClassName());
+        }
+        return dto;
     }
 
     private static String normalizePhone(String raw) {

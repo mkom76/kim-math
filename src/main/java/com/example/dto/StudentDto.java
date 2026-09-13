@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -23,6 +24,7 @@ public class StudentDto {
     private String academyName;
     private Long classId;
     private String className;
+    private List<StudentEnrollmentDto> enrollments;
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String pin;
     private String parentName;

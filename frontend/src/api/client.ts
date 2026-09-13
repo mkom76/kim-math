@@ -94,6 +94,16 @@ interface AcademyClass {
 
 export type StudentStatus = 'PENDING_CONSENT' | 'ACTIVE' | 'REVOKED';
 
+export interface StudentEnrollment {
+  classId: number;
+  className: string;
+  status: 'SCHEDULED' | 'ACTIVE' | 'COMPLETED' | 'WITHDRAWN';
+  startedAt?: string;
+  endedAt?: string;
+  endReason?: string;
+  canManage: boolean;
+}
+
 interface Student {
   id?: number;
   name: string;
@@ -103,6 +113,7 @@ interface Student {
   academyName?: string;
   classId?: number;
   className?: string;
+  enrollments?: StudentEnrollment[];
   pin?: string;
   parentName?: string;
   parentPhone?: string;
@@ -371,6 +382,13 @@ export const academyClassAPI = {
 export const studentAPI = {
   getStudents: (params?: ListQueryParams) => client.get('/students', { params }),
   getStudent: (id: number) => client.get(`/students/${id}`),
+  getEnrollments: (id: number) => client.get<StudentEnrollment[]>(`/students/${id}/enrollments`),
+  addEnrollment: (id: number, classId: number) =>
+    client.post<StudentEnrollment[]>(`/students/${id}/enrollments`, { classId }),
+  completeEnrollment: (id: number, classId: number) =>
+    client.post<StudentEnrollment[]>(`/students/${id}/enrollments/${classId}/complete`),
+  transferEnrollment: (id: number, sourceClassId: number, classId: number) =>
+    client.post<StudentEnrollment[]>(`/students/${id}/enrollments/${sourceClassId}/transfer`, { classId }),
   createStudent: (data: StudentCreateRequest) =>
     client.post<StudentCreateResponse>('/students', data),
   updateStudent: (id: number, data: Student) => client.put(`/students/${id}`, data),

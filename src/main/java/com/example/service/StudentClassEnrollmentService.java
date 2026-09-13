@@ -104,6 +104,9 @@ public class StudentClassEnrollmentService {
         if (enrollment.isPresent()) {
             return enrollment.get().getStatus() == StudentClassEnrollmentStatus.ACTIVE;
         }
+        if (enrollmentRepository.existsByStudentId(studentId)) {
+            return false;
+        }
         Student student = requireStudent(studentId);
         return student.getAcademyClass() != null
                 && student.getAcademyClass().getId().equals(classId)

@@ -5,9 +5,12 @@ import com.example.dto.StudentBulkCreateResponse;
 import com.example.dto.StudentCreateRequest;
 import com.example.dto.StudentCreateResponse;
 import com.example.dto.StudentDto;
+import com.example.dto.StudentEnrollmentDto;
+import com.example.dto.StudentEnrollmentRequest;
 import com.example.service.StudentBulkService;
 import com.example.service.StudentService;
 import com.example.service.StudentClassContextService;
+import com.example.service.StudentEnrollmentManagementService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/students")
@@ -27,6 +31,34 @@ public class StudentController {
     private final StudentService studentService;
     private final StudentBulkService studentBulkService;
     private final StudentClassContextService studentClassContextService;
+    private final StudentEnrollmentManagementService enrollmentManagementService;
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @GetMapping("/{id}/enrollments")
+    public List<StudentEnrollmentDto> getEnrollments(@PathVariable Long id) {
+        return enrollmentManagementService.getEnrollments(id);
+    }
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @PostMapping("/{id}/enrollments")
+    public List<StudentEnrollmentDto> addEnrollment(
+            @PathVariable Long id, @Valid @RequestBody StudentEnrollmentRequest request) {
+        return enrollmentManagementService.add(id, request.getClassId());
+    }
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @PostMapping("/{id}/enrollments/{classId}/complete")
+    public List<StudentEnrollmentDto> completeEnrollment(@PathVariable Long id, @PathVariable Long classId) {
+        return enrollmentManagementService.complete(id, classId);
+    }
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @PostMapping("/{id}/enrollments/{classId}/transfer")
+    public List<StudentEnrollmentDto> transferEnrollment(
+            @PathVariable Long id, @PathVariable Long classId,
+            @Valid @RequestBody StudentEnrollmentRequest request) {
+        return enrollmentManagementService.transfer(id, classId, request.getClassId());
+    }
 
     @PreAuthorize("hasRole('TEACHER')")
     @GetMapping

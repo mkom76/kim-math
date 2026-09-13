@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.SqlFragmentAlias;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -18,7 +19,22 @@ import java.util.List;
 @Table(name = "students")
 @EntityListeners(AuditingEntityListener.class)
 @Filter(name = "academyFilter", condition = "academy_id = :academyId")
-@Filter(name = "ownerFilter",   condition = "class_id IN (SELECT ac.id FROM academy_classes ac WHERE ac.owner_teacher_id = :teacherId UNION SELECT ca.class_id FROM class_assistants ca WHERE ca.teacher_id = :teacherId)")
+@Filter(name = "ownerFilter", deduceAliasInjectionPoints = false,
+        aliases = @SqlFragmentAlias(alias = "student", table = "students"),
+        condition = """
+                (EXISTS (SELECT 1 FROM student_class_enrollments sce
+                    JOIN academy_classes ac ON ac.id = sce.class_id
+                    WHERE sce.student_id = {student}.id
+                    AND ac.academy_id = {student}.academy_id
+                    AND sce.status IN ('ACTIVE', 'COMPLETED')
+                    AND (ac.owner_teacher_id = :teacherId OR ac.id IN
+                        (SELECT ca.class_id FROM class_assistants ca WHERE ca.teacher_id = :teacherId)))
+                OR (NOT EXISTS (SELECT 1 FROM student_class_enrollments sce WHERE sce.student_id = {student}.id)
+                    AND {student}.class_id IN (SELECT ac.id FROM academy_classes ac
+                        WHERE ac.academy_id = {student}.academy_id
+                        AND (ac.owner_teacher_id = :teacherId OR ac.id IN
+                            (SELECT ca.class_id FROM class_assistants ca WHERE ca.teacher_id = :teacherId)))))
+                """)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

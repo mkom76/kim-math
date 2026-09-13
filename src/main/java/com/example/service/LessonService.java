@@ -7,6 +7,7 @@ import com.example.dto.HomeworkDto;
 import com.example.dto.LessonDto;
 import com.example.dto.LessonStudentStatsDto;
 import com.example.dto.StudentHomeworkAssignmentDto;
+import com.example.dto.StudentClassMembershipDto;
 import com.example.dto.StudentLessonDto;
 import com.example.entity.*;
 import com.example.exception.ForbiddenException;
@@ -243,14 +244,23 @@ public class LessonService {
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
 
-        Long classId = activeClassId != null
-                ? activeClassId
-                : student.getAcademyClass().getId();
-
-        return lessonRepository.findByAcademyClassIdOrderByLessonDateDesc(classId)
+        return lessonRepository.findByAcademyClassIdInOrderByLessonDateDesc(
+                        studentClassIds(studentId, activeClassId))
                 .stream()
                 .map(LessonDto::from)
                 .collect(Collectors.toList());
+    }
+
+    private List<Long> studentClassIds(Long studentId, Long activeClassId) {
+        if (activeClassId != null) {
+            return List.of(activeClassId);
+        }
+        // Teacher views include enrolled classes; entity filters keep only the caller's classes.
+        return studentClassEnrollmentService.getMemberships(studentId).stream()
+                .filter(membership -> membership.getStatus() == StudentClassEnrollmentStatus.ACTIVE
+                        || membership.getStatus() == StudentClassEnrollmentStatus.COMPLETED)
+                .map(StudentClassMembershipDto::getClassId)
+                .toList();
     }
 
     /**
@@ -620,15 +630,12 @@ public class LessonService {
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
 
-        Long classId = activeClassId != null
-                ? activeClassId
-                : student.getAcademyClass().getId();
+        List<Long> classIds = studentClassIds(studentId, activeClassId);
 
-        long totalLessons = lessonRepository.findByAcademyClassIdOrderByLessonDateDesc(
-                classId).size();
+        long totalLessons = lessonRepository.findByAcademyClassIdInOrderByLessonDateDesc(classIds).size();
 
         List<Object[]> counts = studentLessonRepository
-                .countByStudentIdAndClassIdGroupByAttendanceStatus(studentId, classId);
+                .countByStudentIdAndClassIdsGroupByAttendanceStatus(studentId, classIds);
 
         int presentCount = 0, absentCount = 0, lateCount = 0, earlyLeaveCount = 0, videoCount = 0, uncheckedCount = 0;
 

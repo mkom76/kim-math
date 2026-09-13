@@ -6,14 +6,20 @@ import com.example.entity.Clinic;
 import com.example.entity.Homework;
 import com.example.entity.Lesson;
 import com.example.entity.Student;
+import com.example.entity.StudentClassEnrollment;
+import com.example.entity.StudentClassEnrollmentStatus;
 import com.example.entity.StudentSubmission;
 import com.example.entity.TeacherAcademyRole;
 import com.example.entity.Test;
 import com.example.exception.ForbiddenException;
 import com.example.repository.AcademyClassRepository;
 import com.example.repository.ClassAssistantRepository;
+import com.example.repository.StudentClassEnrollmentRepository;
+import com.example.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * Central authorization assertions used by services that load entities by
@@ -39,6 +45,8 @@ public class AuthorizationService {
 
     private final AcademyClassRepository academyClassRepository;
     private final ClassAssistantRepository classAssistantRepository;
+    private final StudentClassEnrollmentRepository enrollmentRepository;
+    private final StudentRepository studentRepository;
 
     /**
      * Generic check: caller can access an entity belonging to the given
@@ -77,13 +85,21 @@ public class AuthorizationService {
         }
         AcademyClass clazz = academyClassRepository.findById(entityClassId)
                 .orElseThrow(() -> new ForbiddenException("이 리소스에 접근할 수 없습니다"));
-        boolean isOwner = clazz.getOwnerTeacherId() != null
-                && ctx.teacherId().equals(clazz.getOwnerTeacherId());
-        boolean isAssistant = classAssistantRepository
-                .existsByClassIdAndTeacherId(entityClassId, ctx.teacherId());
-        if (!isOwner && !isAssistant) {
+        if (!canAccessClass(clazz)) {
             throw new ForbiddenException("본인이 담당하거나 보조하는 반의 리소스만 접근할 수 있습니다");
         }
+    }
+
+    /** Staff visibility for a class, including completed classes. */
+    public boolean canAccessClass(AcademyClass clazz) {
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null || ctx.role() == null || clazz == null || clazz.getAcademy() == null
+                || !clazz.getAcademy().getId().equals(ctx.academyId())) {
+            return false;
+        }
+        return ctx.role() == TeacherAcademyRole.ACADEMY_ADMIN
+                || ctx.teacherId().equals(clazz.getOwnerTeacherId())
+                || classAssistantRepository.existsByClassIdAndTeacherId(clazz.getId(), ctx.teacherId());
     }
 
     /**
@@ -113,8 +129,30 @@ public class AuthorizationService {
 
     public void assertStudentClassWritable() {
         TenantContext.Context ctx = TenantContext.current();
-        if (ctx != null && ctx.role() == null && ctx.studentClassReadOnly()) {
+        if (ctx == null || ctx.role() != null) {
+            return;
+        }
+        if (ctx.studentClassReadOnly()) {
             throw new ForbiddenException("종강한 반은 조회만 할 수 있습니다");
+        }
+        if (ctx.studentClassId() == null) {
+            return;
+        }
+        // Enrollment changes must take effect before an existing student session refreshes.
+        boolean writable = enrollmentRepository
+                .findByStudentIdAndAcademyClassId(ctx.teacherId(), ctx.studentClassId())
+                .map(enrollment -> enrollment.getStatus() == StudentClassEnrollmentStatus.ACTIVE
+                        && !enrollment.getAcademyClass().isEnded()
+                        && enrollment.getAcademyClass().getAcademy().getId().equals(ctx.academyId()))
+                .orElseGet(() -> !enrollmentRepository.existsByStudentId(ctx.teacherId())
+                        && studentRepository.findById(ctx.teacherId())
+                                .map(student -> student.getAcademyClass() != null
+                                        && ctx.studentClassId().equals(student.getAcademyClass().getId())
+                                        && !student.getAcademyClass().isEnded()
+                                        && student.getAcademyClass().getAcademy().getId().equals(ctx.academyId()))
+                                .orElse(false));
+        if (!writable) {
+            throw new ForbiddenException("현재 수강 중인 반만 변경할 수 있습니다");
         }
     }
 
@@ -155,8 +193,23 @@ public class AuthorizationService {
             assertCanAccess(academyId, null);
             return;
         }
-        Long legacyClassId = student.getAcademyClass() != null ? student.getAcademyClass().getId() : null;
-        assertCanAccess(academyId, legacyClassId);
+        if (ctx == null || academyId == null || !academyId.equals(ctx.academyId())) {
+            throw new ForbiddenException("이 학생에 접근할 수 없습니다");
+        }
+        if (ctx.role() == TeacherAcademyRole.ACADEMY_ADMIN) {
+            return;
+        }
+        List<StudentClassEnrollment> enrollments = enrollmentRepository
+                .findByStudentIdOrderByStartedAtDescIdDesc(student.getId());
+        boolean accessible = enrollments.isEmpty()
+                ? canAccessClass(student.getAcademyClass())
+                : enrollments.stream()
+                        .filter(enrollment -> enrollment.getStatus() == StudentClassEnrollmentStatus.ACTIVE
+                                || enrollment.getStatus() == StudentClassEnrollmentStatus.COMPLETED)
+                        .anyMatch(enrollment -> canAccessClass(enrollment.getAcademyClass()));
+        if (!accessible) {
+            throw new ForbiddenException("본인이 담당하거나 보조하는 반의 학생만 접근할 수 있습니다");
+        }
     }
 
     public void assertCanAccessLesson(Lesson lesson) {
