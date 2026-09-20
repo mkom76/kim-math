@@ -2,6 +2,33 @@
 
 이 디렉토리의 SQL은 운영자가 직접 실행하는 일회성 마이그레이션입니다. 자동 마이그레이션 도구(예: Flyway, Liquibase)는 사용하지 않습니다.
 
+## 2026-09-20: 학생 계정 통합 감사 이력
+
+반별로 따로 생성했던 중복 학생 ID를 한 대표 학생 ID로 통합할 때, 삭제된 원본 ID와
+대표 ID의 매핑을 남기는 `student_account_merges` 테이블을 추가합니다. 개인정보를 중복
+저장하지 않고 ID, 실행 관리자, 실행 시각만 보관합니다.
+
+운영 환경은 `ddl-auto: validate`이므로 **학생 계정 통합 코드 배포 전에** 적용해야 합니다.
+
+```bash
+mysql -u root -p academy < migrations/2026-09-20-01-add-student-account-merges.sql
+```
+
+적용 후 확인:
+
+```sql
+SHOW CREATE TABLE student_account_merges \G
+SHOW INDEX FROM student_account_merges;
+```
+
+실제 계정 통합을 한 뒤에는 롤백 SQL만으로 삭제된 학생 계정과 이동된 학습 기록을
+복원할 수 없습니다. 통합 실행 전 DB 백업을 만들고, 테이블 롤백은 통합 이력이 전혀
+없을 때만 실행합니다.
+
+```bash
+mysql -u root -p academy < migrations/2026-09-20-01-add-student-account-merges_rollback.sql
+```
+
 ## 2026-08-29: 학생-반 다중 소속
 
 학생 계정과 반 소속을 분리하는 `student_class_enrollments` 테이블을 추가합니다.

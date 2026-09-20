@@ -16,6 +16,7 @@ import { usePagination } from '../composables/usePagination'
 import { useAuthStore } from '@/stores/auth'
 import StudentBulkImportDialog from '../components/StudentBulkImportDialog.vue'
 import StudentEnrollmentDialog from '../components/StudentEnrollmentDialog.vue'
+import StudentAccountMergeDialog from '../components/StudentAccountMergeDialog.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -28,6 +29,7 @@ const searchQuery = ref('')
 const dialogVisible = ref(false)
 const bulkDialogVisible = ref(false)
 const enrollmentDialogVisible = ref(false)
+const accountMergeDialogVisible = ref(false)
 const enrollmentStudent = ref<Student | null>(null)
 const consentDialogVisible = ref(false)
 const createdConsent = ref<StudentCreateResponse | null>(null)
@@ -260,6 +262,13 @@ onMounted(() => {
         </div>
         <div style="display: flex; gap: 8px;">
           <el-button
+            v-if="authStore.isAdmin"
+            @click="accountMergeDialogVisible = true"
+            size="large"
+          >
+            중복 계정 정리
+          </el-button>
+          <el-button
             v-if="!authStore.isAssistant"
             @click="bulkDialogVisible = true"
             size="large"
@@ -286,6 +295,11 @@ onMounted(() => {
       :classes="allClasses"
       :read-only="authStore.isAssistant"
       @updated="fetchStudents"
+    />
+
+    <StudentAccountMergeDialog
+      v-model:visible="accountMergeDialogVisible"
+      @merged="fetchStudents"
     />
 
     <!-- Search and Filters -->

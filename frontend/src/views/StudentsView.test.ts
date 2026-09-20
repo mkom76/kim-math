@@ -8,6 +8,7 @@ import StudentsView from './StudentsView.vue'
 vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('@/api/client', () => ({
   studentAPI: { getStudents: vi.fn(), updateStudent: vi.fn(), resetPin: vi.fn() },
+  studentAccountMergeAPI: { getCandidates: vi.fn(), preview: vi.fn(), merge: vi.fn() },
   academyAPI: { getAcademies: vi.fn() },
   academyClassAPI: { getAcademyClasses: vi.fn() },
 }))
@@ -38,6 +39,7 @@ async function mountView(role: 'TEACHER' | 'ACADEMY_ADMIN' | 'ASSISTANT' = 'TEAC
       stubs: {
         StudentBulkImportDialog: true,
         StudentEnrollmentDialog: true,
+        StudentAccountMergeDialog: true,
         ElCard: slotStub, ElRow: slotStub, ElCol: slotStub, ElIcon: slotStub, ElTag: slotStub,
         ElTable: slotStub,
         ElTableColumn: { setup: () => ({ student }), template: '<div><slot :row="student" /></div>' },

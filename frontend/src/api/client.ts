@@ -165,6 +165,62 @@ export interface StudentBulkCreateResponse {
   created: StudentBulkCreateResultItem[];
 }
 
+export interface StudentMergeEnrollment {
+  classId: number;
+  className: string;
+  status: StudentEnrollment['status'];
+}
+
+export interface StudentMergeStudent {
+  id: number;
+  name: string;
+  grade: string;
+  school: string;
+  parentName?: string;
+  parentPhoneMasked?: string;
+  contactPhoneMasked?: string;
+  status: StudentStatus;
+  enrollments: StudentMergeEnrollment[];
+  createdAt?: string;
+}
+
+export interface StudentAccountMergeCandidate {
+  students: StudentMergeStudent[];
+  matchReasons: string[];
+}
+
+export interface StudentAccountMergeRequest {
+  targetStudentId: number;
+  sourceStudentIds: number[];
+}
+
+export interface StudentAccountMergeImpact {
+  key: string;
+  label: string;
+  count: number;
+  action: 'MOVE' | 'DELETE';
+}
+
+export interface StudentAccountMergeConflict {
+  key: string;
+  label: string;
+  conflictCount: number;
+}
+
+export interface StudentAccountMergePreview {
+  target: StudentMergeStudent;
+  sources: StudentMergeStudent[];
+  impacts: StudentAccountMergeImpact[];
+  conflicts: StudentAccountMergeConflict[];
+  mergeable: boolean;
+}
+
+export interface StudentAccountMergeResult {
+  targetStudentId: number;
+  mergedSourceStudentIds: number[];
+  impacts: StudentAccountMergeImpact[];
+}
+
 export interface ConsentInfo {
   consentVersion: string;
   studentName: string;
@@ -398,6 +454,15 @@ export const studentAPI = {
     client.put<Student>(`/students/${id}/score-visibility`, { hide }),
   bulkCreate: (data: StudentBulkCreateRequest) =>
     client.post<StudentBulkCreateResponse>('/students/bulk', data),
+};
+
+export const studentAccountMergeAPI = {
+  getCandidates: () =>
+    client.get<StudentAccountMergeCandidate[]>('/admin/student-account-merges/candidates'),
+  preview: (data: StudentAccountMergeRequest) =>
+    client.post<StudentAccountMergePreview>('/admin/student-account-merges/preview', data),
+  merge: (data: StudentAccountMergeRequest) =>
+    client.post<StudentAccountMergeResult>('/admin/student-account-merges', data),
 };
 
 // Public consent API (no auth — token-gated)

@@ -4,6 +4,7 @@ import com.example.entity.Student;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,6 +19,13 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from Student s where s.id = :id")
     Optional<Student> findLockedById(@Param("id") Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select s from Student s where s.id in :ids order by s.id")
+    List<Student> findAllLockedById(@Param("ids") List<Long> ids);
+
+    @EntityGraph(attributePaths = {"academy", "academyClass"})
+    List<Student> findByAcademy_IdOrderByCreatedAtAscIdAsc(Long academyId);
 
     Page<Student> findByNameContaining(String name, Pageable pageable);
     List<Student> findAllByOrderByCreatedAtDesc();

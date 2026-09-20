@@ -14,6 +14,9 @@ public interface StudentClassEnrollmentRepository extends JpaRepository<StudentC
     @EntityGraph(attributePaths = {"academyClass", "academyClass.academy"})
     List<StudentClassEnrollment> findByStudentIdOrderByStartedAtDescIdDesc(Long studentId);
 
+    @EntityGraph(attributePaths = {"student", "academyClass", "academyClass.academy"})
+    List<StudentClassEnrollment> findByStudentIdInOrderByStartedAtDescIdDesc(List<Long> studentIds);
+
     @EntityGraph(attributePaths = {"academyClass", "academyClass.academy"})
     Optional<StudentClassEnrollment> findByStudentIdAndAcademyClassId(Long studentId, Long classId);
 
