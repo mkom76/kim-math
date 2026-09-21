@@ -13,6 +13,7 @@ import com.example.entity.Student;
 import com.example.entity.StudentAccountMerge;
 import com.example.entity.StudentClassEnrollment;
 import com.example.entity.StudentClassEnrollmentStatus;
+import com.example.entity.StudentStatus;
 import com.example.repository.StudentAccountMergeRepository;
 import com.example.repository.StudentClassEnrollmentRepository;
 import com.example.repository.StudentRepository;
@@ -118,12 +119,15 @@ public class StudentAccountMergeService {
         Selection selection = loadSelection(request, true);
         StudentAccountMergePreviewDto preview = buildPreview(selection);
         if (!preview.mergeable()) {
-            throw new IllegalArgumentException("겹치는 학습 기록이 있어 통합할 수 없습니다. 충돌 항목을 먼저 정리해주세요");
+            throw new IllegalArgumentException("통합 안전 조건을 충족하지 못했습니다. 미리보기의 차단 항목을 확인해주세요");
         }
 
         MapSqlParameterSource parameters = new MapSqlParameterSource()
                 .addValue("targetId", selection.target().getId())
                 .addValue("sourceIds", selection.sources().stream().map(Student::getId).toList());
+        // A link issued for a deleted profile must never authorize the kept profile.
+        jdbc.update("UPDATE student_consents SET token = NULL " +
+                "WHERE student_id IN (:sourceIds) AND consented_at IS NULL AND token IS NOT NULL", parameters);
         for (StudentReference reference : STUDENT_REFERENCES) {
             jdbc.update("UPDATE " + reference.table() +
                     " SET student_id = :targetId WHERE student_id IN (:sourceIds)", parameters);
@@ -162,8 +166,22 @@ public class StudentAccountMergeService {
         MapSqlParameterSource sourceParameters = new MapSqlParameterSource("sourceIds", sourceIds);
         MapSqlParameterSource allParameters = new MapSqlParameterSource("studentIds", allIds);
 
+        Map<Long, List<StudentMergeEnrollmentDto>> enrollments = enrollmentMap(allIds);
+
         List<StudentAccountMergeImpactDto> impacts = new ArrayList<>();
         List<StudentAccountMergeConflictDto> conflicts = new ArrayList<>();
+        long inactiveAccounts = selection.sources().stream()
+                .filter(student -> student.getStatus() != StudentStatus.ACTIVE)
+                .count() + (selection.target().getStatus() == StudentStatus.ACTIVE ? 0 : 1);
+        if (inactiveAccounts > 0) {
+            conflicts.add(new StudentAccountMergeConflictDto(
+                    "accountStatus", "동의 대기·철회 계정", inactiveAccounts));
+        }
+        long missingEnrollments = allIds.stream().filter(id -> !enrollments.containsKey(id)).count();
+        if (missingEnrollments > 0) {
+            conflicts.add(new StudentAccountMergeConflictDto(
+                    "missingEnrollments", "반 소속 행이 없는 계정", missingEnrollments));
+        }
         for (StudentReference reference : STUDENT_REFERENCES) {
             long count = count("SELECT COUNT(*) FROM " + reference.table() +
                     " WHERE student_id IN (:sourceIds)", sourceParameters);
@@ -188,8 +206,12 @@ public class StudentAccountMergeService {
                 "WHERE user_role = 'STUDENT' AND user_id IN (:sourceIds)", sourceParameters);
         impacts.add(new StudentAccountMergeImpactDto(
                 "rememberMeTokens", "자동 로그인 토큰", rememberTokenCount, DELETE));
+        long pendingConsentLinks = count("SELECT COUNT(*) FROM student_consents " +
+                "WHERE student_id IN (:sourceIds) AND consented_at IS NULL AND token IS NOT NULL",
+                sourceParameters);
+        impacts.add(new StudentAccountMergeImpactDto(
+                "pendingConsentLinks", "미사용 동의 링크", pendingConsentLinks, DELETE));
 
-        Map<Long, List<StudentMergeEnrollmentDto>> enrollments = enrollmentMap(allIds);
         return new StudentAccountMergePreviewDto(
                 toDto(selection.target(), enrollments),
                 selection.sources().stream().map(student -> toDto(student, enrollments)).toList(),

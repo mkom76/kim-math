@@ -8,6 +8,7 @@ import com.example.entity.Student;
 import com.example.entity.StudentAccountMerge;
 import com.example.entity.StudentClassEnrollment;
 import com.example.entity.StudentClassEnrollmentStatus;
+import com.example.entity.StudentConsent;
 import com.example.entity.StudentHomework;
 import com.example.entity.StudentStatus;
 import com.example.entity.Teacher;
@@ -99,6 +100,14 @@ class StudentAccountMergeControllerTest {
                 .createdAt(LocalDateTime.now())
                 .expiresAt(LocalDateTime.now().plusDays(1))
                 .build());
+        StudentConsent unusedConsent = StudentConsent.builder()
+                .studentId(source.getId())
+                .consentVersion("v1")
+                .token("unused-source-consent-link")
+                .tokenIssuedAt(LocalDateTime.now())
+                .tokenExpiresAt(LocalDateTime.now().plusDays(1))
+                .build();
+        em.persist(unusedConsent);
         em.flush();
         em.clear();
 
@@ -120,7 +129,8 @@ class StudentAccountMergeControllerTest {
                 .andExpect(jsonPath("$.target.id").value(target.getId()))
                 .andExpect(jsonPath("$.sources[0].id").value(source.getId()))
                 .andExpect(jsonPath("$.impacts[?(@.key == 'homeworks')].count").value(1))
-                .andExpect(jsonPath("$.impacts[?(@.key == 'rememberMeTokens')].count").value(1));
+                .andExpect(jsonPath("$.impacts[?(@.key == 'rememberMeTokens')].count").value(1))
+                .andExpect(jsonPath("$.impacts[?(@.key == 'pendingConsentLinks')].count").value(1));
 
         mockMvc.perform(post("/api/admin/student-account-merges")
                         .with(csrf())
@@ -139,6 +149,9 @@ class StudentAccountMergeControllerTest {
                 .hasSize(2);
         assertThat(homeworkRepository.findByStudentId(target.getId())).hasSize(1);
         assertThat(homeworkRepository.findByStudentId(source.getId())).isEmpty();
+        StudentConsent movedConsent = em.find(StudentConsent.class, unusedConsent.getId());
+        assertThat(movedConsent.getStudentId()).isEqualTo(target.getId());
+        assertThat(movedConsent.getToken()).isNull();
         assertThat(em.createQuery("select count(t) from RememberMeToken t where t.userRole = 'STUDENT' " +
                         "and t.userId = :studentId", Long.class)
                 .setParameter("studentId", source.getId())
@@ -177,6 +190,57 @@ class StudentAccountMergeControllerTest {
 
         assertThat(studentRepository.findById(source.getId())).isPresent();
         assertThat(mergeRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void pending_or_revoked_accounts_cannot_be_merged_into_an_active_account() throws Exception {
+        em.find(Student.class, source.getId()).setStatus(StudentStatus.PENDING_CONSENT);
+        em.flush();
+        em.clear();
+
+        String request = requestBody(target.getId(), source.getId());
+        mockMvc.perform(post("/api/admin/student-account-merges/preview")
+                        .with(csrf())
+                        .session(session(admin, TeacherAcademyRole.ACADEMY_ADMIN))
+                        .contentType("application/json")
+                        .content(request))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mergeable").value(false))
+                .andExpect(jsonPath("$.conflicts[0].key").value("accountStatus"));
+
+        mockMvc.perform(post("/api/admin/student-account-merges")
+                        .with(csrf())
+                        .session(session(admin, TeacherAcademyRole.ACADEMY_ADMIN))
+                        .contentType("application/json")
+                        .content(request))
+                .andExpect(status().isBadRequest());
+        assertThat(studentRepository.findById(source.getId())).isPresent();
+    }
+
+    @Test
+    void missing_enrollment_blocks_merge_instead_of_losing_legacy_class() throws Exception {
+        enrollmentRepository.deleteAll(enrollmentRepository
+                .findByStudentIdOrderByStartedAtDescIdDesc(source.getId()));
+        em.flush();
+        em.clear();
+
+        String request = requestBody(target.getId(), source.getId());
+        mockMvc.perform(post("/api/admin/student-account-merges/preview")
+                        .with(csrf())
+                        .session(session(admin, TeacherAcademyRole.ACADEMY_ADMIN))
+                        .contentType("application/json")
+                        .content(request))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mergeable").value(false))
+                .andExpect(jsonPath("$.conflicts[0].key").value("missingEnrollments"));
+
+        mockMvc.perform(post("/api/admin/student-account-merges")
+                        .with(csrf())
+                        .session(session(admin, TeacherAcademyRole.ACADEMY_ADMIN))
+                        .contentType("application/json")
+                        .content(request))
+                .andExpect(status().isBadRequest());
+        assertThat(studentRepository.findById(source.getId())).isPresent();
     }
 
     @Test

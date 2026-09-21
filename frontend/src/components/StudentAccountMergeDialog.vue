@@ -154,7 +154,7 @@ const createdAtLabel = (value?: string) => value ? new Date(value).toLocaleDateS
       <template v-else-if="!preview">
         <el-button link type="primary" style="margin-bottom: 12px" @click="resetSelection">← 후보 목록</el-button>
         <el-alert type="warning" :closable="false" style="margin-bottom: 16px">
-          대표 계정의 이름·연락처·로그인 정보가 유지됩니다. 나머지 계정의 학습 이력과 반 소속만 대표 계정으로 이동합니다.
+          대표 계정의 이름·연락처·로그인 정보가 유지됩니다. 나머지 계정의 소속·학습 기록·동의 이력 등은 대표 계정으로 이동합니다.
         </el-alert>
 
         <el-table :data="selectedGroup.students" border>
@@ -206,11 +206,11 @@ const createdAtLabel = (value?: string) => value ? new Date(value).toLocaleDateS
         </el-descriptions>
 
         <el-alert v-if="!preview.mergeable" type="error" :closable="false" style="margin-bottom: 16px">
-          같은 항목의 기록이 양쪽 계정에 있어 자동 통합할 수 없습니다. 아래 충돌 데이터를 먼저 확인해주세요.
+          현재 계정 상태나 겹치는 기록 때문에 통합할 수 없습니다. 아래 차단 항목을 먼저 확인해주세요.
         </el-alert>
         <el-table v-if="preview.conflicts.length" :data="preview.conflicts" border style="margin-bottom: 16px">
-          <el-table-column prop="label" label="충돌 데이터" />
-          <el-table-column prop="conflictCount" label="충돌 묶음" width="120" align="right" />
+          <el-table-column prop="label" label="차단 항목" />
+          <el-table-column prop="conflictCount" label="건수" width="120" align="right" />
         </el-table>
 
         <h4>변경되는 데이터</h4>
@@ -225,7 +225,7 @@ const createdAtLabel = (value?: string) => value ? new Date(value).toLocaleDateS
 
         <template v-if="preview.mergeable">
           <el-alert type="warning" :closable="false" style="margin-bottom: 12px">
-            통합 후 중복 학생 ID는 삭제되며, 기존 로그인 세션과 자동 로그인은 해제됩니다. 실행 전에 DB 백업을 권장합니다.
+            통합 후 중복 학생 ID는 삭제되고 자동 로그인은 해제됩니다. 해당 ID의 기존 세션은 다시 로그인해야 합니다. 실행 전에 DB 백업을 권장합니다.
           </el-alert>
           <el-input v-model="confirmation" :placeholder="`확인을 위해 '${expectedConfirmation}' 입력`" />
         </template>
