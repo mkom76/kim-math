@@ -51,7 +51,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *   <li>ASSISTANT role cannot bulk-create.</li>
  * </ul>
  */
-@SpringBootTest
+@SpringBootTest(properties = "app.consent.parent-required=true")
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional

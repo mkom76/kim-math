@@ -15,6 +15,7 @@ import com.example.repository.AcademyRepository;
 import com.example.repository.AcademyClassRepository;
 import com.example.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,9 @@ public class StudentService {
     private final StudentConsentIssuer studentConsentIssuer;
     private final StudentClassEnrollmentService studentClassEnrollmentService;
     private final StudentEnrollmentManagementService enrollmentManagementService;
+
+    @Value("${app.consent.parent-required:false}")
+    private boolean parentConsentRequired;
 
     public Page<StudentDto> getStudents(String name, Pageable pageable) {
         Page<Student> students;
@@ -92,7 +96,7 @@ public class StudentService {
                 .parentName(dto.getParentName().trim())
                 .parentPhone(normalizePhone(dto.getParentPhone()))
                 .contactPhone(emptyToNull(normalizePhone(dto.getContactPhone())))
-                .status(StudentStatus.PENDING_CONSENT)
+                .status(parentConsentRequired ? StudentStatus.PENDING_CONSENT : StudentStatus.ACTIVE)
                 .academy(academy)
                 .academyClass(academyClass)
                 .build();
@@ -101,7 +105,8 @@ public class StudentService {
         student = studentRepository.save(student);
         studentClassEnrollmentService.ensureActiveEnrollment(
                 student, academyClass, currentTeacherId());
-        String consentToken = studentConsentIssuer.issue(student, LocalDateTime.now());
+        String consentToken = parentConsentRequired
+                ? studentConsentIssuer.issue(student, LocalDateTime.now()) : null;
         return StudentCreateResponse.builder()
                 .student(toDto(student))
                 .consentToken(consentToken)

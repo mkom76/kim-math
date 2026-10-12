@@ -136,7 +136,7 @@ export interface StudentCreateRequest {
 }
 
 export interface StudentCreateResponse extends Student {
-  consentToken: string;
+  consentToken: string | null;
 }
 
 export interface StudentBulkCreateItem {
@@ -158,7 +158,7 @@ export interface StudentBulkCreateResultItem {
   name: string;
   parentName: string;
   parentPhone: string;
-  consentToken: string;
+  consentToken: string | null;
 }
 
 export interface StudentBulkCreateResponse {

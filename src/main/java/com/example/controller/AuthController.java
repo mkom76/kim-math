@@ -26,6 +26,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -52,6 +53,9 @@ public class AuthController {
     private final StudentUiPolicyService studentUiPolicyService;
     private final StudentClassContextService studentClassContextService;
     private final StudentClassEnrollmentService studentClassEnrollmentService;
+
+    @Value("${app.consent.parent-required:false}")
+    private boolean parentConsentRequired;
 
     @GetMapping("/csrf")
     public ResponseEntity<Map<String, String>> csrf(CsrfToken token) {
@@ -103,7 +107,7 @@ public class AuthController {
                             .build());
         }
 
-        if (student.getStatus() == StudentStatus.PENDING_CONSENT) {
+        if (parentConsentRequired && student.getStatus() == StudentStatus.PENDING_CONSENT) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(AuthResponse.builder()
                             .message("개인정보 동의가 완료되어야 이용할 수 있습니다. 학원에서 받은 동의 링크를 확인해 주세요.")
@@ -116,6 +120,9 @@ public class AuthController {
                             .build());
         }
 
+        if (student.getStatus() == StudentStatus.PENDING_CONSENT) {
+            student.setStatus(StudentStatus.ACTIVE);
+        }
         loginSecurityService.recordSuccess(student, now);
 
         HttpSession session = authSessionService.startAuthenticatedSession(request);

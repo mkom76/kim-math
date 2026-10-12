@@ -12,6 +12,7 @@ import com.example.repository.AcademyClassRepository;
 import com.example.repository.AcademyRepository;
 import com.example.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,9 @@ public class StudentBulkService {
     private final PinCredentialService pinCredentialService;
     private final StudentConsentIssuer studentConsentIssuer;
     private final StudentClassEnrollmentService studentClassEnrollmentService;
+
+    @Value("${app.consent.parent-required:false}")
+    private boolean parentConsentRequired;
 
     public StudentBulkCreateResponse bulkCreate(StudentBulkCreateRequest req) {
         TenantContext.Context ctx = TenantContext.current();
@@ -63,7 +67,7 @@ public class StudentBulkService {
                     .parentName(it.getParentName().trim())
                     .parentPhone(normalizePhone(it.getParentPhone()))
                     .contactPhone(emptyToNull(normalizePhone(it.getContactPhone())))
-                    .status(StudentStatus.PENDING_CONSENT)
+                    .status(parentConsentRequired ? StudentStatus.PENDING_CONSENT : StudentStatus.ACTIVE)
                     .academy(academy)
                     .academyClass(clazz)
                     .build();
@@ -72,7 +76,7 @@ public class StudentBulkService {
             studentClassEnrollmentService.ensureActiveEnrollment(
                     student, clazz, ctx.teacherId());
 
-            String token = studentConsentIssuer.issue(student, now);
+            String token = parentConsentRequired ? studentConsentIssuer.issue(student, now) : null;
 
             out.add(StudentBulkCreateResponse.Item.builder()
                     .studentId(student.getId())

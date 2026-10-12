@@ -4,7 +4,7 @@
 
 ## 주요 기능
 
-- 학원·반·학생 관리와 학생 일괄 등록, 보호자 동의
+- 학원·반·학생 관리와 학생 일괄 등록, 선택적으로 활성화하는 보호자 동의 절차
 - 학원별 관리자·담당 선생님·보조 선생님 권한과 데이터 격리
 - 수업별 출결, 공지, 시험·숙제 배정과 학생별 진도 관리
 - 객관식·주관식·서술형 시험, 제출·채점·통계와 성적 공개 제어
@@ -130,11 +130,20 @@ npm run android:install
 | `OPENAI_API_KEY` | AI 피드백 생성 | 키가 없으면 AI 호출 불가 |
 | `YOUTUBE_API_KEY` | 영상 메타데이터 조회 | 키가 없으면 영상 신규 등록 불가 |
 | `PUSH_ENABLED` | FCM 실제 발송 활성화 | `false` |
+| `PARENT_CONSENT_REQUIRED` | 학부모 동의 링크 발급과 로그인 제한 | `false` |
 | `FCM_CREDENTIALS_PATH` | Firebase 서비스 계정 JSON 경로 | 미지정 시 ADC 사용 |
 | `REMEMBER_ME_TTL_DAYS` | 자동 로그인 토큰 수명 | 30일 |
 | `STUDENT_UI_V2_DEFAULT_ACADEMY_IDS` | 새 학생 UI를 기본 적용할 학원 ID 목록 | `2,4` |
 
 비밀값과 Firebase 서비스 계정 파일은 Git에 커밋하지 마세요. YouTube 키 발급 방법은 [YouTube API 설정 가이드](docs/YOUTUBE_API_SETUP.md)에 정리되어 있습니다.
+
+### 학부모 동의 절차 임시 생략
+
+기본값 `PARENT_CONSENT_REQUIRED=false`에서는 단건·일괄 등록 학생을 즉시 `ACTIVE`로 저장하고, 등록 완료 화면에 학생 ID와 초기 PIN(보호자 휴대폰 뒤 4자리)을 안내합니다. 동의 링크는 발급하지 않습니다. 기존 `PENDING_CONSENT` 학생도 올바른 PIN으로 로그인하면 `ACTIVE`로 변경되므로 별도 DB 일괄 수정은 필요 없습니다. PIN 오류, 로그인 잠금, `REVOKED` 계정의 제한은 유지됩니다.
+
+이때 `student_consents`에 동의 완료 기록을 만들거나 기존 기록을 변경하지 않습니다. 기존 동의 링크는 추후 실제 동의 처리에 사용할 수 있습니다.
+
+동의 절차를 다시 사용하려면 `PARENT_CONSENT_REQUIRED=true`로 설정하고 백엔드를 재시작합니다. 이후 신규 등록은 동의 대기·링크 발급 방식으로 돌아가며, 아직 대기 중인 계정은 동의 전까지 로그인할 수 없습니다. 이미 `ACTIVE`인 계정을 대기 상태로 되돌리지는 않습니다.
 
 ## 배포와 데이터베이스
 

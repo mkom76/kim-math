@@ -36,6 +36,8 @@ const dupCount = computed(() =>
 )
 
 const consentBaseUrl = computed(() => window.location.origin + '/consent/')
+const requiresParentConsent = computed(() => results.value.some(r => r.consentToken))
+const initialPin = (phone: string) => phone.replace(/\D/g, '').slice(-4)
 
 function rowClassName({ row }: { row: ParsedStudentRow }): string {
   if (!row.ok) return 'row-error'
@@ -79,7 +81,8 @@ async function submit() {
       students: validRows.value.map(r => r.data!),
     })
     results.value = res.data.created
-    ElMessage.success(`${res.data.created.length}명 등록 완료. 동의 링크를 학부모에게 전달하세요.`)
+    ElMessage.success(`${res.data.created.length}명 등록 완료. ${requiresParentConsent.value
+      ? '동의 링크를 학부모에게 전달하세요.' : '바로 로그인할 수 있습니다.'}`)
     emit('imported')
   } catch (e: any) {
     ElMessage.error(e.response?.data?.message || '일괄 등록에 실패했습니다')
@@ -88,7 +91,8 @@ async function submit() {
   }
 }
 
-async function copyLink(token: string) {
+async function copyLink(token: string | null) {
+  if (!token) return
   const url = consentBaseUrl.value + token
   try {
     await navigator.clipboard.writeText(url)
@@ -101,11 +105,13 @@ async function copyLink(token: string) {
 async function copyAll() {
   if (results.value.length === 0) return
   const text = results.value
-    .map(r => `${r.name} (학부모 ${r.parentName} ${r.parentPhone})\n${consentBaseUrl.value}${r.consentToken}`)
+    .map(r => r.consentToken
+      ? `${r.name} (학부모 ${r.parentName} ${r.parentPhone})\n${consentBaseUrl.value}${r.consentToken}`
+      : `${r.name}\n학생 ID: ${r.studentId}\n초기 PIN: ${initialPin(r.parentPhone)}`)
     .join('\n\n')
   try {
     await navigator.clipboard.writeText(text)
-    ElMessage.success('전체 명단과 링크가 복사되었습니다')
+    ElMessage.success(requiresParentConsent.value ? '전체 명단과 링크가 복사되었습니다' : '전체 명단과 로그인 정보가 복사되었습니다')
   } catch {
     ElMessage.error('복사 실패')
   }
@@ -150,7 +156,7 @@ async function copyAll() {
             • 전화는 <code>010-1234-5678</code> / <code>01012345678</code> / <code>010 1234 5678</code> 모두 지원<br />
             • 학년은 <code>고1</code> / <code>고등학교 1학년</code> / <code>중2</code> / <code>초3</code> 등 자동 정규화<br />
             • 미리보기 표에 "저장될 값"이 그대로 표시되므로 확인 후 등록하세요<br />
-            • 학부모 동의 완료 전까지 학생은 로그인할 수 없으며, 초기 PIN은 <strong>보호자 휴대폰 뒤 4자리</strong>입니다
+            • 초기 PIN은 <strong>보호자 휴대폰 뒤 4자리</strong>입니다
           </div>
         </div>
       </el-alert>
@@ -241,33 +247,41 @@ async function copyAll() {
       </div>
     </template>
 
-    <!-- Post-submit: distribute consent links -->
+    <!-- Post-submit: login details or consent links -->
     <template v-else>
       <el-alert
         type="success"
         :closable="false"
         show-icon
         :title="`${results.length}명이 등록되었습니다.`"
-        description="아래 동의 링크를 학부모에게 카카오톡/문자로 전달해 주세요. 학부모가 동의를 완료하면 학생이 로그인할 수 있습니다."
+        :description="requiresParentConsent
+          ? '아래 동의 링크를 학부모에게 전달해 주세요. 학부모가 동의를 완료하면 학생이 로그인할 수 있습니다.'
+          : '학생 ID와 초기 PIN으로 바로 로그인할 수 있습니다. 로그인 정보를 학생에게 전달해 주세요.'"
         style="margin-bottom: 14px;"
       />
       <div style="margin-bottom: 8px; text-align: right;">
-        <el-button size="small" :icon="DocumentCopy" @click="copyAll">전체 명단·링크 복사</el-button>
+        <el-button size="small" :icon="DocumentCopy" @click="copyAll">
+          {{ requiresParentConsent ? '전체 명단·링크 복사' : '전체 명단·로그인 정보 복사' }}
+        </el-button>
       </div>
       <el-table :data="results" :max-height="420" stripe>
         <el-table-column label="학생" width="100" prop="name" />
+        <el-table-column label="학생 ID" width="100" prop="studentId" />
+        <el-table-column label="초기 PIN" width="100">
+          <template #default="{ row }">{{ initialPin(row.parentPhone) }}</template>
+        </el-table-column>
         <el-table-column label="보호자" width="100" prop="parentName" />
         <el-table-column label="보호자 전화" width="150" prop="parentPhone" />
-        <el-table-column label="동의 링크" min-width="280">
+        <el-table-column v-if="requiresParentConsent" label="동의 링크" min-width="280">
           <template #default="{ row }">
-            <div style="font-family: monospace; font-size: 12px; word-break: break-all; color: #606266;">
+            <div v-if="row.consentToken" style="font-family: monospace; font-size: 12px; word-break: break-all; color: #606266;">
               {{ consentBaseUrl }}{{ row.consentToken }}
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="" width="80" align="center">
+        <el-table-column v-if="requiresParentConsent" label="" width="80" align="center">
           <template #default="{ row }">
-            <el-button size="small" :icon="DocumentCopy" circle @click="copyLink(row.consentToken)" />
+            <el-button v-if="row.consentToken" size="small" :icon="DocumentCopy" circle @click="copyLink(row.consentToken)" />
           </template>
         </el-table-column>
       </el-table>

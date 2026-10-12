@@ -67,7 +67,7 @@ const tableData = computed(() => {
 
 const totalItems = computed(() => filteredData.value.length)
 const consentLink = computed(() =>
-  createdConsent.value
+  createdConsent.value?.consentToken
     ? `${window.location.origin}/consent/${createdConsent.value.consentToken}`
     : ''
 )
@@ -192,7 +192,9 @@ const handleSubmit = async () => {
       })
       createdConsent.value = response.data
       consentDialogVisible.value = true
-      ElMessage.success('학생이 추가되었습니다. 동의 링크를 보호자에게 전달하세요.')
+      ElMessage.success(response.data.consentToken
+        ? '학생이 추가되었습니다. 동의 링크를 보호자에게 전달하세요.'
+        : '학생이 추가되었습니다. 바로 로그인할 수 있습니다.')
     }
     dialogVisible.value = false
     fetchStudents()
@@ -508,7 +510,7 @@ onMounted(() => {
           <el-form-item label="보호자명" required>
             <el-input
               v-model="currentStudent.parentName"
-              placeholder="동의할 보호자 이름을 입력하세요"
+              placeholder="보호자 이름을 입력하세요"
             />
           </el-form-item>
 
@@ -527,7 +529,7 @@ onMounted(() => {
           </el-form-item>
 
           <el-alert type="info" :closable="false" style="margin-bottom: 18px">
-            학생은 보호자 동의 완료 후 로그인할 수 있으며, 초기 PIN은 보호자 휴대폰 뒤 4자리입니다.
+            초기 PIN은 보호자 휴대폰 뒤 4자리입니다.
           </el-alert>
         </template>
 
@@ -561,18 +563,23 @@ onMounted(() => {
 
     <el-dialog
       v-model="consentDialogVisible"
-      title="보호자 동의 링크"
+      :title="consentLink ? '보호자 동의 링크' : '학생 등록 완료'"
       width="560px"
       @closed="createdConsent = null"
     >
       <el-alert type="success" :closable="false" style="margin-bottom: 16px">
-        {{ createdConsent?.name }} 학생이 등록되었습니다. 아래 링크를 보호자에게 전달하세요.
+        {{ createdConsent?.name }} 학생이 등록되었습니다.
+        {{ consentLink ? '아래 링크를 보호자에게 전달하세요.' : '학생 ID와 초기 PIN으로 바로 로그인할 수 있습니다.' }}
       </el-alert>
-      <el-input :model-value="consentLink" readonly>
+      <el-input v-if="consentLink" :model-value="consentLink" readonly>
         <template #append>
           <el-button @click="copyConsentLink">복사</el-button>
         </template>
       </el-input>
+      <div v-else-if="createdConsent">
+        <p>학생 ID: {{ createdConsent.id }}</p>
+        <p>초기 PIN: {{ createdConsent.parentPhone?.replace(/\D/g, '').slice(-4) }}</p>
+      </div>
       <template #footer>
         <el-button type="primary" @click="consentDialogVisible = false">확인</el-button>
       </template>
