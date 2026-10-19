@@ -43,6 +43,9 @@ class FeedbackPromptTemplateServiceTest {
     void defaultsAndUnsavedSettingsUseThreePreviousExams() {
         assertThat(service.getDefault().getScoreHistoryCount()).isEqualTo(3);
         assertThat(service.getByTeacherId(1L).getScoreHistoryCount()).isEqualTo(3);
+        assertThat(service.getDefault().getSystemPrompt())
+                .contains("## 성적 추이 해석 원칙", "점수 증감과 반 평균 대비 격차 변화를 함께 참고합니다.");
+        assertThat(service.getByTeacherId(1L).getSystemPrompt()).isEqualTo(service.getDefault().getSystemPrompt());
     }
 
     @ParameterizedTest

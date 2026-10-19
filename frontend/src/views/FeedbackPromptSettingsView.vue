@@ -6,6 +6,9 @@ import { feedbackPromptTemplateAPI, authAPI, type FeedbackPromptTemplate } from 
 const loading = ref(false)
 const saving = ref(false)
 const resetting = ref(false)
+const loadingDefaultPrompt = ref(false)
+const defaultPromptVisible = ref(false)
+const defaultPrompt = ref('')
 const currentUser = ref<any>(null)
 
 const template = ref<FeedbackPromptTemplate>({
@@ -60,6 +63,19 @@ const resetToDefault = async () => {
   }
 }
 
+const showDefaultPrompt = async () => {
+  loadingDefaultPrompt.value = true
+  try {
+    const defaults = await feedbackPromptTemplateAPI.getDefault()
+    defaultPrompt.value = defaults.systemPrompt
+    defaultPromptVisible.value = true
+  } catch (error) {
+    ElMessage.error('기본 프롬프트를 불러오는데 실패했습니다')
+  } finally {
+    loadingDefaultPrompt.value = false
+  }
+}
+
 onMounted(() => {
   fetchTemplate()
 })
@@ -81,6 +97,14 @@ onMounted(() => {
 
       <el-form label-position="top">
         <el-form-item label="시스템 프롬프트">
+          <template #label>
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+              <span>시스템 프롬프트</span>
+              <el-button link type="primary" :loading="loadingDefaultPrompt" @click="showDefaultPrompt">
+                기본 프롬프트 보기
+              </el-button>
+            </div>
+          </template>
           <el-input
             v-model="template.systemPrompt"
             type="textarea"
@@ -123,5 +147,19 @@ onMounted(() => {
         </div>
       </el-form>
     </el-card>
+
+    <el-dialog v-model="defaultPromptVisible" title="기본 프롬프트" width="min(800px, 95vw)" destroy-on-close>
+      <p style="margin-top: 0; color: #606266">성적 추이 해석 지침을 포함한 기본 프롬프트입니다.</p>
+      <el-input
+        :model-value="defaultPrompt"
+        type="textarea"
+        :rows="20"
+        readonly
+        style="font-family: monospace"
+      />
+      <template #footer>
+        <el-button @click="defaultPromptVisible = false">닫기</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>

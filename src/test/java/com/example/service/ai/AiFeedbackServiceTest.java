@@ -105,6 +105,14 @@ class AiFeedbackServiceTest {
         generateAndCheckPrompt(3, DefaultFeedbackPrompt.SYSTEM_PROMPT);
     }
 
+    @Test
+    void customPromptCopiedFromDefaultsDoesNotDuplicateHistoryGuidelines() {
+        when(promptTemplateRepository.findByTeacherId(1L)).thenReturn(Optional.of(
+                FeedbackPromptTemplate.builder().systemPrompt(DefaultFeedbackPrompt.SYSTEM_PROMPT)
+                        .isActive(true).build()));
+        generateAndCheckPrompt(3, DefaultFeedbackPrompt.SYSTEM_PROMPT);
+    }
+
     private void generateAndCheckPrompt(int expectedCount, String expectedSystemPrompt) {
         TenantContext.set(1L, 2L, TeacherAcademyRole.TEACHER);
         Student student = Student.builder().id(10L).name("김학생").build();
@@ -128,7 +136,8 @@ class AiFeedbackServiceTest {
         ArgumentCaptor<List<Map<String, String>>> messages = ArgumentCaptor.forClass(List.class);
         verify(openAiApiClient).sendMessage(system.capture(), messages.capture(), isNull());
         assertThat(system.getValue()).startsWith(expectedSystemPrompt)
-                .contains(DefaultFeedbackPrompt.SCORE_HISTORY_GUIDELINES);
+                .contains(DefaultFeedbackPrompt.SCORE_HISTORY_GUIDELINES)
+                .containsOnlyOnce("## 성적 추이 해석 원칙");
         assertThat(messages.getValue()).singleElement().satisfies(message -> {
             assertThat(message.get("content")).contains("- 점수: 82점");
             if (expectedCount == 0) {

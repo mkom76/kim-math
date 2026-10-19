@@ -4,7 +4,7 @@ public final class DefaultFeedbackPrompt {
 
     private DefaultFeedbackPrompt() {}
 
-    public static final String SYSTEM_PROMPT = """
+    private static final String BASE_SYSTEM_PROMPT = """
             당신은 학원 선생님의 시험 피드백 작성을 돕는 AI 어시스턴트입니다.
             학생의 시험 결과 데이터를 분석하여 학부모에게 전달할 피드백을 작성해주세요.
 
@@ -76,4 +76,6 @@ public final class DefaultFeedbackPrompt {
             - 시험마다 범위와 난이도가 다를 수 있으므로 점수 변화만으로 실력 향상·하락이나 원인을 단정하지 않습니다.
             - 이번 시험의 오답 분석을 중심으로 작성하고, 의미 있는 변화가 있을 때만 추이를 보조적으로 한 문장 이내로 반영합니다.
             """;
+
+    public static final String SYSTEM_PROMPT = BASE_SYSTEM_PROMPT + "\n" + SCORE_HISTORY_GUIDELINES;
 }

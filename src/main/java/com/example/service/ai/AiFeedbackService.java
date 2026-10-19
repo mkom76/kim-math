@@ -149,7 +149,9 @@ public class AiFeedbackService {
         String systemPrompt = activeTemplate
                 .map(FeedbackPromptTemplate::getSystemPrompt)
                 .orElse(DefaultFeedbackPrompt.SYSTEM_PROMPT);
-        systemPrompt += "\n" + DefaultFeedbackPrompt.SCORE_HISTORY_GUIDELINES;
+        if (!systemPrompt.contains(DefaultFeedbackPrompt.SCORE_HISTORY_GUIDELINES.strip())) {
+            systemPrompt += "\n" + DefaultFeedbackPrompt.SCORE_HISTORY_GUIDELINES;
+        }
 
         int fewShotCount = activeTemplate
                 .map(FeedbackPromptTemplate::getFewShotCount)

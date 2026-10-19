@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ElMessage } from 'element-plus'
 import { authAPI, feedbackPromptTemplateAPI } from '../api/client'
 import FeedbackPromptSettingsView from './FeedbackPromptSettingsView.vue'
 
@@ -20,8 +21,15 @@ async function mountSettings() {
       stubs: {
         ElCard: slotStub,
         ElForm: slotStub,
-        ElFormItem: { props: ['label'], template: '<label>{{ label }}<slot/></label>' },
-        ElInput: true,
+        ElFormItem: { props: ['label'], template: '<div><slot name="label">{{ label }}</slot><slot/></div>' },
+        ElInput: {
+          name: 'ElInput', props: { modelValue: String, readonly: Boolean }, emits: ['update:modelValue'],
+          template: '<textarea :value="modelValue" :readonly="readonly"/>',
+        },
+        ElDialog: {
+          props: ['modelValue', 'title'],
+          template: '<section v-if="modelValue" role="dialog"><h1>{{ title }}</h1><slot/><slot name="footer"/></section>',
+        },
         ElSwitch: true,
         ElInputNumber: {
           name: 'ElInputNumber', props: ['modelValue', 'min', 'max', 'step'],
@@ -76,5 +84,51 @@ describe('FeedbackPromptSettingsView', () => {
     expect(feedbackPromptTemplateAPI.save).toHaveBeenCalledWith(1, expect.objectContaining({
       systemPrompt: '기본 가이드', fewShotCount: 3, scoreHistoryCount: 3,
     }))
+  })
+
+  it.each([true, false])('previews the default prompt read-only and preserves unsaved edits with custom mode %s', async isActive => {
+    vi.mocked(feedbackPromptTemplateAPI.getByTeacher).mockResolvedValue({ ...savedTemplate, isActive })
+    const defaultPrompt = '기본 가이드\n\n## 성적 추이 해석 원칙\n점수 증감과 반 평균 대비 격차 변화를 함께 참고합니다.'
+    vi.mocked(feedbackPromptTemplateAPI.getDefault).mockResolvedValue({
+      ...savedTemplate, systemPrompt: defaultPrompt, fewShotCount: 3, scoreHistoryCount: 3,
+    })
+    const wrapper = await mountSettings()
+    const editor = wrapper.findComponent({ name: 'ElInput' })
+    editor.vm.$emit('update:modelValue', '저장 전 커스텀 내용')
+    const counts = wrapper.findAllComponents({ name: 'ElInputNumber' })
+    counts[0]!.vm.$emit('update:modelValue', 4)
+    counts[1]!.vm.$emit('update:modelValue', 8)
+
+    await wrapper.findAll('button').find(button => button.text() === '기본 프롬프트 보기')!.trigger('click')
+    await flushPromises()
+
+    expect(feedbackPromptTemplateAPI.getDefault).toHaveBeenCalledOnce()
+    const preview = wrapper.get('[role="dialog"]').findComponent({ name: 'ElInput' })
+    expect(preview.props()).toMatchObject({ modelValue: defaultPrompt, readonly: true })
+    expect(preview.get('textarea').element).toHaveProperty('readOnly', true)
+    expect(editor.props('modelValue')).toBe('저장 전 커스텀 내용')
+    expect(counts[0]!.props('modelValue')).toBe(4)
+    expect(counts[1]!.props('modelValue')).toBe(8)
+    expect(feedbackPromptTemplateAPI.save).not.toHaveBeenCalled()
+
+    await wrapper.findAll('button').find(button => button.text() === '닫기')!.trigger('click')
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    await wrapper.findAll('button').find(button => button.text() === '저장')!.trigger('click')
+    await flushPromises()
+    expect(feedbackPromptTemplateAPI.save).toHaveBeenCalledWith(1, expect.objectContaining({
+      systemPrompt: '저장 전 커스텀 내용', fewShotCount: 4, scoreHistoryCount: 8, isActive,
+    }))
+  })
+
+  it('preserves the custom draft when loading the default prompt fails', async () => {
+    vi.mocked(feedbackPromptTemplateAPI.getDefault).mockRejectedValue(new Error('조회 실패'))
+    const wrapper = await mountSettings()
+    await wrapper.findAll('button').find(button => button.text() === '기본 프롬프트 보기')!.trigger('click')
+    await flushPromises()
+
+    expect(ElMessage.error).toHaveBeenCalledWith('기본 프롬프트를 불러오는데 실패했습니다')
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(wrapper.findComponent({ name: 'ElInput' }).props('modelValue')).toBe(savedTemplate.systemPrompt)
+    expect(feedbackPromptTemplateAPI.save).not.toHaveBeenCalled()
   })
 })
