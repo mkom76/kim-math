@@ -28,10 +28,10 @@ const editedAuthorName = ref('')
 // AI 피드백 생성 상태
 const isGeneratingAiFeedback = ref(false)
 const usedAiFeedback = ref(false)
-const selectedModel = ref('gpt-5-mini')
+const selectedModel = ref('gpt-6-luna')
 const modelOptions = [
-  { label: 'GPT-5 Mini (추천)', value: 'gpt-5-mini' },
-  { label: 'GPT-5 Nano (빠름)', value: 'gpt-5-nano' },
+  { label: 'GPT-6 Luna (기본)', value: 'gpt-6-luna' },
+  { label: 'GPT-5 Mini', value: 'gpt-5-mini' },
 ]
 
 const generateAiFeedback = async () => {

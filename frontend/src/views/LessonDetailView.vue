@@ -540,11 +540,11 @@ const notifyLoading = ref(false)
 // AI 일괄 피드백 state
 const bulkAiLoading = ref(false)
 const bulkAiProgress = ref('')
-const bulkAiModel = ref('gpt-5-mini')
+const bulkAiModel = ref('gpt-6-luna')
 const bulkAiPollTimer = ref<ReturnType<typeof setInterval> | null>(null)
 const aiModelOptions = [
-  { label: 'GPT-5 Mini (추천)', value: 'gpt-5-mini' },
-  { label: 'GPT-5 Nano (빠름)', value: 'gpt-5-nano' },
+  { label: 'GPT-6 Luna (기본)', value: 'gpt-6-luna' },
+  { label: 'GPT-5 Mini', value: 'gpt-5-mini' },
 ]
 
 const stopBulkPolling = () => {

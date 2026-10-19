@@ -18,7 +18,7 @@ public class OpenAiApiClient {
 
     private final WebClient openAiWebClient;
 
-    @Value("${openai.api.model:gpt-4o}")
+    @Value("${openai.api.model:gpt-6-luna}")
     private String model;
 
     @Value("${openai.api.max-tokens:1024}")
