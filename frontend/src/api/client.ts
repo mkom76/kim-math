@@ -1118,6 +1118,7 @@ export interface FeedbackPromptTemplate {
   teacherId: number
   systemPrompt: string
   fewShotCount: number
+  scoreHistoryCount: number
   isActive: boolean
 }
 

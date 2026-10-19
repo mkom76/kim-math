@@ -14,5 +14,6 @@ public class FeedbackPromptTemplateDto {
     private Long teacherId;
     private String systemPrompt;
     private Integer fewShotCount;
+    private Integer scoreHistoryCount;
     private Boolean isActive;
 }

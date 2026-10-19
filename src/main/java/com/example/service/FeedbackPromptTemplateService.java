@@ -36,6 +36,7 @@ public class FeedbackPromptTemplateService {
                         .teacherId(teacherId)
                         .systemPrompt(DefaultFeedbackPrompt.SYSTEM_PROMPT)
                         .fewShotCount(DefaultFeedbackPrompt.DEFAULT_FEW_SHOT_COUNT)
+                        .scoreHistoryCount(DefaultFeedbackPrompt.DEFAULT_SCORE_HISTORY_COUNT)
                         .isActive(true)
                         .build());
     }
@@ -45,6 +46,7 @@ public class FeedbackPromptTemplateService {
                 .teacherId(currentTeacherId())
                 .systemPrompt(DefaultFeedbackPrompt.SYSTEM_PROMPT)
                 .fewShotCount(DefaultFeedbackPrompt.DEFAULT_FEW_SHOT_COUNT)
+                .scoreHistoryCount(DefaultFeedbackPrompt.DEFAULT_SCORE_HISTORY_COUNT)
                 .isActive(true)
                 .build();
     }
@@ -52,6 +54,10 @@ public class FeedbackPromptTemplateService {
     @Transactional
     public FeedbackPromptTemplateDto save(FeedbackPromptTemplateDto dto) {
         Long teacherId = currentTeacherId();
+        if (dto.getScoreHistoryCount() != null
+                && (dto.getScoreHistoryCount() < 0 || dto.getScoreHistoryCount() > 10)) {
+            throw new IllegalArgumentException("이전 시험 반영 개수는 0~10 사이여야 합니다");
+        }
         Teacher teacher = teacherRepository.findById(teacherId)
                 .orElseThrow(() -> new RuntimeException("Teacher not found"));
 
@@ -62,6 +68,10 @@ public class FeedbackPromptTemplateService {
 
         template.setSystemPrompt(dto.getSystemPrompt());
         template.setFewShotCount(dto.getFewShotCount());
+        // Older clients omit this setting; preserve the saved value in that case.
+        if (dto.getScoreHistoryCount() != null) {
+            template.setScoreHistoryCount(dto.getScoreHistoryCount());
+        }
         template.setIsActive(dto.getIsActive());
 
         return toDto(repository.save(template));
@@ -73,6 +83,8 @@ public class FeedbackPromptTemplateService {
                 .teacherId(entity.getTeacher().getId())
                 .systemPrompt(entity.getSystemPrompt())
                 .fewShotCount(entity.getFewShotCount())
+                .scoreHistoryCount(entity.getScoreHistoryCount() != null
+                        ? entity.getScoreHistoryCount() : DefaultFeedbackPrompt.DEFAULT_SCORE_HISTORY_COUNT)
                 .isActive(entity.getIsActive())
                 .build();
     }

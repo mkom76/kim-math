@@ -41,6 +41,7 @@ public class AiFeedbackService {
     private final OpenAiApiClient openAiApiClient;
     private final BulkAiFeedbackProcessor bulkProcessor;
     private final AuthorizationService authorizationService;
+    private final AiScoreHistoryService scoreHistoryService;
 
     // (academyId:lessonId) -> 진행 상태 (per-academy namespace to prevent cross-tenant collisions)
     private final ConcurrentHashMap<String, BulkAiFeedbackResponse> bulkStatusMap = new ConcurrentHashMap<>();
@@ -142,19 +143,27 @@ public class AiFeedbackService {
         }
 
         // 2. 선생님별 프롬프트 템플릿 조회 (없으면 기본값)
-        var activeTemplate = promptTemplateRepository.findByTeacherId(teacherId)
+        var savedTemplate = promptTemplateRepository.findByTeacherId(teacherId);
+        var activeTemplate = savedTemplate
                 .filter(template -> Boolean.TRUE.equals(template.getIsActive()));
         String systemPrompt = activeTemplate
                 .map(FeedbackPromptTemplate::getSystemPrompt)
                 .orElse(DefaultFeedbackPrompt.SYSTEM_PROMPT);
+        systemPrompt += "\n" + DefaultFeedbackPrompt.SCORE_HISTORY_GUIDELINES;
 
         int fewShotCount = activeTemplate
                 .map(FeedbackPromptTemplate::getFewShotCount)
                 .orElse(DefaultFeedbackPrompt.DEFAULT_FEW_SHOT_COUNT);
 
+        int scoreHistoryCount = savedTemplate
+                .map(FeedbackPromptTemplate::getScoreHistoryCount)
+                .orElse(DefaultFeedbackPrompt.DEFAULT_SCORE_HISTORY_COUNT);
+        String scoreHistory = scoreHistoryService.buildSummary(
+                student.getId(), lesson, feedbackData.getTodayTest(), scoreHistoryCount);
+
         // 3. Few-shot 예시 수집 (해당 선생님이 이전에 작성한 피드백)
         List<Map<String, String>> messages = buildMessages(
-                feedbackData, student, teacherId, fewShotCount);
+                feedbackData, student, teacherId, fewShotCount, scoreHistory);
 
         // 4. OpenAI API 호출
         String generated = openAiApiClient.sendMessage(systemPrompt, messages, request.getModel());
@@ -168,7 +177,7 @@ public class AiFeedbackService {
 
     private List<Map<String, String>> buildMessages(
             DailyFeedbackDto feedbackData, Student student,
-            Long teacherId, int fewShotCount) {
+            Long teacherId, int fewShotCount, String scoreHistory) {
 
         List<Map<String, String>> messages = new ArrayList<>();
 
@@ -185,13 +194,17 @@ public class AiFeedbackService {
         }
 
         // 실제 요청: 현재 학생의 시험 데이터
-        String currentInput = buildCurrentStudentData(feedbackData, student);
+        String currentInput = buildCurrentStudentData(feedbackData, student, scoreHistory);
         messages.add(Map.of("role", "user", "content", currentInput));
 
         return messages;
     }
 
     String buildCurrentStudentData(DailyFeedbackDto feedbackData, Student student) {
+        return buildCurrentStudentData(feedbackData, student, "");
+    }
+
+    private String buildCurrentStudentData(DailyFeedbackDto feedbackData, Student student, String scoreHistory) {
         StringBuilder sb = new StringBuilder();
 
         // 시험 데이터
@@ -235,6 +248,8 @@ public class AiFeedbackService {
                 }
             }
         }
+
+        sb.append(scoreHistory);
 
         // 숙제 데이터
         DailyFeedbackDto.HomeworkSummary homework = feedbackData.getTodayHomework();

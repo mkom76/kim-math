@@ -12,6 +12,7 @@ const template = ref<FeedbackPromptTemplate>({
   teacherId: 0,
   systemPrompt: '',
   fewShotCount: 3,
+  scoreHistoryCount: 3,
   isActive: true
 })
 
@@ -51,6 +52,7 @@ const resetToDefault = async () => {
     const defaults = await feedbackPromptTemplateAPI.getDefault()
     template.value.systemPrompt = defaults.systemPrompt
     template.value.fewShotCount = defaults.fewShotCount
+    template.value.scoreHistoryCount = defaults.scoreHistoryCount
   } catch (error) {
     ElMessage.error('기본 프롬프트를 불러오는데 실패했습니다')
   } finally {
@@ -97,6 +99,21 @@ onMounted(() => {
           />
           <span style="margin-left: 12px; color: #909399; font-size: 13px">
             이전에 작성한 피드백 중 최근 N개를 AI에게 예시로 제공합니다
+          </span>
+        </el-form-item>
+
+        <el-form-item label="이전 시험 반영 개수">
+          <el-input-number
+            v-model="template.scoreHistoryCount"
+            :min="0"
+            :max="10"
+            :step="1"
+            :precision="0"
+            :value-on-clear="3"
+          />
+          <span style="margin-left: 12px; color: #909399; font-size: 13px">
+            같은 반의 채점 완료된 이전 시험을 최대 N회 반영합니다. 이번 시험은 개수에 포함하지 않으며,
+            0이면 성적 추이 반영을 끕니다. 기본·커스텀 프롬프트에 모두 적용됩니다.
           </span>
         </el-form-item>
 

@@ -32,6 +32,10 @@ public class FeedbackPromptTemplate {
     @Builder.Default
     private Integer fewShotCount = 3;
 
+    @Column(name = "score_history_count", nullable = false)
+    @Builder.Default
+    private Integer scoreHistoryCount = 3;
+
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;

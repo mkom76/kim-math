@@ -64,4 +64,16 @@ public final class DefaultFeedbackPrompt {
             """;
 
     public static final int DEFAULT_FEW_SHOT_COUNT = 3;
+    public static final int DEFAULT_SCORE_HISTORY_COUNT = 3;
+
+    public static final String SCORE_HISTORY_GUIDELINES = """
+
+            ## 성적 추이 해석 원칙
+            - 마지막 사용자 메시지에 제공된 해당 학생의 성적 추이 데이터만 근거로 사용합니다.
+            - 앞선 대화의 피드백 예시는 작성 방식 참고용이며, 현재 학생의 성적 이력이 아닙니다.
+            - 성적 추이 데이터가 없거나 비교 제외로 표시된 경우 이전 성적이나 증감을 추측하지 않습니다.
+            - 점수 증감과 반 평균 대비 격차 변화를 함께 참고합니다.
+            - 시험마다 범위와 난이도가 다를 수 있으므로 점수 변화만으로 실력 향상·하락이나 원인을 단정하지 않습니다.
+            - 이번 시험의 오답 분석을 중심으로 작성하고, 의미 있는 변화가 있을 때만 추이를 보조적으로 한 문장 이내로 반영합니다.
+            """;
 }
