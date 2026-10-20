@@ -32,21 +32,23 @@ public class StudentHomeworkController {
     public ResponseEntity<StudentHomeworkDto> updateIncorrectCount(
             @PathVariable Long studentId,
             @PathVariable Long homeworkId,
+            @RequestParam(required = false) Long studentHomeworkId,
             @RequestBody Map<String, Object> request) {
         Integer incorrectCount = request.get("incorrectCount") != null ? ((Number) request.get("incorrectCount")).intValue() : null;
         Integer unsolvedCount = request.get("unsolvedCount") != null ? ((Number) request.get("unsolvedCount")).intValue() : null;
         String incorrectQuestions = (String) request.get("incorrectQuestions");
         String unsolvedQuestions = (String) request.get("unsolvedQuestions");
-        return ResponseEntity.ok(studentHomeworkService.updateIncorrectCount(studentId, homeworkId, incorrectCount, unsolvedCount, incorrectQuestions, unsolvedQuestions));
+        return ResponseEntity.ok(studentHomeworkService.updateIncorrectCount(studentId, homeworkId, incorrectCount, unsolvedCount, incorrectQuestions, unsolvedQuestions, studentHomeworkId));
     }
 
     @PutMapping("/student/{studentId}/homework/{homeworkId}/questioned-questions")
     public ResponseEntity<StudentHomeworkDto> updateQuestionedQuestions(
             @PathVariable Long studentId,
             @PathVariable Long homeworkId,
+            @RequestParam(required = false) Long studentHomeworkId,
             @RequestBody Map<String, String> request) {
         String questionedQuestions = request.get("questionedQuestions");
-        return ResponseEntity.ok(studentHomeworkService.updateQuestionedQuestions(studentId, homeworkId, questionedQuestions));
+        return ResponseEntity.ok(studentHomeworkService.updateQuestionedQuestions(studentId, homeworkId, questionedQuestions, studentHomeworkId));
     }
 
     @PreAuthorize("hasRole('TEACHER')")
@@ -54,9 +56,10 @@ public class StudentHomeworkController {
     public ResponseEntity<StudentHomeworkDto> setFollowUp(
             @PathVariable Long studentId,
             @PathVariable Long homeworkId,
+            @RequestParam(required = false) Long studentHomeworkId,
             @RequestBody Map<String, Boolean> request) {
         boolean followUp = Boolean.TRUE.equals(request.get("followUp"));
-        return ResponseEntity.ok(studentHomeworkService.setFollowUp(studentId, homeworkId, followUp));
+        return ResponseEntity.ok(studentHomeworkService.setFollowUp(studentId, homeworkId, followUp, studentHomeworkId));
     }
 
     @GetMapping("/student/{studentId}/follow-ups")

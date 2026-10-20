@@ -296,7 +296,7 @@ onMounted(async () => {
           <div v-else class="mobile-homework-list">
             <div
               v-for="homework in incompleteHomeworks"
-              :key="homework.homeworkId"
+              :key="homework.studentHomeworkId ?? homework.homeworkId"
               class="mobile-homework-row"
             >
               <div class="mobile-homework-main">
@@ -395,6 +395,7 @@ onMounted(async () => {
 
           <el-table v-if="!isMobile" :data="recentResult.homeworks" style="width: 100%">
             <el-table-column prop="homeworkTitle" label="숙제" width="100" />
+            <el-table-column prop="lessonDate" label="수업 날짜" width="100" />
             <el-table-column label="오답 변화" width="80" align="center">
               <template #default="{ row }">
                 <div
@@ -428,10 +429,11 @@ onMounted(async () => {
           <div v-else class="mobile-homework-list">
             <div
               v-for="homework in recentResult.homeworks"
-              :key="homework.homeworkId"
+              :key="homework.clinicProgressId ?? homework.homeworkId"
               class="mobile-homework-row mobile-homework-row--stacked"
             >
               <div class="mobile-homework-title">{{ homework.homeworkTitle }}</div>
+              <div v-if="homework.lessonDate" class="mobile-homework-date">{{ formatShortDate(homework.lessonDate) }} 수업</div>
               <div class="mobile-change-grid">
                 <div>
                   <div class="mobile-change-label">오답</div>

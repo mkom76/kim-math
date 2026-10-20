@@ -336,6 +336,8 @@ interface Homework {
 }
 
 interface StudentHomework {
+  lessonId?: number;
+  lessonDate?: string;
   id?: number;
   studentId?: number;
   studentName?: string;
@@ -581,6 +583,9 @@ export const submissionAPI = {
 
 // Homeworks API
 export const homeworkAPI = {
+  getAssignedLessons: (id: number) => client.get<Lesson[]>(`/homeworks/${id}/lessons`),
+  assignToLessons: (id: number, lessonIds: number[], assignStudents: boolean) =>
+    client.post<Lesson[]>(`/homeworks/${id}/lessons`, { lessonIds, assignStudents }),
   getHomeworks: (params?: ListQueryParams) => client.get('/homeworks', { params }),
   createHomework: (data: Homework) => client.post('/homeworks', data),
   updateHomework: (id: number, data: Homework) => client.put(`/homeworks/${id}`, data),
@@ -602,14 +607,14 @@ export interface HomeworkProblemRow {
 // Student Homeworks API
 export const studentHomeworkAPI = {
   getByStudentId: (studentId: number) => client.get(`/student-homeworks/student/${studentId}`),
-  updateIncorrectCount: (studentId: number, homeworkId: number, incorrectCount: number, unsolvedCount: number, incorrectQuestions?: string, unsolvedQuestions?: string) =>
-    client.put(`/student-homeworks/student/${studentId}/homework/${homeworkId}`, { incorrectCount, unsolvedCount, incorrectQuestions, unsolvedQuestions }),
-  setFollowUp: (studentId: number, homeworkId: number, followUp: boolean) =>
-    client.put<StudentHomework>(`/student-homeworks/student/${studentId}/homework/${homeworkId}/follow-up`, { followUp }),
+  updateIncorrectCount: (studentId: number, homeworkId: number, incorrectCount: number, unsolvedCount: number, incorrectQuestions?: string, unsolvedQuestions?: string, studentHomeworkId?: number) =>
+    client.put(`/student-homeworks/student/${studentId}/homework/${homeworkId}`, { incorrectCount, unsolvedCount, incorrectQuestions, unsolvedQuestions }, { params: { studentHomeworkId } }),
+  setFollowUp: (studentId: number, homeworkId: number, followUp: boolean, studentHomeworkId?: number) =>
+    client.put<StudentHomework>(`/student-homeworks/student/${studentId}/homework/${homeworkId}/follow-up`, { followUp }, { params: { studentHomeworkId } }),
   getFollowUps: (studentId: number) =>
     client.get<StudentHomework[]>(`/student-homeworks/student/${studentId}/follow-ups`),
-  updateQuestionedQuestions: (studentId: number, homeworkId: number, questionedQuestions: string) =>
-    client.put<StudentHomework>(`/student-homeworks/student/${studentId}/homework/${homeworkId}/questioned-questions`, { questionedQuestions }),
+  updateQuestionedQuestions: (studentId: number, homeworkId: number, questionedQuestions: string, studentHomeworkId?: number) =>
+    client.put<StudentHomework>(`/student-homeworks/student/${studentId}/homework/${homeworkId}/questioned-questions`, { questionedQuestions }, { params: { studentHomeworkId } }),
 };
 
 // Textbooks API
@@ -698,6 +703,7 @@ export interface StudentHomeworkCompletion {
 }
 
 export interface StudentHomeworkAssignment {
+  studentHomeworkId?: number;
   studentId: number;
   studentName: string;
   assignedHomeworkId?: number;
@@ -826,6 +832,15 @@ export const authAPI = {
 };
 
 // Daily Feedback API
+export interface LessonStudentFeedback {
+  studentId: number;
+  studentName: string;
+  lessonId: number;
+  instructorFeedback?: string;
+  feedbackAuthor?: string;
+  attendanceStatus?: AttendanceRecord['attendanceStatus'];
+}
+
 export interface DailyFeedback {
   lessonId: number;
   lessonDate: string;
@@ -837,6 +852,8 @@ export interface DailyFeedback {
 }
 
 export interface HomeworkSummary {
+  lessonId?: number;
+  studentHomeworkId?: number;
   homeworkId: number;
   homeworkTitle: string;
   questionCount: number;
@@ -876,6 +893,8 @@ export interface QuestionAccuracy {
 }
 
 export const dailyFeedbackAPI = {
+  getLessonFeedbacks: (lessonId: number) =>
+    client.get<LessonStudentFeedback[]>(`/daily-feedback/lesson/${lessonId}/students`),
   getDailyFeedback: (studentId: number, lessonId: number) =>
     client.get<DailyFeedback>(`/daily-feedback/student/${studentId}/lesson/${lessonId}`),
   updateInstructorFeedback: (studentId: number, lessonId: number, feedback: string, authorName: string, isAiFeedback?: boolean) =>
@@ -920,6 +939,7 @@ export interface StudentClinicHomework {
 }
 
 export interface HomeworkProgress {
+  studentHomeworkId?: number;
   homeworkId: number;
   homeworkTitle: string;
   questionCount: number;
@@ -941,6 +961,7 @@ export interface StudentClinicInfo {
 }
 
 export interface IncompleteHomework {
+  studentHomeworkId?: number;
   homeworkId: number;
   homeworkTitle: string;
   completion?: number;
@@ -948,6 +969,7 @@ export interface IncompleteHomework {
 }
 
 export interface ClinicHomeworkProgress {
+  studentHomeworkId?: number;
   id?: number;
   clinicId: number;
   studentId: number;
@@ -979,6 +1001,8 @@ export interface RecentClinicResult {
 }
 
 export interface RecentClinicHomework {
+  clinicProgressId?: number;
+  lessonDate?: string;
   homeworkId: number;
   homeworkTitle: string;
   incorrectCountBefore: number;

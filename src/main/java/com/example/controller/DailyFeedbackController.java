@@ -17,6 +17,12 @@ import org.springframework.web.bind.annotation.*;
 public class DailyFeedbackController {
     private final DailyFeedbackService dailyFeedbackService;
 
+    @PreAuthorize("hasRole('TEACHER')")
+    @GetMapping("/lesson/{lessonId}/students")
+    public ResponseEntity<java.util.List<StudentLessonDto>> getLessonFeedbacks(@PathVariable Long lessonId) {
+        return ResponseEntity.ok(dailyFeedbackService.getLessonFeedbacks(lessonId));
+    }
+
     @GetMapping("/student/{studentId}/lesson/{lessonId}")
     public ResponseEntity<DailyFeedbackDto> getDailyFeedback(
             @PathVariable Long studentId,

@@ -6,6 +6,7 @@ import com.example.entity.Clinic;
 import com.example.entity.Homework;
 import com.example.entity.Lesson;
 import com.example.entity.Student;
+import com.example.entity.StudentHomework;
 import com.example.entity.StudentClassEnrollment;
 import com.example.entity.StudentClassEnrollmentStatus;
 import com.example.entity.StudentSubmission;
@@ -236,7 +237,29 @@ public class AuthorizationService {
         }
         Long academyId = homework.getAcademy() != null ? homework.getAcademy().getId() : null;
         Long classId = homework.getAcademyClass() != null ? homework.getAcademyClass().getId() : null;
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx != null && academyId != null && academyId.equals(ctx.academyId())) {
+            boolean sharedAccess = homework.getLessons().stream().anyMatch(lesson ->
+                    ctx.role() == null
+                            ? ctx.studentClassId() != null && ctx.studentClassId().equals(lesson.getAcademyClass().getId())
+                            : canAccessClass(lesson.getAcademyClass()));
+            if (sharedAccess) return;
+        }
         assertCanAccess(academyId, classId);
+    }
+
+    public void assertCanAccessStudentHomework(StudentHomework progress) {
+        assertCanAccessStudent(progress.getStudent());
+        TenantContext.Context ctx = TenantContext.current();
+        Long academyId = progress.getHomework().getAcademy().getId();
+        if (ctx == null || !academyId.equals(ctx.academyId())) {
+            throw new ForbiddenException("이 숙제 기록에 접근할 수 없습니다");
+        }
+        boolean accessible = ctx.role() == TeacherAcademyRole.ACADEMY_ADMIN
+                || progress.getClassHistory().stream().anyMatch(academyClass -> ctx.role() == null
+                    ? ctx.studentClassId() == null || ctx.studentClassId().equals(academyClass.getId())
+                    : canAccessClass(academyClass));
+        if (!accessible) throw new ForbiddenException("담당 수업에 배정된 학생의 숙제 기록만 접근할 수 있습니다");
     }
 
     public void assertCanAccessClinic(Clinic clinic) {

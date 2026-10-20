@@ -46,9 +46,26 @@ public class Lesson {
     @OneToOne(mappedBy = "lesson", cascade = CascadeType.ALL)
     private Test test;
 
-    @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "lesson")
     @Builder.Default
+    // Retain existing homeworks.lesson_id links alongside the shared connection table.
     private List<Homework> homeworks = new ArrayList<>();
+
+    @ManyToMany
+    @JoinTable(name = "lesson_homeworks",
+            joinColumns = @JoinColumn(name = "lesson_id"),
+            inverseJoinColumns = @JoinColumn(name = "homework_id"))
+    @Builder.Default
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
+    private List<Homework> sharedHomeworks = new ArrayList<>();
+
+    public List<Homework> getHomeworks() {
+        java.util.Map<Long, Homework> result = new java.util.LinkedHashMap<>();
+        homeworks.forEach(homework -> result.put(homework.getId(), homework));
+        sharedHomeworks.forEach(homework -> result.put(homework.getId(), homework));
+        return new ArrayList<>(result.values());
+    }
 
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL)
     @Builder.Default

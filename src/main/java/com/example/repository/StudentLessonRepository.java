@@ -18,6 +18,13 @@ public interface StudentLessonRepository extends JpaRepository<StudentLesson, Lo
 
     List<StudentLesson> findByLessonId(Long lessonId);
 
+    List<StudentLesson> findByStudentIdAndAssignedHomeworkId(Long studentId, Long homeworkId);
+
+    // A shared learning record can also be used by a lesson owned by another teacher.
+    @Query(value = "SELECT COUNT(*) > 0 FROM student_lessons WHERE student_id = :studentId " +
+            "AND assigned_homework_id = :homeworkId AND lesson_id <> :lessonId", nativeQuery = true)
+    boolean existsByStudentIdAndAssignedHomeworkIdAndLessonIdNot(Long studentId, Long homeworkId, Long lessonId);
+
     /** Student ids in a lesson that have a non-empty instructor feedback — push recipients. */
     @Query("SELECT sl.student.id FROM StudentLesson sl WHERE sl.lesson.id = :lessonId " +
            "AND sl.instructorFeedback IS NOT NULL AND sl.instructorFeedback <> ''")

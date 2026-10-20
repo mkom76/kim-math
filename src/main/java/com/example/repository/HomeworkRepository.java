@@ -10,6 +10,7 @@ import java.util.List;
 
 @Repository
 public interface HomeworkRepository extends JpaRepository<Homework, Long> {
+    List<Homework> findByAcademyId(Long academyId);
     @Query("SELECT h FROM Homework h WHERE h.academy.id = :academyId " +
            "AND h.academyClass.id = :classId AND h.lesson IS NULL")
     List<Homework> findUnattachedByAcademyIdAndClassId(

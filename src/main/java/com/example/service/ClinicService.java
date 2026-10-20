@@ -25,6 +25,7 @@ public class ClinicService {
     private final ClinicHomeworkProgressRepository clinicHomeworkProgressRepository;
     private final AuthorizationService authorizationService;
     private final StudentClassEnrollmentService studentClassEnrollmentService;
+    private final LessonHomeworkAssignmentService homeworkAssignmentService;
 
     /**
      * 특정 날짜로 클리닉 생성
@@ -108,28 +109,32 @@ public class ClinicService {
                 .map(student -> {
                     // 1. Get incomplete homeworks (completion < 100%)
                     List<StudentHomework> allStudentHomeworks = studentHomeworkRepository
-                            .findByStudentId(student.getId());
+                            .findByStudentIdAndHomeworkAcademyClassId(student.getId(), clinic.getAcademyClass().getId());
 
                     List<StudentHomework> incompleteHomeworks = allStudentHomeworks.stream()
                             .filter(sh -> sh.getCompletion() == null || sh.getCompletion() < 100)
                             .collect(Collectors.toList());
 
                     // 2. Get homework IDs that are being tracked in this clinic
-                    List<Long> trackedHomeworkIds = clinicHomeworkProgressRepository
+                    List<Long> trackedRecordIds = clinicHomeworkProgressRepository
                             .findByClinicIdAndStudentId(clinicId, student.getId()).stream()
-                            .map(p -> p.getHomework().getId())
+                            .filter(p -> p.getStudentHomework() != null)
+                            .map(p -> p.getStudentHomework().getId())
                             .collect(Collectors.toList());
 
                     // 3. Add tracked homeworks that reached 100% (not in incomplete list)
                     List<StudentHomework> displayHomeworks = new ArrayList<>(incompleteHomeworks);
                     allStudentHomeworks.stream()
-                            .filter(sh -> trackedHomeworkIds.contains(sh.getHomework().getId()))
+                            .filter(sh -> trackedRecordIds.contains(sh.getId()))
                             .filter(sh -> displayHomeworks.stream()
-                                    .noneMatch(dh -> dh.getHomework().getId().equals(sh.getHomework().getId())))
+                                    .noneMatch(dh -> dh.getId().equals(sh.getId())))
                             .forEach(displayHomeworks::add);
 
                     List<ClinicDetailDto.HomeworkProgressDto> homeworkDtos = displayHomeworks.stream()
-                            .map(sh -> ClinicDetailDto.HomeworkProgressDto.builder()
+                            .map(sh -> {
+                                Lesson sourceLesson = homeworkAssignmentService.findLesson(sh, clinic.getAcademyClass().getId()).orElse(null);
+                                return ClinicDetailDto.HomeworkProgressDto.builder()
+                                    .studentHomeworkId(sh.getId())
                                     .homeworkId(sh.getHomework().getId())
                                     .homeworkTitle(sh.getHomework().getTitle())
                                     .questionCount(sh.getHomework().getQuestionCount())
@@ -138,12 +143,11 @@ public class ClinicService {
                                     .incorrectQuestions(sh.getIncorrectQuestions())
                                     .unsolvedQuestions(sh.getUnsolvedQuestions())
                                     .completion(sh.getCompletion())
-                                    .lessonId(sh.getHomework().getLesson() != null ?
-                                             sh.getHomework().getLesson().getId() : null)
-                                    .lessonDate(sh.getHomework().getLesson() != null ?
-                                               sh.getHomework().getLesson().getLessonDate().toString() : null)
+                                    .lessonId(sourceLesson != null ? sourceLesson.getId() : null)
+                                    .lessonDate(sourceLesson != null ? sourceLesson.getLessonDate().toString() : null)
                                     .followUpFlag(sh.getFollowUpFlag() != null ? sh.getFollowUpFlag() : false)
-                                    .build())
+                                    .build();
+                            })
                             .collect(Collectors.toList());
 
                     return ClinicDetailDto.StudentClinicHomeworkDto.builder()
@@ -301,13 +305,16 @@ public class ClinicService {
                 .collect(Collectors.toList());
 
         List<StudentClinicInfoDto.IncompleteHomeworkDto> homeworkDtos = incompleteHomeworks.stream()
-                .map(sh -> StudentClinicInfoDto.IncompleteHomeworkDto.builder()
+                .map(sh -> {
+                    Lesson sourceLesson = homeworkAssignmentService.findLesson(sh, classId).orElse(null);
+                    return StudentClinicInfoDto.IncompleteHomeworkDto.builder()
+                        .studentHomeworkId(sh.getId())
                         .homeworkId(sh.getHomework().getId())
                         .homeworkTitle(sh.getHomework().getTitle())
                         .completion(sh.getCompletion())
-                        .lessonDate(sh.getHomework().getLesson() != null ?
-                                   sh.getHomework().getLesson().getLessonDate().toString() : null)
-                        .build())
+                        .lessonDate(sourceLesson != null ? sourceLesson.getLessonDate().toString() : null)
+                        .build();
+                })
                 .collect(Collectors.toList());
 
         return StudentClinicInfoDto.builder()
@@ -351,14 +358,14 @@ public class ClinicService {
 
         for (Student student : students) {
             List<StudentHomework> incompleteHomeworks = studentHomeworkRepository
-                    .findByStudentId(student.getId()).stream()
+                    .findByStudentIdAndHomeworkAcademyClassId(student.getId(), clinic.getAcademyClass().getId()).stream()
                     .filter(sh -> sh.getCompletion() == null || sh.getCompletion() < 100)
                     .collect(Collectors.toList());
 
             for (StudentHomework sh : incompleteHomeworks) {
                 // Check if progress already exists
                 Optional<ClinicHomeworkProgress> existing = clinicHomeworkProgressRepository
-                        .findByClinicIdAndStudentIdAndHomeworkId(clinicId, student.getId(), sh.getHomework().getId());
+                        .findByClinicIdAndStudentHomeworkId(clinicId, sh.getId());
 
                 ClinicHomeworkProgress progress;
                 if (existing.isPresent()) {
@@ -370,6 +377,7 @@ public class ClinicService {
                             .clinic(clinic)
                             .student(student)
                             .homework(sh.getHomework())
+                            .studentHomework(sh)
                             .build();
                 }
 
@@ -401,14 +409,7 @@ public class ClinicService {
 
         // Update "after" snapshot for each tracked homework
         for (ClinicHomeworkProgress progress : progressList) {
-            Long studentId = progress.getStudent().getId();
-            Long homeworkId = progress.getHomework().getId();
-
-            // Get current homework state
-            Optional<StudentHomework> currentHomework = studentHomeworkRepository
-                    .findByStudentId(studentId).stream()
-                    .filter(sh -> sh.getHomework().getId().equals(homeworkId))
-                    .findFirst();
+            Optional<StudentHomework> currentHomework = Optional.ofNullable(progress.getStudentHomework());
 
             if (currentHomework.isPresent()) {
                 StudentHomework sh = currentHomework.get();
@@ -511,6 +512,9 @@ public class ClinicService {
             totalUnsolvedAfter += unsolvedAfter;
 
             homeworkDtos.add(RecentClinicResultDto.RecentClinicHomeworkDto.builder()
+                    .clinicProgressId(progress.getId())
+                    .lessonDate(progress.getStudentHomework() != null && progress.getStudentHomework().getLesson() != null
+                            ? progress.getStudentHomework().getLesson().getLessonDate().toString() : null)
                     .homeworkId(progress.getHomework().getId())
                     .homeworkTitle(progress.getHomework().getTitle())
                     .incorrectCountBefore(incorrectBefore)

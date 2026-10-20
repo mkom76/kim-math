@@ -22,6 +22,7 @@ public class StudentClinicInfoDto {
     @AllArgsConstructor
     @Builder
     public static class IncompleteHomeworkDto {
+        private Long studentHomeworkId;
         private Long homeworkId;
         private String homeworkTitle;
         private Integer completion;

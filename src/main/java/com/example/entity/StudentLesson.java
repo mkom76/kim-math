@@ -49,6 +49,14 @@ public class StudentLesson {
     @Column(name = "attendance_status")
     private AttendanceStatus attendanceStatus;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_homework_id")
+    private Homework assignedHomework;
+
+    @Column(name = "homework_assignment_set", nullable = false)
+    @Builder.Default
+    private boolean homeworkAssignmentSet = false;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

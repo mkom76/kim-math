@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
@@ -34,11 +35,12 @@ public class LessonService {
     private final TestRepository testRepository;
     private final HomeworkRepository homeworkRepository;
     private final StudentRepository studentRepository;
-    private final StudentSubmissionRepository studentSubmissionRepository;
     private final StudentHomeworkRepository studentHomeworkRepository;
+    private final StudentSubmissionRepository studentSubmissionRepository;
     private final StudentLessonRepository studentLessonRepository;
     private final AuthorizationService authorizationService;
     private final StudentClassEnrollmentService studentClassEnrollmentService;
+    private final LessonHomeworkAssignmentService homeworkAssignmentService;
 
     /**
      * Get or create lesson for a specific date/class
@@ -101,6 +103,9 @@ public class LessonService {
             throw new RuntimeException("Cannot delete lesson with attached homework");
         }
 
+        if (studentHomeworkRepository.existsByLessonId(id)) {
+            throw new IllegalArgumentException("학생 숙제 기록이 남아 있는 수업은 삭제할 수 없습니다");
+        }
         lessonRepository.delete(lesson);
     }
 
@@ -170,29 +175,58 @@ public class LessonService {
     /**
      * Attach homework to a lesson
      */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public LessonDto attachHomework(Long lessonId, Long homeworkId) {
-        Lesson lesson = lessonRepository.findById(lessonId)
+        Lesson lesson = lessonRepository.findLockedById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
         authorizationService.assertCanAccessLesson(lesson);
         Homework homework = homeworkRepository.findById(homeworkId)
                 .orElseThrow(() -> new RuntimeException("Homework not found"));
         authorizationService.assertCanAccessHomework(homework);
 
-        // Validate: homework must not already be attached to another lesson
-        if (homework.getLesson() != null && !homework.getLesson().getId().equals(lessonId)) {
-            throw new RuntimeException("Homework is already attached to another lesson");
+        AcademyClassPolicy.assertActive(lesson.getAcademyClass());
+        if (!homework.getAcademy().getId().equals(lesson.getAcademy().getId())) {
+            throw new ForbiddenException("같은 학원의 수업에만 숙제를 배정할 수 있습니다");
         }
-
-        // Validate: homework must be from same academy and class
-        if (!homework.getAcademy().getId().equals(lesson.getAcademy().getId()) ||
-            !homework.getAcademyClass().getId().equals(lesson.getAcademyClass().getId())) {
-            throw new RuntimeException("Homework must be from the same academy and class as the lesson");
+        if (lesson.getSharedHomeworks().stream().noneMatch(item -> item.getId().equals(homeworkId))) {
+            lesson.getSharedHomeworks().add(homework);
+            homework.getSharedLessons().add(lesson);
         }
+        return LessonDto.from(lesson);
+    }
 
-        homework.setLesson(lesson);
-        homeworkRepository.save(homework);
-
-        return LessonDto.from(lessonRepository.findById(lessonId).orElseThrow());
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public List<LessonDto> attachHomeworkToLessons(Long homeworkId, List<Long> lessonIds, boolean assignStudents) {
+        if (lessonIds == null || lessonIds.isEmpty() || lessonIds.stream().anyMatch(Objects::isNull)) {
+            throw new IllegalArgumentException("배정할 수업을 선택해주세요");
+        }
+        List<Long> orderedIds = lessonIds.stream().distinct().sorted().toList();
+        List<Lesson> targets = lessonRepository.findAllLockedById(orderedIds);
+        if (targets.size() != orderedIds.size()) throw new ForbiddenException("접근 가능한 수업을 찾을 수 없습니다");
+        for (Lesson target : targets) {
+            authorizationService.assertCanAccessLesson(target);
+            AcademyClassPolicy.assertActive(target.getAcademyClass());
+        }
+        if (assignStudents) {
+            List<Long> studentIds = targets.stream()
+                    .flatMap(target -> studentClassEnrollmentService.getActiveStudentsForClass(target.getAcademyClass().getId()).stream())
+                    .map(Student::getId).distinct().sorted().toList();
+            if (!studentIds.isEmpty()) studentRepository.findAllLockedById(studentIds);
+        }
+        List<LessonDto> result = new ArrayList<>();
+        for (Long lessonId : orderedIds) {
+            result.add(attachHomework(lessonId, homeworkId));
+            if (assignStudents) {
+                Lesson lesson = lessonRepository.findById(lessonId).orElseThrow();
+                Map<Long, StudentHomework> existing = homeworkAssignmentService.getProgressByStudent(lesson);
+                Map<Long, Long> assignments = new HashMap<>();
+                studentClassEnrollmentService.getActiveStudentsForClass(lesson.getAcademyClass().getId())
+                        .stream().filter(student -> !existing.containsKey(student.getId()))
+                        .forEach(student -> assignments.put(student.getId(), homeworkId));
+                homeworkAssignmentService.assign(lesson, assignments);
+            }
+        }
+        return result;
     }
 
     /**
@@ -215,8 +249,9 @@ public class LessonService {
     /**
      * Remove homework from a lesson (specific homework by ID)
      */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public LessonDto removeHomework(Long lessonId, Long homeworkId) {
-        Lesson lesson = lessonRepository.findById(lessonId)
+        Lesson lesson = lessonRepository.findLockedById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
         authorizationService.assertCanAccessLesson(lesson);
         Homework homework = homeworkRepository.findById(homeworkId)
@@ -224,13 +259,17 @@ public class LessonService {
         authorizationService.assertCanAccessHomework(homework);
 
         // Validate: homework must belong to this lesson
-        if (homework.getLesson() == null || !homework.getLesson().getId().equals(lessonId)) {
+        if (lesson.getHomeworks().stream().noneMatch(item -> item.getId().equals(homeworkId))) {
             throw new RuntimeException("Homework is not attached to this lesson");
         }
 
-        // Remove homework from lesson (orphanRemoval will delete StudentHomework records)
-        homework.setLesson(null);
-        homeworkRepository.save(homework);
+        homeworkAssignmentService.detach(lesson, homework);
+        lesson.getSharedHomeworks().removeIf(item -> item.getId().equals(homeworkId));
+        homework.getSharedLessons().removeIf(item -> item.getId().equals(lessonId));
+        if (homework.getLesson() != null && homework.getLesson().getId().equals(lessonId)) {
+            homework.setLesson(null);
+            lesson.setHomeworks(lesson.getHomeworks().stream().filter(item -> !item.getId().equals(homeworkId)).toList());
+        }
 
         return LessonDto.from(lessonRepository.findById(lessonId).orElseThrow());
     }
@@ -371,16 +410,9 @@ public class LessonService {
         if (!lesson.getHomeworks().isEmpty()) {
             List<LessonStudentStatsDto.StudentHomeworkCompletion> homeworkCompletions = new ArrayList<>();
 
-            // Get all homework IDs for this lesson
-            List<Long> homeworkIds = lesson.getHomeworks().stream()
-                    .map(Homework::getId)
-                    .collect(Collectors.toList());
-
-            // Get all student homework records for this lesson
-            List<StudentHomework> studentHomeworks = studentHomeworkRepository
-                    .findByHomeworkIdIn(homeworkIds);
-            Map<Long, StudentHomework> homeworkMap = studentHomeworks.stream()
-                    .collect(Collectors.toMap(sh -> sh.getStudent().getId(), sh -> sh));
+            Map<Long, StudentHomework> homeworkMap = homeworkAssignmentService.getProgressByStudent(lesson);
+            List<StudentHomework> studentHomeworks = students.stream().map(student -> homeworkMap.get(student.getId()))
+                    .filter(Objects::nonNull).toList();
 
             for (Student student : students) {
                 StudentHomework studentHomework = homeworkMap.get(student.getId());
@@ -438,84 +470,13 @@ public class LessonService {
      * @param lessonId the lesson ID
      * @param assignments Map of studentId -> homeworkId
      */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void assignHomeworksToStudents(Long lessonId, Map<Long, Long> assignments) {
-        Lesson lesson = lessonRepository.findById(lessonId)
+        Lesson lesson = lessonRepository.findLockedById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
         authorizationService.assertCanAccessLesson(lesson);
 
-        // Get all homework IDs for validation
-        List<Long> lessonHomeworkIds = lesson.getHomeworks().stream()
-                .map(Homework::getId)
-                .collect(Collectors.toList());
-
-        Set<Long> validHomeworkIds = new HashSet<>(lessonHomeworkIds);
-
-        // Process each assignment
-        for (Map.Entry<Long, Long> entry : assignments.entrySet()) {
-            Long studentId = entry.getKey();
-            Long homeworkId = entry.getValue();
-
-            Student student = studentRepository.findById(studentId)
-                    .orElseThrow(() -> new RuntimeException("Student " + studentId + " not found"));
-
-            // Get all student's homework assignments for this lesson's homeworks
-            List<StudentHomework> existingAssignments = studentHomeworkRepository
-                    .findByHomeworkIdIn(lessonHomeworkIds).stream()
-                    .filter(sh -> sh.getStudent().getId().equals(studentId))
-                    .collect(Collectors.toList());
-
-            if (homeworkId == null) {
-                for (StudentHomework existingAssignment : existingAssignments) {
-                    if (existingAssignment.getIncorrectCount() != null) {
-                        throw new RuntimeException(
-                            "학생 " + student.getName() + "은(는) 이미 숙제 '" +
-                            existingAssignment.getHomework().getTitle() + "'를 제출했습니다. " +
-                            "제출된 숙제는 제외할 수 없습니다."
-                        );
-                    }
-                }
-                studentHomeworkRepository.deleteAll(existingAssignments);
-                continue;
-            }
-
-            // Validate homework belongs to this lesson
-            if (!validHomeworkIds.contains(homeworkId)) {
-                throw new RuntimeException("Homework " + homeworkId + " is not attached to this lesson");
-            }
-
-            Homework homework = homeworkRepository.findById(homeworkId)
-                    .orElseThrow(() -> new RuntimeException("Homework " + homeworkId + " not found"));
-
-            if (!existingAssignments.isEmpty()) {
-                StudentHomework existingAssignment = existingAssignments.get(0);
-
-                // If already assigned to the same homework, skip
-                if (existingAssignment.getHomework().getId().equals(homeworkId)) {
-                    continue;
-                }
-
-                // If already assigned to a different homework
-                // Check if student has already submitted (has incorrectCount)
-                if (existingAssignment.getIncorrectCount() != null) {
-                    throw new RuntimeException(
-                        "학생 " + student.getName() + "은(는) 이미 숙제 '" +
-                        existingAssignment.getHomework().getTitle() + "'를 제출했습니다. " +
-                        "제출된 숙제는 다른 숙제로 변경할 수 없습니다."
-                    );
-                }
-
-                // If not submitted yet, delete old assignment and create new one
-                studentHomeworkRepository.delete(existingAssignment);
-            }
-
-            // Create new assignment
-            StudentHomework sh = StudentHomework.builder()
-                    .student(student)
-                    .homework(homework)
-                    .incorrectCount(null)  // Not submitted yet
-                    .build();
-            studentHomeworkRepository.save(sh);
-        }
+        homeworkAssignmentService.assign(lesson, assignments);
     }
 
     /**
@@ -531,16 +492,7 @@ public class LessonService {
         List<Student> students = studentClassEnrollmentService
                 .getActiveStudentsForClass(lesson.getAcademyClass().getId());
 
-        // Get all homework IDs for this lesson
-        List<Long> homeworkIds = lesson.getHomeworks().stream()
-                .map(Homework::getId)
-                .collect(Collectors.toList());
-
-        // Get all student homework records
-        List<StudentHomework> studentHomeworks = studentHomeworkRepository
-                .findByHomeworkIdIn(homeworkIds);
-        Map<Long, StudentHomework> assignmentMap = studentHomeworks.stream()
-                .collect(Collectors.toMap(sh -> sh.getStudent().getId(), sh -> sh));
+        Map<Long, StudentHomework> assignmentMap = homeworkAssignmentService.getProgressByStudent(lesson);
 
         // Build assignment DTOs
         return students.stream()
@@ -549,6 +501,7 @@ public class LessonService {
                     return StudentHomeworkAssignmentDto.builder()
                             .studentId(student.getId())
                             .studentName(student.getName())
+                            .studentHomeworkId(sh != null ? sh.getId() : null)
                             .assignedHomeworkId(sh != null ? sh.getHomework().getId() : null)
                             .assignedHomeworkTitle(sh != null ? sh.getHomework().getTitle() : null)
                             .incorrectCount(sh != null ? sh.getIncorrectCount() : null)
@@ -556,6 +509,7 @@ public class LessonService {
                             .incorrectQuestions(sh != null ? sh.getIncorrectQuestions() : null)
                             .unsolvedQuestions(sh != null ? sh.getUnsolvedQuestions() : null)
                             .completion(sh != null ? sh.getCompletion() : null)
+                            .followUpFlag(sh != null ? sh.getFollowUpFlag() : false)
                             .build();
                 })
                 .collect(Collectors.toList());

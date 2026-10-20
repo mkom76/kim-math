@@ -31,6 +31,7 @@ public class ClinicDetailDto {
     @AllArgsConstructor
     @Builder
     public static class HomeworkProgressDto {
+        private Long studentHomeworkId;
         private Long homeworkId;
         private String homeworkTitle;
         private Integer questionCount;

@@ -6,16 +6,29 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.SqlFragmentAlias;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Filter(name = "academyFilter", condition = "student_id IN (SELECT s2.id FROM students s2 WHERE s2.academy_id = :academyId)")
-@Filter(name = "ownerFilter",   condition = "homework_id IN (SELECT h.id FROM homeworks h WHERE h.class_id IN (SELECT ac.id FROM academy_classes ac WHERE ac.owner_teacher_id = :teacherId UNION SELECT ca.class_id FROM class_assistants ca WHERE ca.teacher_id = :teacherId))")
+@Filter(name = "ownerFilter", deduceAliasInjectionPoints = false,
+        aliases = @SqlFragmentAlias(alias = "progress", table = "student_homeworks"),
+        condition = """
+                EXISTS (SELECT 1 FROM student_homework_classes shc JOIN academy_classes ac ON ac.id = shc.class_id
+                    WHERE shc.student_homework_id = {progress}.id
+                    AND (ac.owner_teacher_id = :teacherId OR ac.id IN
+                        (SELECT ca.class_id FROM class_assistants ca WHERE ca.teacher_id = :teacherId)))
+                """)
 @Entity
-@Table(name = "student_homeworks")
+@Table(name = "student_homeworks", uniqueConstraints = @UniqueConstraint(
+        name = "uk_student_homeworks_student_homework_lesson", columnNames = {"student_id", "homework_id", "lesson_scope_id"}))
 @EntityListeners(AuditingEntityListener.class)
 @Data
 @NoArgsConstructor
@@ -33,6 +46,40 @@ public class StudentHomework {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "homework_id", nullable = false)
     private Homework homework;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id", updatable = false)
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
+    private Lesson lesson;
+
+    // NULL represents legacy homework entered without a lesson; it still has one record per student.
+    @org.hibernate.annotations.GeneratedColumn("coalesce(lesson_id, 0)")
+    @Column(name = "lesson_scope_id", insertable = false, updatable = false)
+    private Long lessonScopeId;
+
+    @ManyToMany
+    @JoinTable(name = "student_homework_classes",
+            joinColumns = @JoinColumn(name = "student_homework_id"),
+            inverseJoinColumns = @JoinColumn(name = "class_id"),
+            uniqueConstraints = @UniqueConstraint(columnNames = {"student_homework_id", "class_id"}))
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @Builder.Default
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
+    private List<AcademyClass> classHistory = new ArrayList<>();
+
+    @PrePersist
+    private void recordInitialClass() {
+        if (lesson == null) lesson = homework.getLesson();
+        if (classHistory.isEmpty()) classHistory.add(lesson != null ? lesson.getAcademyClass() : homework.getAcademyClass());
+    }
+
+    public void recordClass(AcademyClass academyClass) {
+        if (classHistory.stream().noneMatch(item -> item.getId().equals(academyClass.getId()))) {
+            classHistory.add(academyClass);
+        }
+    }
 
     @Column(name = "incorrect_count")
     private Integer incorrectCount; // 오답 개수 (null = 미제출)

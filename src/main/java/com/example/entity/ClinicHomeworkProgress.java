@@ -15,7 +15,8 @@ import java.time.LocalDateTime;
 @Filter(name = "academyFilter", condition = "student_id IN (SELECT s2.id FROM students s2 WHERE s2.academy_id = :academyId)")
 @Filter(name = "ownerFilter",   condition = "clinic_id IN (SELECT c.id FROM clinics c WHERE c.class_id IN (SELECT ac.id FROM academy_classes ac WHERE ac.owner_teacher_id = :teacherId UNION SELECT ca.class_id FROM class_assistants ca WHERE ca.teacher_id = :teacherId))")
 @Entity
-@Table(name = "clinic_homework_progress")
+@Table(name = "clinic_homework_progress", uniqueConstraints = @UniqueConstraint(
+        name = "uk_clinic_homework_progress_record", columnNames = {"clinic_id", "student_homework_id"}))
 @EntityListeners(AuditingEntityListener.class)
 @Data
 @NoArgsConstructor
@@ -37,6 +38,13 @@ public class ClinicHomeworkProgress {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "homework_id", nullable = false)
     private Homework homework;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_homework_id")
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.SET_NULL)
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
+    private StudentHomework studentHomework;
 
     // 클리닉 전 상태
     @Column(name = "incorrect_count_before")

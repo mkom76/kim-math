@@ -31,19 +31,21 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 const scheduleSave = () => {
   if (debounceTimer) clearTimeout(debounceTimer)
+  const next = formatValue([...selected.value])
+  const save = props.onSave
+  const prev = formatValue(lastSaved.value)
   debounceTimer = setTimeout(async () => {
-    const next = formatValue([...selected.value])
-    const prev = formatValue(lastSaved.value)
     if (next === prev) return
 
     const snapshotBeforeSave = [...lastSaved.value]
     try {
-      await props.onSave(next)
-      lastSaved.value = [...selected.value]
+      await save(next)
+      if (save === props.onSave) lastSaved.value = parseValue(next)
     } catch (e) {
-      // Roll back local UI to last successfully saved state
-      selected.value = new Set(snapshotBeforeSave)
-      lastSaved.value = snapshotBeforeSave
+      if (save === props.onSave) {
+        selected.value = new Set(snapshotBeforeSave)
+        lastSaved.value = snapshotBeforeSave
+      }
     }
   }, 500)
 }

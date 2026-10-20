@@ -29,6 +29,8 @@ public class RecentClinicResultDto {
     @AllArgsConstructor
     @Builder
     public static class RecentClinicHomeworkDto {
+        private Long clinicProgressId;
+        private String lessonDate;
         private Long homeworkId;
         private String homeworkTitle;
         private Integer incorrectCountBefore;

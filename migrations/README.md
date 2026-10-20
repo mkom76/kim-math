@@ -2,6 +2,60 @@
 
 이 디렉토리의 SQL은 운영자가 직접 실행하는 일회성 마이그레이션입니다. 자동 마이그레이션 도구(예: Flyway, Liquibase)는 사용하지 않습니다.
 
+## 2026-10-20: 하나의 숙제를 여러 수업에 배정
+
+적용 파일은 **`2026-10-20-01-share-homeworks-across-lessons.sql` 한 개**입니다. 이전의 01 → 02 → 03 초안을 최종 구조로 합쳤습니다. 숙제 내용은 공유하고, 진도·채점·질문·재제출 표시는 수업별로 관리합니다.
+
+| 대상 | 변경 |
+| --- | --- |
+| `lesson_homeworks` | 숙제와 여러 수업의 연결 |
+| `student_lessons` | 해당 수업의 학생별 숙제 배정 |
+| `student_homeworks` | 원본 수업 및 학생·숙제·수업별 유일 제약 |
+| `student_homework_classes` | 배정 해제 후에도 유지할 반별 기록 접근 범위 |
+| `clinic_homework_progress` | 학생 숙제 기록별 스냅샷 연결·유일 제약, 기존 학생·숙제 단위 유일 키 교체 |
+
+MySQL 8.0.16 이상에서 기존 숙제 공유 초안이 **미적용인 DB**에 한 번만 실행합니다. 백엔드 배포 전에 DB를 백업하고 애플리케이션의 쓰기를 중지합니다. `mysql --force`는 사용하지 않습니다.
+
+```bash
+mysql -u <user> -p <database> < migrations/2026-10-20-01-share-homeworks-across-lessons.sql
+```
+
+SQL 끝의 검증 결과 `issue_count` 네 개가 모두 `0`인지 확인한 뒤 새 백엔드를 시작합니다. 기존 숙제·학생 숙제 행을 복제하거나 삭제하지 않으며 채점·질문·재제출 표시, 피드백·출결·작성자·AI 여부와 기존 생성·수정 시각을 유지합니다. 수업 없는 기존 학생 숙제는 `lesson_id = NULL`로 남기며 생성 컬럼 `lesson_scope_id = 0`으로 중복을 막습니다. 다른 반의 클리닉 스냅샷이나 대응 학생 숙제가 없는 스냅샷은 기존 값을 유지하고 새 기록에 연결하지 않습니다.
+
+다음 경우에는 영구 테이블 변경 전에 중단합니다.
+
+- 기존 초안의 테이블·컬럼·학생/숙제 유일 키가 있거나 이미 최종 SQL을 적용한 경우
+- 같은 학생·숙제 기록이 중복인 경우
+- 같은 학생·수업에 숙제가 두 개 이상인 경우
+- 같은 클리닉·학생·숙제 스냅샷이 중복인 경우
+
+제약 이름 `ck_homework_migration_*`이 중단 원인을 가리킵니다. 중복 데이터는 다음 쿼리로 확인합니다. 실제 기록을 확인해 정리한 뒤 실행하며, 임의로 병합하거나 채점을 여러 수업에 복사하지 않습니다.
+
+```sql
+SELECT student_id, homework_id, COUNT(*) AS record_count
+FROM student_homeworks GROUP BY student_id, homework_id HAVING COUNT(*) > 1;
+
+SELECT sh.student_id, h.lesson_id, COUNT(*) AS assignment_count
+FROM student_homeworks sh JOIN homeworks h ON h.id = sh.homework_id
+WHERE h.lesson_id IS NOT NULL
+GROUP BY sh.student_id, h.lesson_id HAVING COUNT(*) > 1;
+
+SELECT clinic_id, student_id, homework_id, COUNT(*) AS snapshot_count
+FROM clinic_homework_progress GROUP BY clinic_id, student_id, homework_id HAVING COUNT(*) > 1;
+```
+
+이전 01/02/03 초안을 이미 적용한 DB는 통합 파일을 실행하지 않고 실제 스키마와 적용 이력을 먼저 대조합니다. MySQL DDL은 자동 커밋되므로 중간 실패 시 SQL 전체가 롤백되지 않습니다. 데이터 이관은 DDL 뒤 별도 트랜잭션으로 처리합니다. 오류가 나면 서비스를 계속 중지한 상태에서 백업 복구 또는 적용된 DDL 확인 후 복구하며 파일을 처음부터 다시 실행하지 않습니다.
+
+IDE에서 문장별로 실행할 때는 같은 DB 연결을 유지합니다. 데이터 이관의 UPDATE에는 아직 이관되지 않은 행만 선택하는 WHERE가 있습니다. IDE의 안전 검사에서 UPDATE가 차단된 경우 연결·트랜잭션이 유지되어 있다면 수정한 해당 문장부터 이어서 실행합니다. 이미 실행한 DDL부터 다시 시작하지 않습니다. 연결이 끊겼거나 ROLLBACK했다면 데이터 이관 상태를 먼저 확인합니다.
+
+롤백은 **`2026-10-20-01-share-homeworks-across-lessons_rollback.sql` 한 개**입니다. 서비스 중지 후 사용하며, 신규 공유 연결·원본 수업·명시적 배정 해제·반 이력 또는 기존 클리닉 유일 제약과 충돌하는 스냅샷이 있으면 테이블 변경 전에 중단합니다. 기존 구조로 표현할 수 있는 상태에서만 스키마를 되돌립니다. 이관 중 새로 생긴 빈 `student_lessons` 행과 이후 수정된 채점·피드백까지 되돌리는 데이터 복구는 아니며, 배포 전 상태의 완전한 복구에는 백업이 필요합니다.
+
+```bash
+mysql -u <user> -p <database> < migrations/2026-10-20-01-share-homeworks-across-lessons_rollback.sql
+```
+
+개발용 MySQL의 회귀 검증은 `python3 migrations/tests/test_homework_sharing.py --container <test-mysql-container>`로 실행합니다. 이 명령은 해당 컨테이너의 root 무암호 접속을 사용해 임시 DB만 생성·제거하므로 테스트 전용 컨테이너에서 실행합니다. 실제 운영 데이터 분포와 DDL 소요 시간·잠금 영향은 별도 확인이 필요합니다.
+
 ## 2026-10-20: AI 피드백 이전 시험 반영 개수
 
 코드 배포 전에 `2026-10-20-01-add-feedback-score-history-count.sql`을 적용합니다.

@@ -16,6 +16,7 @@ public class ClinicHomeworkProgressDto {
     private Long studentId;
     private String studentName;
     private Long homeworkId;
+    private Long studentHomeworkId;
     private String homeworkTitle;
     private Integer homeworkQuestionCount;
 
@@ -39,6 +40,7 @@ public class ClinicHomeworkProgressDto {
                 .studentId(progress.getStudent().getId())
                 .studentName(progress.getStudent().getName())
                 .homeworkId(progress.getHomework().getId())
+                .studentHomeworkId(progress.getStudentHomework() != null ? progress.getStudentHomework().getId() : null)
                 .homeworkTitle(progress.getHomework().getTitle())
                 .homeworkQuestionCount(progress.getHomework().getQuestionCount())
                 .incorrectCountBefore(progress.getIncorrectCountBefore())

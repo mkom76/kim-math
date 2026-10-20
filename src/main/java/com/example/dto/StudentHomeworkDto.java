@@ -18,6 +18,8 @@ public class StudentHomeworkDto {
     private Long studentId;
     private String studentName;
     private Long homeworkId;
+    private Long lessonId;
+    private LocalDate lessonDate;
     private String homeworkTitle;
     private Integer questionCount; // 전체 문제 수
     private LocalDate dueDate; // 제출 기한
@@ -37,6 +39,8 @@ public class StudentHomeworkDto {
                 .studentId(entity.getStudent().getId())
                 .studentName(entity.getStudent().getName())
                 .homeworkId(entity.getHomework().getId())
+                .lessonId(entity.getLesson() != null ? entity.getLesson().getId() : null)
+                .lessonDate(entity.getLesson() != null ? entity.getLesson().getLessonDate() : null)
                 .homeworkTitle(entity.getHomework().getTitle())
                 .questionCount(entity.getHomework().getQuestionCount())
                 .dueDate(entity.getHomework().getDueDate())

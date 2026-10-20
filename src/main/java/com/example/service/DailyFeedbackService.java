@@ -20,12 +20,33 @@ import java.util.stream.Collectors;
 public class DailyFeedbackService {
     private final StudentLessonRepository studentLessonRepository;
     private final LessonRepository lessonRepository;
-    private final StudentHomeworkRepository studentHomeworkRepository;
     private final StudentSubmissionRepository studentSubmissionRepository;
     private final StudentSubmissionDetailRepository studentSubmissionDetailRepository;
     private final StudentRepository studentRepository;
     private final AuthorizationService authorizationService;
     private final PushNotificationService pushNotificationService;
+    private final StudentClassEnrollmentService studentClassEnrollmentService;
+    private final LessonHomeworkAssignmentService homeworkAssignmentService;
+
+    public List<StudentLessonDto> getLessonFeedbacks(Long lessonId) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new IllegalArgumentException("수업을 찾을 수 없습니다"));
+        authorizationService.assertCanAccessLesson(lesson);
+        Map<Long, StudentLesson> records = studentLessonRepository.findByLessonId(lessonId).stream()
+                .collect(Collectors.toMap(record -> record.getStudent().getId(), record -> record));
+        return studentClassEnrollmentService.getActiveStudentsForClass(lesson.getAcademyClass().getId())
+                .stream()
+                .sorted(java.util.Comparator.comparing(Student::getName).thenComparing(Student::getId))
+                .map(student -> {
+                    StudentLesson record = records.get(student.getId());
+                    return record != null ? StudentLessonDto.from(record) : StudentLessonDto.builder()
+                            .studentId(student.getId())
+                            .studentName(student.getName())
+                            .lessonId(lessonId)
+                            .lessonDate(lesson.getLessonDate())
+                            .build();
+                }).toList();
+    }
 
     public DailyFeedbackDto getDailyFeedback(Long studentId, Long lessonId) {
         Student student = studentRepository.findById(studentId)
@@ -44,18 +65,18 @@ public class DailyFeedbackService {
 
         // A. Today's homework - 학생에게 할당된 숙제만 조회
         if (!lesson.getHomeworks().isEmpty()) {
-            Optional<Homework> assignedHomework = getAssignedHomework(studentId, lesson.getHomeworks());
+            Optional<StudentHomework> assignedHomework = getAssignedHomework(studentId, lesson);
             assignedHomework.ifPresent(homework ->
-                feedback.setTodayHomework(getHomeworkSummary(studentId, homework)));
+                feedback.setTodayHomework(getHomeworkSummary(homework)));
         }
 
         // Next homework - 다음 수업에서 학생에게 할당된 숙제만 조회
         List<Lesson> nextLessons = lessonRepository.findNextLessonsAfter(
             lesson.getAcademyClass().getId(), lesson.getLessonDate());
         if (!nextLessons.isEmpty() && !nextLessons.get(0).getHomeworks().isEmpty()) {
-            Optional<Homework> nextAssignedHomework = getAssignedHomework(studentId, nextLessons.get(0).getHomeworks());
+            Optional<StudentHomework> nextAssignedHomework = getAssignedHomework(studentId, nextLessons.get(0));
             nextAssignedHomework.ifPresent(homework ->
-                feedback.setNextHomework(getHomeworkSummary(studentId, homework)));
+                feedback.setNextHomework(getHomeworkSummary(homework)));
         }
 
         // B. Today's test with incorrect questions and academy accuracy
@@ -130,20 +151,20 @@ public class DailyFeedbackService {
                 "lesson-feedback:" + lessonId);
     }
 
-    private DailyFeedbackDto.HomeworkSummary getHomeworkSummary(Long studentId, Homework homework) {
-        Optional<StudentHomework> sh = studentHomeworkRepository
-                .findByStudentIdAndHomeworkId(studentId, homework.getId());
-
+    private DailyFeedbackDto.HomeworkSummary getHomeworkSummary(StudentHomework progress) {
+        Homework homework = progress.getHomework();
         return DailyFeedbackDto.HomeworkSummary.builder()
+                .studentHomeworkId(progress.getId())
+                .lessonId(progress.getLesson() != null ? progress.getLesson().getId() : null)
                 .homeworkId(homework.getId())
                 .homeworkTitle(homework.getTitle())
                 .questionCount(homework.getQuestionCount())
-                .incorrectCount(sh.map(StudentHomework::getIncorrectCount).orElse(null))
-                .unsolvedCount(sh.map(StudentHomework::getUnsolvedCount).orElse(null))
-                .incorrectQuestions(sh.map(StudentHomework::getIncorrectQuestions).orElse(null))
-                .unsolvedQuestions(sh.map(StudentHomework::getUnsolvedQuestions).orElse(null))
-                .questionedQuestions(sh.map(StudentHomework::getQuestionedQuestions).orElse(null))
-                .completion(sh.map(StudentHomework::getCompletion).orElse(null))
+                .incorrectCount(progress.getIncorrectCount())
+                .unsolvedCount(progress.getUnsolvedCount())
+                .incorrectQuestions(progress.getIncorrectQuestions())
+                .unsolvedQuestions(progress.getUnsolvedQuestions())
+                .questionedQuestions(progress.getQuestionedQuestions())
+                .completion(progress.getCompletion())
                 .dueDate(homework.getDueDate())
                 .memo(homework.getMemo())
                 .build();
@@ -237,33 +258,7 @@ public class DailyFeedbackService {
         return value == null || value.isBlank() ? null : value;
     }
 
-    /**
-     * 학생에게 할당된 숙제 찾기
-     * @param studentId 학생 ID
-     * @param homeworks 숙제 목록
-     * @return 할당된 숙제 (Optional)
-     */
-    private Optional<Homework> getAssignedHomework(Long studentId, List<Homework> homeworks) {
-        if (homeworks.isEmpty()) {
-            return Optional.empty();
-        }
-
-        // 숙제 ID 목록 추출
-        List<Long> homeworkIds = homeworks.stream()
-                .map(Homework::getId)
-                .collect(Collectors.toList());
-
-        // 학생에게 할당된 숙제 찾기
-        List<StudentHomework> studentHomeworks = studentHomeworkRepository
-                .findByHomeworkIdIn(homeworkIds).stream()
-                .filter(sh -> sh.getStudent().getId().equals(studentId))
-                .collect(Collectors.toList());
-
-        if (studentHomeworks.isEmpty()) {
-            return Optional.empty();
-        }
-
-        // 첫 번째 할당된 숙제 반환 (학생은 수업당 1개의 숙제만 할당받음)
-        return Optional.of(studentHomeworks.get(0).getHomework());
+    private Optional<StudentHomework> getAssignedHomework(Long studentId, Lesson lesson) {
+        return Optional.ofNullable(homeworkAssignmentService.getProgressByStudent(lesson).get(studentId));
     }
 }

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ChatLineSquare, BellFilled, VideoPlay, Plus, Top, Bottom, Delete, DocumentCopy } from '@element-plus/icons-vue'
 import { lessonAPI, testAPI, homeworkAPI, studentHomeworkAPI, lessonVideoAPI, aiFeedbackAPI, dailyFeedbackAPI, authAPI, type Lesson, type Test, type Homework, type LessonStudentStats, type StudentHomeworkAssignment, type StudentHomework, type LessonVideo, type VideoStats, type AttendanceRecord, type AttendanceRequest } from '../api/client'
+import LessonFeedbackReview from '@/components/LessonFeedbackReview.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -124,7 +125,8 @@ const fetchUnattachedHomeworks = async () => {
   if (!lesson.value) return
   try {
     const response = await homeworkAPI.getUnattachedHomeworks(lesson.value.academyId!, lesson.value.classId!)
-    unattachedHomeworks.value = response.data
+    unattachedHomeworks.value = response.data.filter((homework: Homework) =>
+      !lessonHomeworks.value.some(attached => attached.id === homework.id))
   } catch (error) {
     ElMessage.error('연결 가능한 숙제 목록을 불러오는데 실패했습니다.')
   }
@@ -214,7 +216,7 @@ const handleDetachTest = async () => {
 const handleRemoveHomework = async (homeworkId: number) => {
   try {
     await ElMessageBox.confirm(
-      '이 숙제와의 연결을 해제하시겠습니까? 학생별 할당 정보도 함께 삭제됩니다.',
+      '이 수업에서 숙제 배정을 해제하시겠습니까? 다른 수업의 배정과 학생의 학습 기록은 유지됩니다.',
       '확인',
       {
         confirmButtonText: '확인',
@@ -448,7 +450,7 @@ const saveHomeworkIncorrectCount = async (studentId: number, homeworkId: number,
   const unsolvedQuestions = unsolvedTags.join(',') || undefined
 
   try {
-    await studentHomeworkAPI.updateIncorrectCount(studentId, homeworkId, incorrectCount, unsolvedCount, incorrectQuestions, unsolvedQuestions)
+    await studentHomeworkAPI.updateIncorrectCount(studentId, homeworkId, incorrectCount, unsolvedCount, incorrectQuestions, unsolvedQuestions, studentAssignments.value.find(a => a.studentId === studentId)?.studentHomeworkId)
     ElMessage.success('숙제 완성도가 업데이트되었습니다.')
     cancelEditingHomework(studentId)
     fetchLesson()
@@ -474,7 +476,7 @@ const toggleFollowUp = async (row: StudentHomeworkAssignment) => {
   const newValue = !prev
   row.followUpFlag = newValue  // optimistic update
   try {
-    await studentHomeworkAPI.setFollowUp(row.studentId, row.assignedHomeworkId, newValue)
+    await studentHomeworkAPI.setFollowUp(row.studentId, row.assignedHomeworkId, newValue, row.studentHomeworkId)
     ElMessage.success(newValue ? 'RED 표시했습니다' : '표시를 해제했습니다')
     // Sync the lower "이어서 풀 숙제" card so both tables stay consistent
     await fetchFollowUps()
@@ -503,14 +505,15 @@ const followUpRows = computed(() => {
 
 const hasFollowUps = computed(() => followUpRows.value.length > 0)
 
-const removeFollowUpFromSection = async (studentId: number, homeworkId: number | undefined) => {
+const removeFollowUpFromSection = async (studentId: number, homework: StudentHomework) => {
+  const homeworkId = homework.homeworkId
   if (typeof homeworkId !== 'number') {
     ElMessage.error('숙제 정보가 올바르지 않습니다')
     return
   }
   // remove from local state immediately (optimistic)
   const list = followUpsByStudent.value[studentId] || []
-  const idx = list.findIndex(h => h.homeworkId === homeworkId)
+  const idx = list.findIndex(h => h.id === homework.id)
   if (idx === -1) return
   const removed = list[idx] as StudentHomework  // safe: idx !== -1 guaranteed above
   list.splice(idx, 1)
@@ -518,12 +521,12 @@ const removeFollowUpFromSection = async (studentId: number, homeworkId: number |
 
   // Also sync the upper "학생별 숙제 완성도" table if this homework is shown there
   const upperRow = studentAssignments.value.find(
-    (a) => a.studentId === studentId && a.assignedHomeworkId === homeworkId
+    (a) => a.studentId === studentId && a.studentHomeworkId === homework.id
   )
   if (upperRow) upperRow.followUpFlag = false
 
   try {
-    await studentHomeworkAPI.setFollowUp(studentId, homeworkId, false)
+    await studentHomeworkAPI.setFollowUp(studentId, homeworkId, false, homework.id)
     ElMessage.success('표시를 해제했습니다')
   } catch (error) {
     // rollback both lower card and upper table
@@ -536,6 +539,7 @@ const removeFollowUpFromSection = async (studentId: number, homeworkId: number |
 
 // 피드백 알림 발송 state
 const notifyLoading = ref(false)
+const feedbackRefreshVersion = ref(0)
 
 // AI 일괄 피드백 state
 const bulkAiLoading = ref(false)
@@ -575,6 +579,7 @@ const pollBulkStatus = () => {
         }
 
         fetchLesson()
+        feedbackRefreshVersion.value++
       }
     } catch {
       stopBulkPolling()
@@ -926,9 +931,9 @@ onBeforeUnmount(() => {
 
     <!-- AI 피드백 일괄 생성 -->
     <el-card shadow="never" style="margin-top: 24px">
-      <div style="display: flex; justify-content: space-between; align-items: center">
-        <h3 style="margin: 0; font-size: 18px; font-weight: 600">AI 개별 피드백 일괄 생성</h3>
-        <div style="display: flex; align-items: center; gap: 8px">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px">
+        <h3 style="margin: 0; font-size: 18px; font-weight: 600">학생 피드백</h3>
+        <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px">
           <el-select v-model="bulkAiModel" size="small" style="width: 170px">
             <el-option
               v-for="opt in aiModelOptions"
@@ -938,7 +943,7 @@ onBeforeUnmount(() => {
             />
           </el-select>
           <el-button type="primary" size="small" :loading="bulkAiLoading" @click="generateBulkAiFeedback">
-            일괄 생성
+            AI 일괄 생성
           </el-button>
           <el-button type="success" size="small" :icon="BellFilled" :loading="notifyLoading" @click="notifyDailyFeedback">
             피드백 알림 발송
@@ -951,6 +956,7 @@ onBeforeUnmount(() => {
       <p v-else style="margin: 8px 0 0; color: #909399; font-size: 13px">
         결석/인강/피드백 기작성 학생은 자동으로 스킵됩니다.
       </p>
+      <LessonFeedbackReview :lesson-id="lessonId" :refresh-version="feedbackRefreshVersion" :generating="bulkAiLoading" />
     </el-card>
 
     <el-row :gutter="24">
@@ -1342,6 +1348,7 @@ onBeforeUnmount(() => {
             <span>{{ row.homework.homeworkTitle }}</span>
           </template>
         </el-table-column>
+        <el-table-column prop="homework.lessonDate" label="수업일" width="120" />
         <el-table-column label="현재 완성도" width="120" align="center">
           <template #default="{ row }">
             <span
@@ -1369,14 +1376,14 @@ onBeforeUnmount(() => {
         </el-table-column>
         <el-table-column label="작업" width="120" align="center">
           <template #default="{ row }">
-            <el-button size="small" @click="removeFollowUpFromSection(row.studentId, row.homework.homeworkId)">
+            <el-button size="small" @click="removeFollowUpFromSection(row.studentId, row.homework)">
               해제
             </el-button>
           </template>
         </el-table-column>
       </el-table>
       <el-alert
-        title="이 표는 학생-숙제 단위로 표시되며, 채점은 클리닉 또는 원래 수업 화면에서 진행하시면 됩니다. 채점 결과는 모든 화면에 동일하게 반영됩니다."
+        title="숙제의 진도는 수업별로 관리됩니다. 채점은 클리닉 또는 해당 수업 화면에서 수정할 수 있습니다."
         type="info"
         :closable="false"
         show-icon

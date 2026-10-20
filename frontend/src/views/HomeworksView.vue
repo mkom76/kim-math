@@ -6,6 +6,14 @@ import { homeworkAPI, academyAPI, academyClassAPI, type Homework, type Academy, 
 import { usePagination } from '../composables/usePagination'
 import { useAuthStore } from '@/stores/auth'
 import HomeworkProblemsComposer from '@/components/HomeworkProblemsComposer.vue'
+import HomeworkLessonAssignmentDialog from '@/components/HomeworkLessonAssignmentDialog.vue'
+
+const assignmentVisible = ref(false)
+const assignmentHomework = ref<Homework | null>(null)
+const openAssignment = (homework: Homework) => {
+  assignmentHomework.value = homework
+  assignmentVisible.value = true
+}
 
 const composerVisible = ref(false)
 const composerHomeworkId = ref<number | null>(null)
@@ -164,7 +172,7 @@ const handleDelete = async (homework: Homework) => {
     fetchHomeworks()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('삭제에 실패했습니다.')
+      ElMessage.error((error as any).response?.data?.message || '삭제에 실패했습니다.')
     }
   }
 }
@@ -252,7 +260,7 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column prop="className" label="반" width="150">
+        <el-table-column prop="className" label="관리 반" width="150">
           <template #default="{ row }">
             <el-tag type="success">{{ row.className }}</el-tag>
           </template>
@@ -294,8 +302,9 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column label="관리" width="170" fixed="right">
+        <el-table-column label="관리" width="270" fixed="right">
           <template #default="{ row }">
+            <el-button size="small" type="primary" plain @click="openAssignment(row)">수업 배정</el-button>
             <el-tooltip content="문제 구성" placement="top">
               <el-button
                 size="small"
@@ -337,6 +346,7 @@ onMounted(() => {
         :homework-title="composerHomeworkTitle"
         @saved="fetchHomeworks"
       />
+      <HomeworkLessonAssignmentDialog v-model:visible="assignmentVisible" :homework="assignmentHomework" @assigned="fetchHomeworks" />
 
       <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center">
         <span style="color: #909399; font-size: 14px">
@@ -360,6 +370,7 @@ onMounted(() => {
       width="600px"
       :before-close="() => dialogVisible = false"
     >
+      <el-alert v-if="editMode" title="여러 수업에 배정된 숙제는 수정 내용이 모든 수업에 함께 반영됩니다." type="info" :closable="false" style="margin-bottom: 16px" />
       <el-form
         :model="currentHomework"
         label-width="100px"

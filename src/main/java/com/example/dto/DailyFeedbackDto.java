@@ -26,6 +26,8 @@ public class DailyFeedbackDto {
     @AllArgsConstructor
     @Builder
     public static class HomeworkSummary {
+        private Long studentHomeworkId;
+        private Long lessonId;
         private Long homeworkId;
         private String homeworkTitle;
         private Integer questionCount;

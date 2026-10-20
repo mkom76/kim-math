@@ -65,6 +65,20 @@ describe('QuestionedQuestionsPicker', () => {
     expect(onSave).toHaveBeenCalledWith('1,3,7')
   })
 
+  it('keeps a pending save bound to the original record when another homework opens', async () => {
+    const firstSave = vi.fn().mockResolvedValue(undefined)
+    const secondSave = vi.fn().mockResolvedValue(undefined)
+    const wrapper = mount(QuestionedQuestionsPicker, {
+      props: { questionCount: 5, initialValue: '1', onSave: firstSave },
+    })
+    await buttonsOf(wrapper)[1]!.trigger('click')
+    await wrapper.setProps({ initialValue: '1,2', onSave: secondSave })
+    await vi.advanceTimersByTimeAsync(500)
+    expect(firstSave).toHaveBeenCalledWith('1,2')
+    expect(secondSave).not.toHaveBeenCalled()
+    expect(selected(wrapper)).toEqual(['1', '2'])
+  })
+
   it('rolls back to last saved state when onSave rejects', async () => {
     const onSave = vi.fn().mockRejectedValue(new Error('network'))
     const wrapper = mount(QuestionedQuestionsPicker, {

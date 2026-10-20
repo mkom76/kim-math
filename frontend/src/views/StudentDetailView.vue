@@ -702,6 +702,7 @@ onMounted(() => {
               <div v-if="studentHomeworks.length > 0" style="margin-top: 24px">
                 <el-table :data="studentHomeworks" style="width: 100%">
                   <el-table-column prop="homeworkTitle" label="숙제명" min-width="200" />
+                  <el-table-column prop="lessonDate" label="수업일" width="120" />
                   <el-table-column label="오답 개수" width="120" align="center">
                     <template #default="{ row }">
                       <el-tag :type="(row.incorrectCount || 0) === 0 ? 'success' : 'warning'">
@@ -1067,6 +1068,7 @@ onMounted(() => {
       <div v-if="incompleteHomeworks.length > 0">
         <el-table :data="incompleteHomeworks" style="width: 100%">
           <el-table-column prop="homeworkTitle" label="숙제명" min-width="200" />
+                  <el-table-column prop="lessonDate" label="수업일" width="120" />
           <el-table-column label="오답 개수" width="120" align="center">
             <template #default="{ row }">
               <el-tag type="warning">{{ row.incorrectCount || 0 }}개</el-tag>

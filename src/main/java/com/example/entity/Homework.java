@@ -19,7 +19,7 @@ import java.util.List;
 @Table(name = "homeworks")
 @EntityListeners(AuditingEntityListener.class)
 @Filter(name = "academyFilter", condition = "academy_id = :academyId")
-@Filter(name = "ownerFilter",   condition = "class_id IN (SELECT ac.id FROM academy_classes ac WHERE ac.owner_teacher_id = :teacherId UNION SELECT ca.class_id FROM class_assistants ca WHERE ca.teacher_id = :teacherId)")
+@Filter(name = "ownerFilter", condition = "(class_id IN (SELECT ac.id FROM academy_classes ac WHERE ac.owner_teacher_id = :teacherId UNION SELECT ca.class_id FROM class_assistants ca WHERE ca.teacher_id = :teacherId) OR id IN (SELECT lh.homework_id FROM lesson_homeworks lh JOIN lessons l ON l.id = lh.lesson_id WHERE l.class_id IN (SELECT ac.id FROM academy_classes ac WHERE ac.owner_teacher_id = :teacherId UNION SELECT ca.class_id FROM class_assistants ca WHERE ca.teacher_id = :teacherId)))")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -52,6 +52,19 @@ public class Homework {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lesson_id")
     private Lesson lesson;
+
+    @ManyToMany(mappedBy = "sharedHomeworks")
+    @Builder.Default
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
+    private List<Lesson> sharedLessons = new ArrayList<>();
+
+    public List<Lesson> getLessons() {
+        java.util.Map<Long, Lesson> result = new java.util.LinkedHashMap<>();
+        if (lesson != null) result.put(lesson.getId(), lesson);
+        sharedLessons.forEach(item -> result.put(item.getId(), item));
+        return new ArrayList<>(result.values());
+    }
 
     @OneToMany(mappedBy = "homework", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

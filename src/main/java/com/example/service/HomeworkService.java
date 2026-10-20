@@ -3,6 +3,7 @@ package com.example.service;
 import com.example.config.security.TenantContext;
 import com.example.dto.HomeworkDto;
 import com.example.dto.HomeworkProblemDto;
+import com.example.dto.LessonDto;
 import com.example.entity.Academy;
 import com.example.entity.Homework;
 import com.example.entity.HomeworkProblem;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -74,6 +76,14 @@ public class HomeworkService {
                 .orElseThrow(() -> new RuntimeException("Homework not found"));
         authorizationService.assertCanAccessHomework(homework);
 
+        if (dto.getAcademyId() != null && !dto.getAcademyId().equals(homework.getAcademy().getId())) {
+            throw new ForbiddenException("숙제를 다른 학원으로 이동할 수 없습니다");
+        }
+        if (!homework.getLessons().isEmpty() && dto.getClassId() != null
+                && !dto.getClassId().equals(homework.getAcademyClass().getId())) {
+            throw new IllegalArgumentException("수업에 배정된 숙제의 관리 반은 변경할 수 없습니다");
+        }
+
         homework.setTitle(dto.getTitle());
         homework.setQuestionCount(dto.getQuestionCount());
         homework.setMemo(dto.getMemo());
@@ -119,8 +129,9 @@ public class HomeworkService {
         TenantContext.Context ctx = TenantContext.current();
         Long teacherId = ctx != null ? ctx.teacherId() : null;
 
-        homeworkProblemRepository.deleteByHomeworkId(homeworkId);
-        homeworkProblemRepository.flush();
+        Set<Long> retainedProblemIds = homeworkProblemRepository.findByHomeworkIdOrderByPositionAsc(homeworkId)
+                .stream().map(HomeworkProblem::getTextbookProblem).filter(java.util.Objects::nonNull)
+                .map(TextbookProblem::getId).collect(Collectors.toSet());
 
         List<HomeworkProblem> toSave = new ArrayList<>();
         for (int i = 0; i < items.size(); i++) {
@@ -129,9 +140,9 @@ public class HomeworkService {
             if (item.textbookProblemId() != null) {
                 tp = textbookProblemRepository.findById(item.textbookProblemId())
                         .orElseThrow(() -> new ForbiddenException("교재 문제를 찾을 수 없습니다"));
-                if (tp.getTextbook() == null
+                if (!retainedProblemIds.contains(tp.getId()) && (tp.getTextbook() == null
                         || teacherId == null
-                        || !teacherId.equals(tp.getTextbook().getOwnerTeacherId())) {
+                        || !teacherId.equals(tp.getTextbook().getOwnerTeacherId()))) {
                     throw new ForbiddenException("본인의 교재 문제만 사용할 수 있습니다");
                 }
             }
@@ -141,6 +152,8 @@ public class HomeworkService {
                     .position(i + 1)
                     .build());
         }
+        homeworkProblemRepository.deleteByHomeworkId(homeworkId);
+        homeworkProblemRepository.flush();
         List<HomeworkProblem> saved = homeworkProblemRepository.saveAll(toSave);
 
         // questionCount 자동 동기화
@@ -156,11 +169,26 @@ public class HomeworkService {
         Homework homework = homeworkRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Homework not found"));
         authorizationService.assertCanAccessHomework(homework);
+        authorizationService.assertCanModifyClass(homework.getAcademyClass());
+        if (!homework.getLessons().isEmpty()) {
+            throw new IllegalArgumentException("수업에 배정된 숙제는 모든 수업에서 연결을 해제한 뒤 삭제해주세요");
+        }
         homeworkRepository.delete(homework);
     }
 
+    @Transactional(readOnly = true)
+    public List<LessonDto> getAssignedLessons(Long id) {
+        Homework homework = homeworkRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("숙제를 찾을 수 없습니다"));
+        authorizationService.assertCanAccessHomework(homework);
+        return homework.getLessons().stream()
+                .filter(lesson -> authorizationService.canAccessClass(lesson.getAcademyClass()))
+                .map(LessonDto::from).toList();
+    }
+
     public java.util.List<HomeworkDto> getUnattachedHomeworks(Long academyId, Long classId) {
-        return homeworkRepository.findUnattachedByAcademyIdAndClassId(academyId, classId)
+        authorizationService.assertCanAccess(academyId, classId);
+        return homeworkRepository.findByAcademyId(academyId)
                 .stream()
                 .map(HomeworkDto::from)
                 .collect(java.util.stream.Collectors.toList());

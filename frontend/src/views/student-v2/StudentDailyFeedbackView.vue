@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, shallowRef } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import {
@@ -178,6 +178,8 @@ const onLessonChange = () => {
 // 다음 수업 숙제 + 미완성 숙제(재제출대상)를 하나의 리스트로 합침
 const nextHomeworks = computed(() => {
   const list: Array<{
+    studentHomeworkId?: number
+    lessonDate?: string
     homeworkId?: number
     homeworkTitle: string
     questionCount?: number
@@ -193,6 +195,7 @@ const nextHomeworks = computed(() => {
   if (feedback.value?.nextHomework) {
     const nh = feedback.value.nextHomework
     list.push({
+      studentHomeworkId: nh.studentHomeworkId,
       homeworkId: nh.homeworkId,
       homeworkTitle: nh.homeworkTitle,
       questionCount: nh.questionCount,
@@ -207,7 +210,10 @@ const nextHomeworks = computed(() => {
 
   // 미완성 숙제 (재제출대상)
   for (const fu of followUps.value) {
+    if (fu.id === feedback.value?.nextHomework?.studentHomeworkId) continue
     list.push({
+      studentHomeworkId: fu.id,
+      lessonDate: fu.lessonDate,
       homeworkId: fu.homeworkId,
       homeworkTitle: fu.homeworkTitle || '',
       questionCount: fu.questionCount,
@@ -225,35 +231,42 @@ const nextHomeworks = computed(() => {
 
 // 질문 표시 바텀시트 상태
 const questionPickerVisible = ref(false)
-const questionPickerHomeworkId = ref<number | null>(null)
+const questionPickerSave = shallowRef<(value: string) => Promise<void>>(async () => {})
+const questionPickerStudentHomeworkId = ref<number | undefined>(undefined)
 const questionPickerInitialValue = ref<string | null>(null)
 const questionPickerQuestionCount = ref<number>(0)
 
 const openQuestionPicker = (hw: {
+  studentHomeworkId?: number
   homeworkId?: number
   questionCount?: number
   questionedQuestions?: string
 }) => {
   if (!hw.homeworkId || !hw.questionCount) return
-  questionPickerHomeworkId.value = hw.homeworkId
+  questionPickerStudentHomeworkId.value = hw.studentHomeworkId
+  const targetStudentId = studentId.value
+  const targetHomeworkId = hw.homeworkId
+  const targetRecordId = hw.studentHomeworkId
+  questionPickerSave.value = value => saveQuestionedQuestions(value, targetStudentId, targetHomeworkId, targetRecordId)
   questionPickerInitialValue.value = hw.questionedQuestions || null
   questionPickerQuestionCount.value = hw.questionCount
   questionPickerVisible.value = true
 }
 
-const saveQuestionedQuestions = async (value: string) => {
-  if (!studentId.value || !questionPickerHomeworkId.value) return
+const saveQuestionedQuestions = async (value: string, targetStudentId: number | null, targetHomeworkId: number, targetRecordId?: number) => {
+  if (!targetStudentId) return
   try {
     await studentHomeworkAPI.updateQuestionedQuestions(
-      studentId.value,
-      questionPickerHomeworkId.value,
+      targetStudentId,
+      targetHomeworkId,
       value,
+      targetRecordId,
     )
     // Optimistically reflect in local state so the card text updates without refetch
-    if (feedback.value?.nextHomework?.homeworkId === questionPickerHomeworkId.value) {
+    if (feedback.value?.nextHomework && feedback.value.nextHomework.studentHomeworkId === targetRecordId) {
       feedback.value.nextHomework.questionedQuestions = value || undefined
     }
-    const fu = followUps.value.find((f) => f.homeworkId === questionPickerHomeworkId.value)
+    const fu = followUps.value.find((f) => f.id === targetRecordId)
     if (fu) fu.questionedQuestions = value || undefined
   } catch (error) {
     ElMessage.error('질문 저장에 실패했습니다')
@@ -654,6 +667,7 @@ onMounted(() => {
                   }"
                 >
                   {{ hw.homeworkTitle }}
+                  <span v-if="hw.lessonDate" style="font-size: 12px; color: var(--student-muted)">{{ hw.lessonDate }} 수업</span>
                   <el-tag v-if="hw.isFollowUp" type="danger" size="small">재제출대상</el-tag>
                 </div>
 
@@ -772,10 +786,11 @@ onMounted(() => {
         :size="isMobile ? '70%' : '50%'"
       >
         <QuestionedQuestionsPicker
-          v-if="questionPickerVisible && questionPickerHomeworkId"
+          :key="questionPickerStudentHomeworkId"
+          v-if="questionPickerVisible"
           :question-count="questionPickerQuestionCount"
           :initial-value="questionPickerInitialValue"
-          :on-save="saveQuestionedQuestions"
+          :on-save="questionPickerSave"
         />
         <template #footer>
           <el-button type="primary" @click="questionPickerVisible = false">닫기</el-button>

@@ -3,6 +3,8 @@ package com.example.controller;
 import com.example.dto.HomeworkDto;
 import com.example.dto.HomeworkProblemDto;
 import com.example.service.HomeworkService;
+import com.example.service.LessonService;
+import com.example.dto.LessonDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +22,21 @@ import java.util.List;
 @RequiredArgsConstructor
 public class HomeworkController {
     private final HomeworkService homeworkService;
+    private final LessonService lessonService;
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @PostMapping("/{id}/lessons")
+    public ResponseEntity<List<LessonDto>> assignToLessons(@PathVariable Long id, @RequestBody AssignLessonsRequest request) {
+        return ResponseEntity.ok(lessonService.attachHomeworkToLessons(id, request.lessonIds(), request.assignStudents()));
+    }
+
+    public record AssignLessonsRequest(List<Long> lessonIds, boolean assignStudents) {}
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @GetMapping("/{id}/lessons")
+    public ResponseEntity<List<LessonDto>> getAssignedLessons(@PathVariable Long id) {
+        return ResponseEntity.ok(homeworkService.getAssignedLessons(id));
+    }
 
     @GetMapping
     public ResponseEntity<Page<HomeworkDto>> getHomeworks(

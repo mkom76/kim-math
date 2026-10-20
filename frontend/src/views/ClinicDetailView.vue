@@ -52,9 +52,9 @@ const fetchClinicProgress = async () => {
   }
 }
 
-const getProgress = (studentId: number, homeworkId: number): ClinicHomeworkProgress | undefined => {
+const getProgress = (studentId: number, homework: HomeworkProgress): ClinicHomeworkProgress | undefined => {
   return progressData.value.find(
-    p => p.studentId === studentId && p.homeworkId === homeworkId
+    p => p.studentId === studentId && p.studentHomeworkId === homework.studentHomeworkId
   )
 }
 
@@ -123,8 +123,8 @@ const getCompletionColor = (completion?: number) => {
   return '#f56c6c'
 }
 
-const getHomeworkKey = (studentId: number, homeworkId: number) => {
-  return `${studentId}-${homeworkId}`
+const getHomeworkKey = (studentId: number, homework: HomeworkProgress) => {
+  return `${studentId}-${homework.studentHomeworkId}`
 }
 
 const parseQuestions = (str?: string): string[] => {
@@ -176,7 +176,7 @@ const copyToClipboard = async (text: string) => {
 }
 
 const startEditingHomework = (studentId: number, homework: HomeworkProgress) => {
-  const key = getHomeworkKey(studentId, homework.homeworkId)
+  const key = getHomeworkKey(studentId, homework)
   editingHomeworkMap.value[key] = true
   editIncorrectQuestionsMap.value[key] = parseQuestions(homework.incorrectQuestions)
   editUnsolvedQuestionsMap.value[key] = parseQuestions(homework.unsolvedQuestions)
@@ -184,8 +184,8 @@ const startEditingHomework = (studentId: number, homework: HomeworkProgress) => 
   unsolvedTagInput.value[key] = ''
 }
 
-const cancelEditingHomework = (studentId: number, homeworkId: number) => {
-  const key = getHomeworkKey(studentId, homeworkId)
+const cancelEditingHomework = (studentId: number, homework: HomeworkProgress) => {
+  const key = getHomeworkKey(studentId, homework)
   delete editingHomeworkMap.value[key]
   delete editIncorrectQuestionsMap.value[key]
   delete editUnsolvedQuestionsMap.value[key]
@@ -194,7 +194,7 @@ const cancelEditingHomework = (studentId: number, homeworkId: number) => {
 }
 
 const saveHomework = async (studentId: number, homework: HomeworkProgress) => {
-  const key = getHomeworkKey(studentId, homework.homeworkId)
+  const key = getHomeworkKey(studentId, homework)
   const incorrectTags = editIncorrectQuestionsMap.value[key] || []
   const unsolvedTags = editUnsolvedQuestionsMap.value[key] || []
   const incorrectCount = incorrectTags.length
@@ -224,10 +224,11 @@ const saveHomework = async (studentId: number, homework: HomeworkProgress) => {
       incorrectCount,
       unsolvedCount,
       incorrectQuestions,
-      unsolvedQuestions
+      unsolvedQuestions,
+      homework.studentHomeworkId
     )
     ElMessage.success('숙제 정보가 업데이트되었습니다.')
-    cancelEditingHomework(studentId, homework.homeworkId)
+    cancelEditingHomework(studentId, homework)
     fetchClinicDetail()
   } catch {
     ElMessage.error('업데이트에 실패했습니다.')
@@ -239,7 +240,7 @@ const toggleFollowUp = async (studentId: number, homework: HomeworkProgress) => 
   const newValue = !prev
   homework.followUpFlag = newValue  // optimistic update
   try {
-    await studentHomeworkAPI.setFollowUp(studentId, homework.homeworkId, newValue)
+    await studentHomeworkAPI.setFollowUp(studentId, homework.homeworkId, newValue, homework.studentHomeworkId)
     ElMessage.success(newValue ? 'RED 표시했습니다' : '표시를 해제했습니다')
   } catch {
     homework.followUpFlag = prev  // rollback on failure
@@ -417,23 +418,23 @@ onMounted(() => {
             <el-table-column prop="lessonDate" label="수업 날짜" width="150" />
             <el-table-column label="오답 문항" min-width="200">
               <template #default="{ row }">
-                <div v-if="editingHomeworkMap[getHomeworkKey(student.studentId, row.homeworkId)]">
+                <div v-if="editingHomeworkMap[getHomeworkKey(student.studentId, row)]">
                   <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center">
                     <el-tag
-                      v-for="(tag, idx) in editIncorrectQuestionsMap[getHomeworkKey(student.studentId, row.homeworkId)] || []"
+                      v-for="(tag, idx) in editIncorrectQuestionsMap[getHomeworkKey(student.studentId, row)] || []"
                       :key="tag"
                       closable
                       type="danger"
                       size="small"
-                      @close="removeTag(editIncorrectQuestionsMap, getHomeworkKey(student.studentId, row.homeworkId), idx)"
+                      @close="removeTag(editIncorrectQuestionsMap, getHomeworkKey(student.studentId, row), idx)"
                     >
                       {{ tag }}번
                     </el-tag>
                     <el-input
-                      :model-value="incorrectTagInput[getHomeworkKey(student.studentId, row.homeworkId)] || ''"
-                      @update:model-value="(val: string) => incorrectTagInput[getHomeworkKey(student.studentId, row.homeworkId)] = val"
-                      @keyup.enter="addTag(editIncorrectQuestionsMap, getHomeworkKey(student.studentId, row.homeworkId), incorrectTagInput)"
-                      @keyup.space.prevent="addTag(editIncorrectQuestionsMap, getHomeworkKey(student.studentId, row.homeworkId), incorrectTagInput)"
+                      :model-value="incorrectTagInput[getHomeworkKey(student.studentId, row)] || ''"
+                      @update:model-value="(val: string) => incorrectTagInput[getHomeworkKey(student.studentId, row)] = val"
+                      @keyup.enter="addTag(editIncorrectQuestionsMap, getHomeworkKey(student.studentId, row), incorrectTagInput)"
+                      @keyup.space.prevent="addTag(editIncorrectQuestionsMap, getHomeworkKey(student.studentId, row), incorrectTagInput)"
                       placeholder="번호 입력"
                       size="small"
                       style="width: 80px"
@@ -451,23 +452,23 @@ onMounted(() => {
             </el-table-column>
             <el-table-column label="안 푼 문항" min-width="200">
               <template #default="{ row }">
-                <div v-if="editingHomeworkMap[getHomeworkKey(student.studentId, row.homeworkId)]">
+                <div v-if="editingHomeworkMap[getHomeworkKey(student.studentId, row)]">
                   <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center">
                     <el-tag
-                      v-for="(tag, idx) in editUnsolvedQuestionsMap[getHomeworkKey(student.studentId, row.homeworkId)] || []"
+                      v-for="(tag, idx) in editUnsolvedQuestionsMap[getHomeworkKey(student.studentId, row)] || []"
                       :key="tag"
                       closable
                       type="warning"
                       size="small"
-                      @close="removeTag(editUnsolvedQuestionsMap, getHomeworkKey(student.studentId, row.homeworkId), idx)"
+                      @close="removeTag(editUnsolvedQuestionsMap, getHomeworkKey(student.studentId, row), idx)"
                     >
                       {{ tag }}번
                     </el-tag>
                     <el-input
-                      :model-value="unsolvedTagInput[getHomeworkKey(student.studentId, row.homeworkId)] || ''"
-                      @update:model-value="(val: string) => unsolvedTagInput[getHomeworkKey(student.studentId, row.homeworkId)] = val"
-                      @keyup.enter="addTag(editUnsolvedQuestionsMap, getHomeworkKey(student.studentId, row.homeworkId), unsolvedTagInput)"
-                      @keyup.space.prevent="addTag(editUnsolvedQuestionsMap, getHomeworkKey(student.studentId, row.homeworkId), unsolvedTagInput)"
+                      :model-value="unsolvedTagInput[getHomeworkKey(student.studentId, row)] || ''"
+                      @update:model-value="(val: string) => unsolvedTagInput[getHomeworkKey(student.studentId, row)] = val"
+                      @keyup.enter="addTag(editUnsolvedQuestionsMap, getHomeworkKey(student.studentId, row), unsolvedTagInput)"
+                      @keyup.space.prevent="addTag(editUnsolvedQuestionsMap, getHomeworkKey(student.studentId, row), unsolvedTagInput)"
                       placeholder="번호 입력"
                       size="small"
                       style="width: 80px"
@@ -493,23 +494,23 @@ onMounted(() => {
             </el-table-column>
             <el-table-column label="클리닉 변화" width="180" align="center">
               <template #default="{ row }">
-                <div v-if="getProgress(student.studentId, row.homeworkId)" style="font-size: 13px">
+                <div v-if="getProgress(student.studentId, row)" style="font-size: 13px">
                   <div style="display: flex; align-items: center; justify-content: center; gap: 8px">
                     <span style="color: #909399">
-                      {{ getProgress(student.studentId, row.homeworkId)!.completionBefore }}%
+                      {{ getProgress(student.studentId, row)!.completionBefore }}%
                     </span>
                     <el-icon><Right /></el-icon>
-                    <span :style="{ color: getCompletionColor(getProgress(student.studentId, row.homeworkId)!.completionAfter), fontWeight: 600 }">
-                      {{ getProgress(student.studentId, row.homeworkId)!.completionAfter ?? '-' }}%
+                    <span :style="{ color: getCompletionColor(getProgress(student.studentId, row)!.completionAfter), fontWeight: 600 }">
+                      {{ getProgress(student.studentId, row)!.completionAfter ?? '-' }}%
                     </span>
                   </div>
-                  <div v-if="getProgress(student.studentId, row.homeworkId)!.completionChange !== null && getProgress(student.studentId, row.homeworkId)!.completionChange !== undefined"
+                  <div v-if="getProgress(student.studentId, row)!.completionChange !== null && getProgress(student.studentId, row)!.completionChange !== undefined"
                        :style="{
-                         color: getProgress(student.studentId, row.homeworkId)!.completionChange! >= 0 ? '#67c23a' : '#f56c6c',
+                         color: getProgress(student.studentId, row)!.completionChange! >= 0 ? '#67c23a' : '#f56c6c',
                          fontWeight: 600,
                          marginTop: '4px'
                        }">
-                    {{ getProgress(student.studentId, row.homeworkId)!.completionChange! >= 0 ? '+' : '' }}{{ getProgress(student.studentId, row.homeworkId)!.completionChange }}%p
+                    {{ getProgress(student.studentId, row)!.completionChange! >= 0 ? '+' : '' }}{{ getProgress(student.studentId, row)!.completionChange }}%p
                   </div>
                 </div>
                 <span v-else style="color: #909399; font-size: 13px">-</span>
@@ -529,7 +530,7 @@ onMounted(() => {
             </el-table-column>
             <el-table-column label="작업" width="180" align="center">
               <template #default="{ row }">
-                <div v-if="!editingHomeworkMap[getHomeworkKey(student.studentId, row.homeworkId)]">
+                <div v-if="!editingHomeworkMap[getHomeworkKey(student.studentId, row)]">
                   <el-button size="small" @click="startEditingHomework(student.studentId, row)">
                     편집
                   </el-button>
@@ -538,7 +539,7 @@ onMounted(() => {
                   <el-button size="small" type="primary" @click="saveHomework(student.studentId, row)">
                     저장
                   </el-button>
-                  <el-button size="small" @click="cancelEditingHomework(student.studentId, row.homeworkId)">
+                  <el-button size="small" @click="cancelEditingHomework(student.studentId, row)">
                     취소
                   </el-button>
                 </div>

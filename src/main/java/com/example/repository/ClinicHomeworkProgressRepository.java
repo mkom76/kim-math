@@ -18,6 +18,7 @@ public interface ClinicHomeworkProgressRepository extends JpaRepository<ClinicHo
 
     // 특정 조합 조회
     Optional<ClinicHomeworkProgress> findByClinicIdAndStudentIdAndHomeworkId(Long clinicId, Long studentId, Long homeworkId);
+    Optional<ClinicHomeworkProgress> findByClinicIdAndStudentHomeworkId(Long clinicId, Long studentHomeworkId);
 
     // 클리닉 삭제 시 자동 삭제 (CASCADE)
     void deleteByClinicId(Long clinicId);

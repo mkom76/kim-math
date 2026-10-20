@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class StudentHomeworkAssignmentDto {
+    private Long studentHomeworkId;
     private Long studentId;
     private String studentName;
     private Long assignedHomeworkId;
@@ -20,9 +21,11 @@ public class StudentHomeworkAssignmentDto {
     private String incorrectQuestions;
     private String unsolvedQuestions;
     private Integer completion;
+    private Boolean followUpFlag;
 
     public static StudentHomeworkAssignmentDto from(StudentHomework sh) {
         return StudentHomeworkAssignmentDto.builder()
+                .studentHomeworkId(sh.getId())
                 .studentId(sh.getStudent().getId())
                 .studentName(sh.getStudent().getName())
                 .assignedHomeworkId(sh.getHomework().getId())
@@ -32,6 +35,7 @@ public class StudentHomeworkAssignmentDto {
                 .incorrectQuestions(sh.getIncorrectQuestions())
                 .unsolvedQuestions(sh.getUnsolvedQuestions())
                 .completion(sh.getCompletion())
+                .followUpFlag(sh.getFollowUpFlag())
                 .build();
     }
 }

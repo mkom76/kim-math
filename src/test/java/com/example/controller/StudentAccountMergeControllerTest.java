@@ -165,6 +165,32 @@ class StudentAccountMergeControllerTest {
     }
 
     @Test
+    void sameHomeworkFromDifferentLessonsCanBeMergedWithoutLosingEitherGrade() throws Exception {
+        Homework homework = Homework.builder().title("공통 숙제").questionCount(10).academy(academy).academyClass(firstClass).build();
+        em.persist(homework);
+        com.example.entity.Lesson first = com.example.entity.Lesson.builder().academy(academy).academyClass(firstClass)
+                .lessonDate(java.time.LocalDate.of(2026, 10, 20)).build();
+        com.example.entity.Lesson second = com.example.entity.Lesson.builder().academy(academy).academyClass(secondClass)
+                .lessonDate(java.time.LocalDate.of(2026, 10, 21)).build();
+        em.persist(first);
+        em.persist(second);
+        em.persist(StudentHomework.builder().student(em.getReference(Student.class, target.getId())).homework(homework)
+                .lesson(first).incorrectCount(2).build());
+        em.persist(StudentHomework.builder().student(em.getReference(Student.class, source.getId())).homework(homework)
+                .lesson(second).incorrectCount(4).build());
+        em.flush();
+        em.clear();
+        mockMvc.perform(post("/api/admin/student-account-merges")
+                        .with(csrf())
+                        .session(session(admin, TeacherAcademyRole.ACADEMY_ADMIN))
+                        .contentType("application/json")
+                        .content(requestBody(target.getId(), source.getId())))
+                .andExpect(status().isOk());
+        assertThat(homeworkRepository.findByStudentId(target.getId())).extracting(StudentHomework::getIncorrectCount)
+                .containsExactlyInAnyOrder(2, 4);
+    }
+
+    @Test
     void overlapping_records_block_execution_without_changing_either_account() throws Exception {
         persistEnrollment(source, firstClass);
         em.flush();
