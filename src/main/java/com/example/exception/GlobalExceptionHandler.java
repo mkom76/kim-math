@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -14,6 +15,11 @@ import java.util.Map;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> handleUnreadableRequest(HttpMessageNotReadableException e) {
+        return ResponseEntity.badRequest().body(Map.of("message", "입력 형식을 확인해 주세요"));
+    }
 
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<Map<String, String>> handleForbidden(ForbiddenException e) {

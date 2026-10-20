@@ -2,6 +2,7 @@ package com.example.service;
 
 import com.example.config.security.TenantContext;
 import com.example.dto.EssayGradeRequest;
+import com.example.dto.ErrorCausesDto;
 import com.example.dto.StudentSubmissionDto;
 import com.example.dto.SubmissionDetailDto;
 import com.example.entity.*;
@@ -13,11 +14,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,6 +34,39 @@ public class SubmissionService {
     private final TestRepository testRepository;
     private final AuthorizationService authorizationService;
     private final StudentClassEnrollmentService studentClassEnrollmentService;
+
+    public ErrorCausesDto saveErrorCauses(Long submissionId, Map<String, BigDecimal> counts) {
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null || ctx.role() == null) {
+            throw new ForbiddenException("선생님 권한이 필요합니다");
+        }
+        StudentSubmission submission = submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "응시 기록이 없습니다"));
+        authorizationService.assertCanAccessSubmission(submission);
+        if (counts == null || !counts.keySet().equals(Set.of(
+                "calculationMistake", "conceptGap", "conditionMisread", "ideaGap", "timeManagement"))) {
+            throw new IllegalArgumentException("5개 원인을 모두 보내 주세요. 미입력은 null로 지정하세요");
+        }
+        for (BigDecimal count : counts.values()) {
+            if (count == null) continue;
+            try {
+                if (count.intValueExact() < 0) throw new ArithmeticException();
+            } catch (ArithmeticException e) {
+                throw new IllegalArgumentException("원인 건수는 0 이상 2147483647 이하의 정수여야 합니다");
+            }
+        }
+        submission.setCalculationMistake(integerCount(counts.get("calculationMistake")));
+        submission.setConceptGap(integerCount(counts.get("conceptGap")));
+        submission.setConditionMisread(integerCount(counts.get("conditionMisread")));
+        submission.setIdeaGap(integerCount(counts.get("ideaGap")));
+        submission.setTimeManagement(integerCount(counts.get("timeManagement")));
+        submission.setErrorCausesNeedReview(false);
+        return ErrorCausesDto.from(submissionRepository.save(submission));
+    }
+
+    private Integer integerCount(BigDecimal count) {
+        return count == null ? null : count.intValueExact();
+    }
 
     public StudentSubmissionDto submitMyAnswers(Long testId, Map<Integer, String> answers) {
         TenantContext.Context ctx = TenantContext.current();
@@ -145,6 +181,7 @@ public class SubmissionService {
         int totalScore = totalPoints == 0 ? 0 : (int) Math.round((earnedPointsTotal / totalPoints) * 100);
         submission.setTotalScore(totalScore);
         submission.setSubmittedAt(LocalDateTime.now());
+        submission.markErrorCausesForReview();
 
         // 기존 상세 답안 삭제 후 새로 저장
         submission.getDetails().clear();
@@ -316,6 +353,7 @@ public class SubmissionService {
 
         StudentSubmission submission = submissionRepository.findById(detail.getSubmission().getId())
                 .orElseThrow(() -> new RuntimeException("Submission not found"));
+        submission.markErrorCausesForReview();
         recalculateTotalScore(submission);
 
         return SubmissionDetailDto.from(detail);

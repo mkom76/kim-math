@@ -19,6 +19,7 @@ import {
 } from '../api/client'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useTouchGestures } from '@/composables/useTouchGestures'
+import ErrorCauseTrends from '@/components/ErrorCauseTrends.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -641,6 +642,7 @@ onMounted(() => {
           </div>
 
           <el-empty v-else description="아직 응시한 시험이 없습니다" />
+              <ErrorCauseTrends :submissions="submissions" />
             </el-tab-pane>
 
             <!-- 숙제 통계 탭 -->

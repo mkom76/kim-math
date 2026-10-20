@@ -281,6 +281,18 @@ export interface SubmissionDetail {
   videoLink?: string | null;
 }
 
+export interface ErrorCauseCounts {
+  calculationMistake: number | null;
+  conceptGap: number | null;
+  conditionMisread: number | null;
+  ideaGap: number | null;
+  timeManagement: number | null;
+}
+
+export interface ErrorCauses extends ErrorCauseCounts {
+  status: 'NOT_ENTERED' | 'PARTIAL' | 'COMPLETE' | 'NEEDS_REVIEW';
+}
+
 export interface SubmissionResult {
   id: number;
   testId: number;
@@ -292,6 +304,7 @@ export interface SubmissionResult {
   submittedAt?: string;
   student?: Student;
   details: SubmissionDetail[];
+  errorCauses?: ErrorCauses | null;
 }
 
 interface Submission {
@@ -300,6 +313,11 @@ interface Submission {
   test?: Test;
   testId?: number;
   testTitle?: string;
+  classId?: number;
+  className?: string;
+  lessonDate?: string | null;
+  testCreatedAt?: string | null;
+  errorCauses?: ErrorCauses | null;
   totalScore: number;
   pendingEssayCount?: number;
   classAverage?: number;
@@ -316,6 +334,7 @@ interface TestSubmissionRoster {
   school?: string;
   submitted: boolean;
   submissionId?: number | null;
+  errorCauses?: ErrorCauses | null;
   score?: number | null;
   pendingEssayCount?: number | null;
   submittedAt?: string | null;
@@ -560,6 +579,8 @@ export const testAPI = {
 
 // Submissions API
 export const submissionAPI = {
+  saveErrorCauses: (submissionId: number, counts: ErrorCauseCounts) =>
+    client.put<ErrorCauses>(`/submissions/${submissionId}/error-causes`, counts),
   submitAnswers: (studentId: number, testId: number, answers: SubmissionAnswers) =>
     client.post('/submissions', answers, { params: { studentId, testId } }),
   submitMyAnswers: (testId: number, answers: SubmissionAnswers) =>

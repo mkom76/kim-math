@@ -6,6 +6,9 @@ import { ArrowLeft } from '@element-plus/icons-vue'
 import { submissionAPI, type SubmissionResult, type SubmissionDetail } from '@/api/client'
 import { groupByTopic } from '@/components/topicStats'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import ErrorCauseSummary from '@/components/ErrorCauseSummary.vue'
+import ErrorCauseEditor from '@/components/ErrorCauseEditor.vue'
+import type { ErrorCauses } from '@/api/client'
 
 const { isMobile } = useBreakpoint()
 
@@ -20,6 +23,12 @@ const studentId = computed(() =>
 
 const loading = ref(false)
 const result = ref<SubmissionResult | null>(null)
+const causeDialogVisible = ref(false)
+function onCausesSaved(value: ErrorCauses) {
+  if (result.value) result.value.errorCauses = value
+  causeDialogVisible.value = false
+  ElMessage.success('오답 원인을 저장했습니다')
+}
 
 const fetch = async () => {
   loading.value = true
@@ -131,6 +140,16 @@ onMounted(fetch)
         </div>
       </div>
     </el-card>
+
+    <el-card v-if="result" shadow="never" style="margin-bottom: 12px">
+      <ErrorCauseSummary :value="result.errorCauses" />
+      <el-button v-if="!isStudent" size="small" style="margin-top: 12px" @click="causeDialogVisible = true">원인 입력·수정</el-button>
+    </el-card>
+    <el-dialog v-if="!isStudent && result" v-model="causeDialogVisible" title="오답 원인 입력"
+      width="min(480px, 92vw)" :close-on-click-modal="false" :close-on-press-escape="false" :show-close="false" destroy-on-close>
+      <ErrorCauseEditor v-if="causeDialogVisible" :submission-id="result.id" :initial-value="result.errorCauses"
+        @saved="onCausesSaved" @cancel="causeDialogVisible = false" />
+    </el-dialog>
 
     <el-card v-if="result" class="result-topics" shadow="never" style="margin-bottom: 12px">
       <template #header>

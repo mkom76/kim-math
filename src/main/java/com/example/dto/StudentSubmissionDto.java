@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -18,6 +19,11 @@ public class StudentSubmissionDto {
     private StudentDto student;
     private Long testId;
     private String testTitle;
+    private Long classId;
+    private String className;
+    private LocalDate lessonDate;
+    private LocalDateTime testCreatedAt;
+    private ErrorCausesDto errorCauses;
     private Integer totalScore;
     private Integer pendingEssayCount;
     private Double classAverage;
@@ -33,6 +39,14 @@ public class StudentSubmissionDto {
                 .student(StudentDto.from(submission.getStudent()))
                 .testId(submission.getTest().getId())
                 .testTitle(submission.getTest().getTitle())
+                .classId(submission.getTest().getAcademyClass() != null
+                        ? submission.getTest().getAcademyClass().getId() : null)
+                .className(submission.getTest().getAcademyClass() != null
+                        ? submission.getTest().getAcademyClass().getName() : null)
+                .lessonDate(submission.getTest().getLesson() != null
+                        ? submission.getTest().getLesson().getLessonDate() : null)
+                .testCreatedAt(submission.getTest().getCreatedAt())
+                .errorCauses(ErrorCausesDto.from(submission))
                 .totalScore(submission.getTotalScore())
                 .submittedAt(submission.getSubmittedAt())
                 .createdAt(submission.getCreatedAt())

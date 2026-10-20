@@ -1,6 +1,7 @@
 package com.example.controller;
 
 import com.example.dto.EssayGradeRequest;
+import com.example.dto.ErrorCausesDto;
 import com.example.dto.StudentSubmissionDto;
 import com.example.dto.SubmissionDetailDto;
 import com.example.service.SubmissionService;
@@ -12,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +53,13 @@ public class SubmissionController {
     @GetMapping("/{id}")
     public ResponseEntity<StudentSubmissionDto> getSubmission(@PathVariable Long id) {
         return ResponseEntity.ok(submissionService.getSubmission(id));
+    }
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @PutMapping("/{id}/error-causes")
+    public ResponseEntity<ErrorCausesDto> saveErrorCauses(
+            @PathVariable Long id, @RequestBody Map<String, BigDecimal> counts) {
+        return ResponseEntity.ok(submissionService.saveErrorCauses(id, counts));
     }
 
     @GetMapping("/me/test/{testId}")

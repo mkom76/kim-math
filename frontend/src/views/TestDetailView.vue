@@ -13,6 +13,9 @@ import {
 } from '../api/client'
 import { parseMultipleAnswer, serializeMultipleAnswer } from '@/utils/examAnswers'
 import { copyTextToClipboard, formatIncorrectQuestionNumbers } from '@/utils/incorrectQuestions'
+import ErrorCauseEditor from '@/components/ErrorCauseEditor.vue'
+import { errorCauseStatus } from '@/utils/errorCauses'
+import type { ErrorCauses } from '@/api/client'
 
 const route = useRoute()
 const router = useRouter()
@@ -23,6 +26,19 @@ const recalculating = ref(false)
 const test = ref<Test | null>(null)
 const roster = ref<TestSubmissionRoster[]>([])
 const stats = ref<any>(null)
+const causeDialogVisible = ref(false)
+const causeEditorRow = ref<TestSubmissionRoster | null>(null)
+
+function openCauseEditor(row: TestSubmissionRoster) {
+  causeEditorRow.value = row
+  causeDialogVisible.value = true
+}
+
+function onCausesSaved(value: ErrorCauses) {
+  if (causeEditorRow.value) causeEditorRow.value.errorCauses = value
+  causeDialogVisible.value = false
+  ElMessage.success('오답 원인을 저장했습니다')
+}
 
 const fetchTestDetail = async () => {
   loading.value = true
@@ -606,6 +622,16 @@ onMounted(() => {
             </template>
           </el-table-column>
 
+          <el-table-column label="오답 원인" min-width="150" align="center">
+            <template #default="{ row }">
+              <template v-if="row.submitted">
+                <el-button size="small" plain @click="openCauseEditor(row)">원인 입력·수정</el-button>
+                <div style="margin-top: 6px; font-size: 12px">{{ errorCauseStatus(row.errorCauses) }}</div>
+              </template>
+              <span v-else style="color: #909399">응시 후 입력</span>
+            </template>
+          </el-table-column>
+
           <el-table-column label="관리" width="430" align="center">
             <template #default="{ row }">
               <el-button
@@ -724,6 +750,13 @@ onMounted(() => {
           저장
         </el-button>
       </template>
+    </el-dialog>
+
+    <el-dialog v-model="causeDialogVisible" :title="`${causeEditorRow?.studentName || ''} · 오답 원인`"
+      width="min(480px, 92vw)" :close-on-click-modal="false" :close-on-press-escape="false" :show-close="false" destroy-on-close>
+      <ErrorCauseEditor v-if="causeDialogVisible && causeEditorRow?.submissionId" :key="causeEditorRow.submissionId"
+        :submission-id="causeEditorRow.submissionId" :initial-value="causeEditorRow.errorCauses"
+        @saved="onCausesSaved" @cancel="causeDialogVisible = false" />
     </el-dialog>
 
     <!-- 서술형 채점 다이얼로그 -->

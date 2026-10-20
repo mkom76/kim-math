@@ -2,6 +2,22 @@
 
 이 디렉토리의 SQL은 운영자가 직접 실행하는 일회성 마이그레이션입니다. 자동 마이그레이션 도구(예: Flyway, Liquibase)는 사용하지 않습니다.
 
+## 2026-10-20: 시험별 오답 원인 기록
+
+오답 원인 기능 코드 배포 전에 `2026-10-20-04-add-submission-error-causes.sql`을 적용합니다.
+`student_submissions`에 원인별 nullable 정수 5개와 재확인 상태를 추가합니다.
+기존 제출의 원인 값은 `NULL`(미입력)을 유지하며, 기록된 0과 구분합니다.
+
+```sql
+SHOW COLUMNS FROM student_submissions LIKE 'error_cause%';
+SHOW CREATE TABLE student_submissions;
+```
+
+음수 건수는 CHECK 제약으로 거부합니다. 답안 수정·재채점 후에는 원인을 보존하고
+재확인 상태만 바꿉니다. 롤백은 기존 코드로 복귀한 뒤
+`2026-10-20-04-add-submission-error-causes_rollback.sql`로 수행하며, 원인 기록이 삭제됩니다.
+실제 운영 DB에는 이 작업에서 적용하지 않습니다.
+
 ## 2026-10-20: 하나의 숙제를 여러 수업에 배정
 
 적용 파일은 **`2026-10-20-01-share-homeworks-across-lessons.sql` 한 개**입니다. 이전의 01 → 02 → 03 초안을 최종 구조로 합쳤습니다. 숙제 내용은 공유하고, 진도·채점·질문·재제출 표시는 수업별로 관리합니다.

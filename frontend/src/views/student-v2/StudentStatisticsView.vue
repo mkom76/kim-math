@@ -16,6 +16,7 @@ import {
   type VideoProgress,
 } from '@/api/client'
 import StudentPageHeader from '@/components/student-v2/StudentPageHeader.vue'
+import ErrorCauseTrends from '@/components/ErrorCauseTrends.vue'
 
 type StatisticsKind = 'tests' | 'homework' | 'attendance' | 'videos'
 
@@ -295,6 +296,7 @@ onMounted(fetchStatistics)
           <p>시험을 완료하면 점수 흐름이 쌓여요.</p>
         </div>
       </section>
+      <ErrorCauseTrends :submissions="submissions" />
     </template>
 
     <template v-else-if="kind === 'homework'">

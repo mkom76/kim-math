@@ -39,6 +39,34 @@ public class StudentSubmission {
     @Column(name = "total_score")
     private Integer totalScore;
 
+    @Column(name = "error_cause_calculation_mistake")
+    private Integer calculationMistake;
+
+    @Column(name = "error_cause_concept_gap")
+    private Integer conceptGap;
+
+    @Column(name = "error_cause_condition_misread")
+    private Integer conditionMisread;
+
+    @Column(name = "error_cause_idea_gap")
+    private Integer ideaGap;
+
+    @Column(name = "error_cause_time_management")
+    private Integer timeManagement;
+
+    @Column(name = "error_causes_need_review", nullable = false)
+    @Builder.Default
+    private boolean errorCausesNeedReview = false;
+
+    public boolean hasErrorCauses() {
+        return calculationMistake != null || conceptGap != null || conditionMisread != null
+                || ideaGap != null || timeManagement != null;
+    }
+
+    public void markErrorCausesForReview() {
+        if (hasErrorCauses()) errorCausesNeedReview = true;
+    }
+
     @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
 

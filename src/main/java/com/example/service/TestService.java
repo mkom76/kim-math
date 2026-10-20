@@ -262,6 +262,7 @@ public class TestService {
             // 총점 계산 (배점 기반, 반올림) - submitAnswers와 동일한 방식
             int totalScore = totalPoints == 0 ? 0 : (int) Math.round((earnedPoints / totalPoints) * 100);
             submission.setTotalScore(totalScore);
+            submission.markErrorCausesForReview();
         }
 
         studentSubmissionRepository.saveAll(submissions);
@@ -392,6 +393,7 @@ public class TestService {
                             .school(student.getSchool())
                             .submitted(submission != null)
                             .submissionId(submission != null ? submission.getId() : null)
+                            .errorCauses(submission != null ? ErrorCausesDto.from(submission) : null)
                             .score(submission != null ? submission.getTotalScore() : null)
                             .pendingEssayCount(submission != null
                                     ? studentSubmissionRepository.countPendingEssays(submission.getId()).intValue()

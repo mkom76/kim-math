@@ -18,6 +18,7 @@ public class TestSubmissionRosterDto {
     private String school;
     private Boolean submitted;
     private Long submissionId;
+    private ErrorCausesDto errorCauses;
     private Integer score;
     private Integer pendingEssayCount;
     private LocalDateTime submittedAt;
