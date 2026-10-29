@@ -19,7 +19,12 @@ public record ErrorCausesDto(
         String status = entered == 0 ? "NOT_ENTERED"
                 : submission.isErrorCausesNeedReview() ? "NEEDS_REVIEW"
                 : entered == 5 ? "COMPLETE" : "PARTIAL";
-        return new ErrorCausesDto(submission.getCalculationMistake(), submission.getConceptGap(),
-                submission.getConditionMisread(), submission.getIdeaGap(), submission.getTimeManagement(), status);
+        return new ErrorCausesDto(orZero(submission.getCalculationMistake()), orZero(submission.getConceptGap()),
+                orZero(submission.getConditionMisread()), orZero(submission.getIdeaGap()),
+                orZero(submission.getTimeManagement()), status);
+    }
+
+    private static int orZero(Integer count) {
+        return count == null ? 0 : count;
     }
 }

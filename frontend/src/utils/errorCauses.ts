@@ -32,20 +32,19 @@ export function sortErrorCauseRecords(records: Submission[]) {
 }
 
 export function errorCauseDelta(records: Submission[], index: number, key: ErrorCauseKey) {
+  if (!records[index] || !records[index - 1]) return null
   const current = records[index]?.errorCauses
   const previous = records[index - 1]?.errorCauses
   if (current?.status === 'NEEDS_REVIEW' || previous?.status === 'NEEDS_REVIEW') return null
-  const value = current?.[key]
-  const before = previous?.[key]
-  return value == null || before == null ? null : value - before
+  return (current?.[key] ?? 0) - (previous?.[key] ?? 0)
 }
 
 export function errorCauseSegments(records: Submission[], key: ErrorCauseKey) {
   const segments: Array<Array<{ index: number; value: number }>> = []
   let segment: Array<{ index: number; value: number }> = []
   for (const [index, record] of records.entries()) {
-    const value = record.errorCauses?.[key]
-    if (value == null || record.errorCauses?.status === 'NEEDS_REVIEW') {
+    const value = record.errorCauses?.[key] ?? 0
+    if (record.errorCauses?.status === 'NEEDS_REVIEW') {
       if (segment.length) segments.push(segment)
       segment = []
     } else {

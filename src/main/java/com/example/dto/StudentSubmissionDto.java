@@ -21,6 +21,7 @@ public class StudentSubmissionDto {
     private String testTitle;
     private Long classId;
     private String className;
+    private LocalDateTime classEndedAt;
     private LocalDate lessonDate;
     private LocalDateTime testCreatedAt;
     private ErrorCausesDto errorCauses;
@@ -43,6 +44,8 @@ public class StudentSubmissionDto {
                         ? submission.getTest().getAcademyClass().getId() : null)
                 .className(submission.getTest().getAcademyClass() != null
                         ? submission.getTest().getAcademyClass().getName() : null)
+                .classEndedAt(submission.getTest().getAcademyClass() != null
+                        ? submission.getTest().getAcademyClass().getEndedAt() : null)
                 .lessonDate(submission.getTest().getLesson() != null
                         ? submission.getTest().getLesson().getLessonDate() : null)
                 .testCreatedAt(submission.getTest().getCreatedAt())

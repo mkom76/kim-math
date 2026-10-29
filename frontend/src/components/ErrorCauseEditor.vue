@@ -13,7 +13,7 @@ watch(
   () => [props.submissionId, props.initialValue],
   () => {
     for (const cause of ERROR_CAUSES) {
-      draft.value[cause.key] = props.initialValue?.[cause.key]?.toString() ?? ''
+      draft.value[cause.key] = (props.initialValue?.[cause.key] ?? 0).toString()
     }
     error.value = ''
   },
@@ -26,8 +26,8 @@ async function save() {
   const counts = {} as ErrorCauseCounts
   for (const cause of ERROR_CAUSES) {
     const text = draft.value[cause.key].trim()
-    const count = text === '' ? null : Number(text)
-    if (count !== null && (!/^\d+$/.test(text) || !Number.isInteger(count) || count > 2147483647)) {
+    const count = text === '' ? 0 : Number(text)
+    if (text !== '' && (!/^\d+$/.test(text) || !Number.isInteger(count) || count > 2147483647)) {
       error.value = `${cause.label}: 0 이상의 정수를 입력해 주세요.`
       return
     }
@@ -48,7 +48,7 @@ async function save() {
 <template>
   <form class="cause-editor" @submit.prevent="save">
     <p class="cause-editor__note">
-      빈칸은 미입력, 0은 해당 원인이 없다는 뜻입니다. 한 문항에 여러 원인을 기록할 수 있습니다.
+      빈칸은 0건으로 저장합니다. 한 문항에 여러 원인을 기록할 수 있습니다.
     </p>
     <p v-if="initialValue?.status === 'NEEDS_REVIEW'" class="cause-editor__review" role="status">
       답안 또는 채점이 변경되었습니다. 기존 원인을 검토한 뒤 저장해 주세요.
@@ -60,10 +60,11 @@ async function save() {
         <span class="cause-editor__input">
           <input
             v-model="draft[cause.key]"
+            @input="error = ''"
             type="text"
             inputmode="numeric"
             :aria-label="`${cause.label} 건수`"
-            placeholder="미입력"
+            placeholder="0"
             autocomplete="off"
           />
           <span>건</span>

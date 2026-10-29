@@ -179,7 +179,7 @@ function dateLabel(item: Submission) {
         }}
       </p>
       <p class="cause-trends__note">
-        원인 중복 기록이 가능합니다. 미입력·재확인 필요 구간은 그래프와 증감 비교에서 제외합니다.
+        원인 중복 기록이 가능합니다. 미입력은 0건으로 계산하며, 재확인 필요 구간은 그래프와 증감 비교에서 제외합니다.
       </p>
       <div
         class="cause-trends__scroll"
@@ -205,11 +205,7 @@ function dateLabel(item: Submission) {
               </th>
               <td>{{ errorCauseStatus(record.errorCauses) }}</td>
               <td v-for="cause in ERROR_CAUSES" :key="cause.key">
-                <strong>{{
-                  record.errorCauses?.[cause.key] == null
-                    ? '미입력'
-                    : `${record.errorCauses[cause.key]}건`
-                }}</strong>
+                <strong>{{ record.errorCauses?.[cause.key] ?? 0 }}건</strong>
                 <small>{{ deltaLabel(index, cause.key) }}</small>
               </td>
             </tr>
@@ -250,7 +246,6 @@ p {
   color: var(--student-muted, #606266);
 }
 .cause-trends__scroll-hint {
-  display: none;
   font-size: 12px;
   color: var(--student-muted, #606266);
 }

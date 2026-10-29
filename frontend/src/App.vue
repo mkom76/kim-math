@@ -114,7 +114,7 @@ onBeforeUnmount(() => {
 <template>
   <el-container
     class="app-shell"
-    :class="{ 'student-ui-v2': isStudentV2 }"
+    :class="{ 'student-ui-v2': isStudentV2, 'teacher-app-shell': isTeacherRoute }"
     style="
       min-height: 100vh;
       min-height: 100dvh;

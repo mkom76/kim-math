@@ -43,14 +43,21 @@ describe('error cause history', () => {
     ).toEqual([1, 2])
   })
 
-  it('shows a decrease to zero and does not compare across a missing record', () => {
+  it('treats missing counts as zero in both chart lines and comparisons', () => {
     expect(errorCauseDelta([record(1, 2), record(2, 0)], 1, 'calculationMistake')).toBe(-2)
     const records = [record(1, 5), record(2, null, 'NOT_ENTERED'), record(3, 0)]
-    expect(errorCauseDelta(records, 2, 'calculationMistake')).toBeNull()
+    expect(errorCauseDelta(records, 1, 'calculationMistake')).toBe(-5)
+    expect(errorCauseDelta(records, 2, 'calculationMistake')).toBe(0)
     expect(errorCauseSegments(records, 'calculationMistake')).toEqual([
-      [{ index: 0, value: 5 }],
-      [{ index: 2, value: 0 }],
+      [{ index: 0, value: 5 }, { index: 1, value: 0 }, { index: 2, value: 0 }],
     ])
+  })
+
+  it('handles an absent error-causes object as zero without inventing a first comparison', () => {
+    const missing = { ...record(1, null), errorCauses: undefined }
+    expect(errorCauseSegments([missing], 'conceptGap')).toEqual([[{ index: 0, value: 0 }]])
+    expect(errorCauseDelta([missing], 0, 'conceptGap')).toBeNull()
+    expect(errorCauseDelta([missing, record(2, 3)], 1, 'calculationMistake')).toBe(3)
   })
 
   it('excludes stale records from chart lines and both adjacent comparisons', () => {

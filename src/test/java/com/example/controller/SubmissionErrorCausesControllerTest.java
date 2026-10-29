@@ -21,6 +21,8 @@ import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -84,15 +86,60 @@ class SubmissionErrorCausesControllerTest {
     }
 
     @Test
-    void distinguishesPartialAndAllMissingFromZero() throws Exception {
+    void savesMissingCountsAsZeroEvenWhenAllFieldsAreBlank() throws Exception {
         save(COUNTS.replace("\"ideaGap\":0", "\"ideaGap\":null"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("PARTIAL"))
-                .andExpect(jsonPath("$.ideaGap").value(nullValue()));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETE"))
+                .andExpect(jsonPath("$.ideaGap").value(0));
         save("""
                 {"calculationMistake":null,"conceptGap":null,"conditionMisread":null,"ideaGap":null,"timeManagement":null}
                 """)
-                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("NOT_ENTERED"));
-        assertThat(submission.hasErrorCauses()).isFalse();
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETE"));
+        em.flush();
+        em.clear();
+        StudentSubmission stored = em.find(StudentSubmission.class, submission.getId());
+        assertThat(stored.getCalculationMistake()).isZero();
+        assertThat(stored.getConceptGap()).isZero();
+        assertThat(stored.getConditionMisread()).isZero();
+        assertThat(stored.getIdeaGap()).isZero();
+        assertThat(stored.getTimeManagement()).isZero();
+    }
+
+    @Test
+    void readsLegacyMissingCountsAsZeroWithoutMarkingThemEntered() throws Exception {
+        mvc.perform(get("/api/submissions/student/{id}", student.getId()).session(studentSession()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].errorCauses.status").value("NOT_ENTERED"))
+                .andExpect(jsonPath("$[0].errorCauses.calculationMistake").value(0))
+                .andExpect(jsonPath("$[0].errorCauses.conceptGap").value(0))
+                .andExpect(jsonPath("$[0].errorCauses.conditionMisread").value(0))
+                .andExpect(jsonPath("$[0].errorCauses.ideaGap").value(0))
+                .andExpect(jsonPath("$[0].errorCauses.timeManagement").value(0));
+        submission.setConceptGap(3);
+        mvc.perform(get("/api/submissions/me/test/{id}", exam.getId()).session(studentSession()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.errorCauses.status").value("PARTIAL"))
+                .andExpect(jsonPath("$.errorCauses.conceptGap").value(3))
+                .andExpect(jsonPath("$.errorCauses.ideaGap").value(0));
+        em.flush();
+        em.clear();
+        assertThat(em.find(StudentSubmission.class, submission.getId()).getIdeaGap()).isNull();
+    }
+
+    @Test
+    void identifiesEndedClassScoresWithoutMovingThemToTheCurrentClass() throws Exception {
+        AcademyClass endedClass = persist(AcademyClass.builder().name("이전 반").academy(academy)
+                .ownerTeacherId(teacher.getId()).endedAt(LocalDateTime.of(2026, 9, 30, 19, 0)).build());
+        com.example.entity.Test endedTest = persist(com.example.entity.Test.builder().title("종강반 시험")
+                .academy(academy).academyClass(endedClass).build());
+        persist(StudentSubmission.builder().student(student).test(endedTest).totalScore(20).build());
+        em.flush();
+        mvc.perform(get("/api/submissions/student/{id}", student.getId()).session(teacherSession(teacher, academy)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[?(@.testTitle == '종강반 시험')].classId", hasItem(endedClass.getId().intValue())))
+                .andExpect(jsonPath("$[?(@.testTitle == '종강반 시험')].classEndedAt", hasItem("2026-09-30T19:00:00")))
+                .andExpect(jsonPath("$[?(@.testTitle == '1회차')].classId", hasItem(clazz.getId().intValue())))
+                .andExpect(jsonPath("$[?(@.testTitle == '1회차')].classEndedAt", hasItem(nullValue())));
     }
 
     @ParameterizedTest

@@ -45,7 +45,7 @@ public class SubmissionService {
         authorizationService.assertCanAccessSubmission(submission);
         if (counts == null || !counts.keySet().equals(Set.of(
                 "calculationMistake", "conceptGap", "conditionMisread", "ideaGap", "timeManagement"))) {
-            throw new IllegalArgumentException("5개 원인을 모두 보내 주세요. 미입력은 null로 지정하세요");
+            throw new IllegalArgumentException("5개 원인을 모두 보내 주세요. 빈 값은 0으로 처리합니다");
         }
         for (BigDecimal count : counts.values()) {
             if (count == null) continue;
@@ -65,7 +65,7 @@ public class SubmissionService {
     }
 
     private Integer integerCount(BigDecimal count) {
-        return count == null ? null : count.intValueExact();
+        return count == null ? 0 : count.intValueExact();
     }
 
     public StudentSubmissionDto submitMyAnswers(Long testId, Map<Integer, String> answers) {

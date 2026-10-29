@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {ElMessage} from 'element-plus'
 import { ArrowLeft, Refresh, UserFilled, ZoomIn } from '@element-plus/icons-vue'
 import {
   type Student,
+  type StudentEnrollment,
   studentAPI,
   type StudentHomework,
   studentHomeworkAPI,
@@ -39,6 +40,61 @@ const studentHomeworks = ref<StudentHomework[]>([])
 const videoProgress = ref<VideoProgress[]>([])
 const attendanceStats = ref<AttendanceStats | null>(null)
 const activeTab = ref('test')
+const selectedTestClassId = ref('')
+const testClasses = computed(() => {
+  const choices = new Map<string, {
+    id: string
+    name: string
+    status?: StudentEnrollment['status']
+    ended: boolean
+  }>()
+  for (const enrollment of student.value?.enrollments ?? []) {
+    const id = String(enrollment.classId)
+    choices.set(id, {
+      id, name: enrollment.className, status: enrollment.status,
+      ended: enrollment.endReason === 'CLASS_ENDED',
+    })
+  }
+  if (!choices.size && student.value?.classId != null) {
+    const id = String(student.value.classId)
+    choices.set(id, {
+      id, name: student.value.className || '시험 기록',
+      status: currentUser.value.studentClassReadOnly ? 'COMPLETED' : 'ACTIVE', ended: false,
+    })
+  }
+  for (const submission of submissions.value) {
+    const id = String(submission.classId ?? 'unknown')
+    const enrollment = choices.get(id)
+    choices.set(id, {
+      id, name: submission.className || enrollment?.name || '시험 기록',
+      status: enrollment?.status, ended: Boolean(submission.classEndedAt) || Boolean(enrollment?.ended),
+    })
+  }
+  const statusLabels = {
+    ACTIVE: '수강 중', SCHEDULED: '수강 예정', COMPLETED: '수강 종료', WITHDRAWN: '수강 종료',
+  }
+  return [...choices.values()].map(choice => ({
+    ...choice,
+    label: `${choice.name} · ${choice.ended ? '종강' : choice.status ? statusLabels[choice.status] : '기록'}`,
+  }))
+})
+watch(testClasses, choices => {
+  if (choices.some(choice => choice.id === selectedTestClassId.value)) return
+  const preferredId = String(currentUser.value.activeStudentClassId ?? student.value?.classId)
+  selectedTestClassId.value = (
+    choices.find(choice => choice.id === preferredId && choice.status === 'ACTIVE' && !choice.ended)
+    ?? choices.find(choice => choice.status === 'ACTIVE' && !choice.ended)
+    ?? choices.find(choice => choice.status === 'SCHEDULED' && !choice.ended)
+    ?? choices.find(choice => choice.id === preferredId)
+    ?? choices.at(-1)
+  )?.id ?? ''
+}, { immediate: true })
+const selectedTestClass = computed(() =>
+  testClasses.value.find(choice => choice.id === selectedTestClassId.value),
+)
+const filteredSubmissions = computed(() =>
+  submissions.value.filter(item => String(item.classId ?? 'unknown') === selectedTestClassId.value),
+)
 
 // 선생님인지 확인
 const isTeacher = computed(() => currentUser.value.role === 'TEACHER')
@@ -90,40 +146,35 @@ const combinedPanY = computed(() => isDragging.value ? panY.value : touchPanY.va
 const containerPadding = computed(() => isMobile.value ? '12px' : '24px')
 const progressSize = computed(() => isMobile.value ? 80 : 120)
 const progressStrokeWidth = computed(() => isMobile.value ? 8 : 10)
-const chartViewBox = computed(() => isMobile.value ? '0 0 350 200' : '0 0 700 250')
+const chartFrame = computed(() => isMobile.value
+  ? { width: 350, height: 240, left: 40, right: 320, top: 25, bottom: 190 }
+  : { width: 700, height: 270, left: 60, right: 660, top: 30, bottom: 220 })
+const chartViewBox = computed(() => `0 0 ${chartFrame.value.width} ${chartFrame.value.height}`)
+const scoreTicks = [100, 75, 50, 25, 0]
+const scoreY = (value: number) => chartFrame.value.bottom
+  - (value / 100) * (chartFrame.value.bottom - chartFrame.value.top)
 const chartFontSize = computed(() => isMobile.value ? 10 : 12)
 const dialogWidth = computed(() => isMobile.value ? '95%' : '90%')
 
 // 차트 포인트 계산 (모든 좌표 사전 계산, 반응형)
 const chartPoints = computed(() => {
-  if (submissions.value.length === 0) return []
+  if (filteredSubmissions.value.length === 0) return []
 
-  // 반응형 차트 크기
-  const chartWidth = isMobile.value ? 350 : 700
-  const chartHeight = isMobile.value ? 200 : 250
-  const marginLeft = isMobile.value ? 30 : 60
-  const marginRight = isMobile.value ? 20 : 40
-  const marginTop = isMobile.value ? 15 : 30
-  const marginBottom = isMobile.value ? 15 : 30
-
-  const points = submissions.value.map((s, index) => {
+  const points = filteredSubmissions.value.map((s, index) => {
     const testId = s.testId
     const stats = testId == null ? undefined : testStats.value[testId]
     const studentScore = s.totalScore
     const academyAverage = stats?.averageScore || 0
 
     // X 좌표 계산
-    const totalPoints = submissions.value.length
+    const totalPoints = filteredSubmissions.value.length
     const divisor = totalPoints > 1 ? totalPoints - 1 : 1
-    const plotWidth = chartWidth - marginLeft - marginRight
-    const x = marginLeft + (index * plotWidth / divisor)
+    const { left, right } = chartFrame.value
+    const x = totalPoints === 1 ? (left + right) / 2 : left + (index * (right - left) / divisor)
 
     // Y 좌표 계산
-    const plotHeight = chartHeight - marginTop - marginBottom
-    const plotTop = marginTop
-    const plotBottom = chartHeight - marginBottom
-    const studentY = plotBottom - (studentScore / 100) * plotHeight
-    const academyY = plotBottom - (academyAverage / 100) * plotHeight
+    const studentY = scoreY(studentScore)
+    const academyY = scoreY(academyAverage)
     const labelY = studentY - 12
 
     return {
@@ -153,21 +204,21 @@ const academyLinePoints = computed(() => {
 
 // 평균 점수 계산
 const averageScore = computed(() => {
-  if (submissions.value.length === 0) return 0
-  const total = submissions.value.reduce((sum, s) => sum + s.totalScore, 0)
-  return Math.round(total / submissions.value.length * 10) / 10
+  if (filteredSubmissions.value.length === 0) return 0
+  const total = filteredSubmissions.value.reduce((sum, s) => sum + s.totalScore, 0)
+  return Math.round(total / filteredSubmissions.value.length * 10) / 10
 })
 
 // 최고 점수
 const maxScore = computed(() => {
-  if (submissions.value.length === 0) return 0
-  return Math.max(...submissions.value.map(s => s.totalScore))
+  if (filteredSubmissions.value.length === 0) return 0
+  return Math.max(...filteredSubmissions.value.map(s => s.totalScore))
 })
 
 // 최저 점수
 const minScore = computed(() => {
-  if (submissions.value.length === 0) return 0
-  return Math.min(...submissions.value.map(s => s.totalScore))
+  if (filteredSubmissions.value.length === 0) return 0
+  return Math.min(...filteredSubmissions.value.map(s => s.totalScore))
 })
 
 // incorrect_count가 null이 아닌 숙제만 필터링 (통계 계산용)
@@ -502,11 +553,19 @@ onMounted(() => {
           <el-tabs v-model="activeTab" type="card">
             <!-- 시험 통계 탭 -->
             <el-tab-pane label="시험 통계" name="test">
+              <label v-if="testClasses.length" class="test-class-filter">
+                반 선택
+                <select v-model="selectedTestClassId" aria-label="시험 통계 반 선택">
+                  <option v-for="choice in testClasses" :key="choice.id" :value="choice.id">
+                    {{ choice.label }}
+                  </option>
+                </select>
+              </label>
               <el-row :gutter="16" style="margin-bottom: 16px">
                 <el-col :xs="12" :sm="12" :md="12">
                   <div style="text-align: center; padding: 20px; background: #f0f9ff; border-radius: 8px">
                     <div :style="{ fontSize: statFontSize, fontWeight: 600, color: '#409eff', marginBottom: '8px' }">
-                      {{ submissions.length }}
+                      {{ filteredSubmissions.length }}
                     </div>
                     <div :style="{ color: '#909399', fontSize: bodyFontSize }">총 응시 시험</div>
                   </div>
@@ -541,17 +600,17 @@ onMounted(() => {
               </el-row>
 
           <!-- 꺾은선 그래프 -->
-          <div v-if="chartPoints && chartPoints.length > 0" style="margin-top: 24px; padding: 20px; background: #fafafa; border-radius: 8px; cursor: pointer; transition: all 0.3s" @click="openChartModal">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px">
-              <div :style="{ fontWeight: 600, color: '#303133', fontSize: textFontSize }">점수 추이</div>
-              <div :style="{ display: 'flex', gap: '12px', fontSize: smallTextFontSize, alignItems: 'center', flexWrap: 'nowrap' }">
+          <div v-if="chartPoints && chartPoints.length > 0" class="score-chart" @click="openChartModal">
+            <div class="score-chart__heading">
+              <div :style="{ fontWeight: 600, color: '#303133', fontSize: textFontSize, whiteSpace: 'nowrap' }">점수 추이</div>
+              <div class="score-chart__legend" :style="{ fontSize: smallTextFontSize }">
                 <div style="display: flex; align-items: center; gap: 4px; white-space: nowrap">
                   <div style="width: 14px; height: 2.5px; background: #409eff; border-radius: 2px"></div>
                   <span style="color: #606266">내 점수</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 4px; white-space: nowrap">
                   <div style="width: 14px; height: 2.5px; background: #67c23a; border-radius: 2px"></div>
-                  <span style="color: #606266">학원 평균</span>
+                  <span style="color: #606266">반 평균</span>
                 </div>
                 <el-button type="primary" size="small" :icon="ZoomIn" @click.stop="openChartModal" :style="{ padding: '4px 8px', fontSize: smallTextFontSize }">
                   확대하여 보기
@@ -561,21 +620,14 @@ onMounted(() => {
 
             <svg :viewBox="chartViewBox" style="width: 100%; height: auto">
               <!-- 배경 격자선 -->
-              <line x1="60" y1="30" x2="680" y2="30" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4" />
-              <line x1="60" y1="70" x2="680" y2="70" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4" />
-              <line x1="60" y1="110" x2="680" y2="110" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4" />
-              <line x1="60" y1="150" x2="680" y2="150" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4" />
-              <line x1="60" y1="190" x2="680" y2="190" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4" />
-
-              <!-- Y축 레이블 -->
-              <text x="50" y="35" text-anchor="end" font-size="12" fill="#909399">100</text>
-              <text x="50" y="75" text-anchor="end" font-size="12" fill="#909399">75</text>
-              <text x="50" y="115" text-anchor="end" font-size="12" fill="#909399">50</text>
-              <text x="50" y="155" text-anchor="end" font-size="12" fill="#909399">25</text>
-              <text x="50" y="195" text-anchor="end" font-size="12" fill="#909399">0</text>
+              <g v-for="tick in scoreTicks" :key="tick">
+                <line :x1="chartFrame.left" :y1="scoreY(tick)" :x2="chartFrame.right" :y2="scoreY(tick)"
+                  stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4" />
+                <text :x="chartFrame.left - 10" :y="scoreY(tick) + 4" text-anchor="end" font-size="12" fill="#909399">{{ tick }}</text>
+              </g>
 
               <!-- X축 -->
-              <line x1="60" y1="190" x2="680" y2="190" stroke="#303133" stroke-width="2" />
+              <line :x1="chartFrame.left" :y1="chartFrame.bottom" :x2="chartFrame.right" :y2="chartFrame.bottom" stroke="#303133" stroke-width="2" />
 
               <!-- 학원 평균 선 -->
               <polyline
@@ -596,7 +648,7 @@ onMounted(() => {
                 <!-- X축 레이블 -->
                 <text
                   :x="point.x"
-                  y="210"
+                  :y="chartFrame.bottom + 20"
                   text-anchor="middle"
                   font-size="11"
                   fill="#606266"
@@ -641,8 +693,8 @@ onMounted(() => {
             </svg>
           </div>
 
-          <el-empty v-else description="아직 응시한 시험이 없습니다" />
-              <ErrorCauseTrends :submissions="submissions" />
+          <el-empty v-else description="선택한 반에서 응시한 시험이 없습니다" />
+              <ErrorCauseTrends :submissions="filteredSubmissions" />
             </el-tab-pane>
 
             <!-- 숙제 통계 탭 -->
@@ -743,12 +795,12 @@ onMounted(() => {
           <el-icon color="#67c23a">
             <Document />
           </el-icon>
-          <span style="font-weight: 600">응시한 시험</span>
+          <span style="font-weight: 600">응시한 시험{{ selectedTestClass ? ` · ${selectedTestClass.label}` : '' }}</span>
         </div>
       </template>
 
       <!-- Desktop: Table View -->
-      <el-table v-if="!isMobile" :data="submissions" style="width: 100%" stripe>
+      <el-table v-if="!isMobile" :data="filteredSubmissions" style="width: 100%" stripe>
         <el-table-column label="시험명" min-width="200">
           <template #default="{ row }">
             <div
@@ -787,7 +839,7 @@ onMounted(() => {
       <!-- Mobile: Card View -->
       <div v-else>
         <el-card
-          v-for="submission in submissions"
+          v-for="submission in filteredSubmissions"
           :key="submission.id"
           shadow="hover"
           style="margin-bottom: 16px; cursor: pointer"
@@ -822,7 +874,7 @@ onMounted(() => {
         </el-card>
       </div>
 
-      <el-empty v-if="submissions.length === 0" description="아직 응시한 시험이 없습니다" />
+      <el-empty v-if="filteredSubmissions.length === 0" description="선택한 반에서 응시한 시험이 없습니다" />
     </el-card>
 
     <!-- 영상 시청 현황 -->
@@ -908,7 +960,7 @@ onMounted(() => {
     <!-- 차트 확대 모달 -->
     <el-dialog
       v-model="chartModalVisible"
-      title="점수 추이 상세"
+      :title="`점수 추이 상세${selectedTestClass ? ` · ${selectedTestClass.label}` : ''}`"
       :width="dialogWidth"
       :fullscreen="isMobile"
       top="5vh"
@@ -922,7 +974,7 @@ onMounted(() => {
           </div>
           <div style="display: flex; align-items: center; gap: 8px">
             <div style="width: 20px; height: 4px; background: #67c23a; border-radius: 2px"></div>
-            <span style="color: #606266">학원 평균</span>
+            <span style="color: #606266">반 평균</span>
           </div>
         </div>
         <div style="display: flex; gap: 12px; align-items: center">
@@ -957,21 +1009,14 @@ onMounted(() => {
         >
           <g :transform="`translate(${combinedPanX}, ${combinedPanY}) scale(${combinedZoom})`" style="transform-origin: center">
             <!-- 배경 격자선 -->
-            <line x1="60" y1="30" x2="680" y2="30" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4" />
-            <line x1="60" y1="70" x2="680" y2="70" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4" />
-            <line x1="60" y1="110" x2="680" y2="110" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4" />
-            <line x1="60" y1="150" x2="680" y2="150" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4" />
-            <line x1="60" y1="190" x2="680" y2="190" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4" />
-
-            <!-- Y축 레이블 -->
-            <text x="50" y="35" text-anchor="end" font-size="12" fill="#909399">100</text>
-            <text x="50" y="75" text-anchor="end" font-size="12" fill="#909399">75</text>
-            <text x="50" y="115" text-anchor="end" font-size="12" fill="#909399">50</text>
-            <text x="50" y="155" text-anchor="end" font-size="12" fill="#909399">25</text>
-            <text x="50" y="195" text-anchor="end" font-size="12" fill="#909399">0</text>
+            <g v-for="tick in scoreTicks" :key="tick">
+              <line :x1="chartFrame.left" :y1="scoreY(tick)" :x2="chartFrame.right" :y2="scoreY(tick)"
+                stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4" />
+              <text :x="chartFrame.left - 10" :y="scoreY(tick) + 4" text-anchor="end" font-size="12" fill="#909399">{{ tick }}</text>
+            </g>
 
             <!-- X축 -->
-            <line x1="60" y1="190" x2="680" y2="190" stroke="#303133" stroke-width="2" />
+            <line :x1="chartFrame.left" :y1="chartFrame.bottom" :x2="chartFrame.right" :y2="chartFrame.bottom" stroke="#303133" stroke-width="2" />
 
             <!-- 학원 평균 선 -->
             <polyline
@@ -992,7 +1037,7 @@ onMounted(() => {
               <!-- X축 레이블 -->
               <text
                 :x="point.x"
-                y="210"
+                :y="chartFrame.bottom + 20"
                 text-anchor="middle"
                 font-size="12"
                 fill="#606266"
@@ -1101,6 +1146,59 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.score-chart {
+  margin-top: 24px;
+  padding: 20px;
+  background: #fafafa;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.score-chart__heading,
+.score-chart__legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.score-chart__heading {
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 767px) {
+  .score-chart {
+    padding: 12px;
+  }
+}
+
+.test-class-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: #303133;
+  font-size: 14px;
+}
+
+.test-class-filter select {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px;
+  border: 1px solid #c0c4cc;
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+
+.test-class-filter select:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+}
+
 .el-card {
   border-radius: 8px;
 }

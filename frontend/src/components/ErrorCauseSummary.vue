@@ -10,23 +10,18 @@ defineProps<{ value?: ErrorCauses | null }>()
       <h3>오답 원인</h3>
       <span>{{ errorCauseStatus(value) }}</span>
     </div>
-    <p v-if="!value || value.status === 'NOT_ENTERED'" class="cause-summary__note">
-      선생님이 원인을 입력하면 여기에 표시됩니다.
+    <p v-if="value?.status === 'NEEDS_REVIEW'" class="cause-summary__review">
+      답안 또는 채점 변경 후 선생님의 재확인이 필요합니다.
     </p>
-    <template v-else>
-      <p v-if="value.status === 'NEEDS_REVIEW'" class="cause-summary__review">
-        답안 또는 채점 변경 후 선생님의 재확인이 필요합니다.
-      </p>
-      <dl>
-        <div v-for="cause in ERROR_CAUSES" :key="cause.key">
-          <dt>{{ cause.label }}</dt>
-          <dd>{{ value[cause.key] == null ? '미입력' : `${value[cause.key]}건` }}</dd>
-        </div>
-      </dl>
-      <p class="cause-summary__note">
-        원인별 기록 건수입니다. 한 문항에 여러 원인이 포함될 수 있습니다.
-      </p>
-    </template>
+    <dl>
+      <div v-for="cause in ERROR_CAUSES" :key="cause.key">
+        <dt>{{ cause.label }}</dt>
+        <dd>{{ value?.[cause.key] ?? 0 }}건</dd>
+      </div>
+    </dl>
+    <p class="cause-summary__note">
+      미입력은 0건으로 표시합니다. 한 문항에 여러 원인이 포함될 수 있습니다.
+    </p>
   </section>
 </template>
 

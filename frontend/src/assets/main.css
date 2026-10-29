@@ -61,6 +61,24 @@ a,
 
 /* Student views - Mobile optimized */
 @media (max-width: 768px) {
+  #app:has(> .teacher-app-shell) {
+    padding: 0;
+  }
+
+  .teacher-app-shell > .el-main {
+    padding: 12px !important;
+  }
+
+  .teacher-app-shell > .el-header {
+    height: auto;
+  }
+
+  .teacher-app-shell > .el-header > div {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 0;
+  }
+
   .student-view .container-responsive,
   [data-role="student"] .container-responsive {
     padding: 12px;

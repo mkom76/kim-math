@@ -315,6 +315,7 @@ interface Submission {
   testTitle?: string;
   classId?: number;
   className?: string;
+  classEndedAt?: string | null;
   lessonDate?: string | null;
   testCreatedAt?: string | null;
   errorCauses?: ErrorCauses | null;

@@ -22,14 +22,16 @@ const records: Submission[] = [5, null, 0].map((value, index) => ({
 }))
 
 describe('ErrorCauseTrends', () => {
-  it('renders zero separately from missing and leaves the chart gap unconnected', () => {
+  it('charts missing counts as zero and includes them in adjacent comparisons', () => {
     const wrapper = mount(ErrorCauseTrends, { props: { submissions: records } })
-    expect(wrapper.findAll('circle')).toHaveLength(2)
-    expect(wrapper.findAll('polyline')).toHaveLength(0)
+    expect(wrapper.findAll('circle')).toHaveLength(15)
+    expect(wrapper.findAll('polyline')).toHaveLength(5)
     const rows = wrapper.findAll('tbody tr')
     expect(rows[1]!.text()).toContain('미입력')
+    expect(rows[1]!.text()).toContain('0건')
+    expect(rows[1]!.text()).toContain('직전 대비 -5건')
     expect(rows[2]!.text()).toContain('0건')
-    expect(rows[2]!.text()).toContain('비교 불가')
+    expect(rows[2]!.text()).toContain('변화 없음')
   })
 
   it('never mixes classes and lets the teacher switch the comparison class', async () => {
@@ -53,7 +55,7 @@ describe('ErrorCauseTrends', () => {
   it('toggles visible chart causes without hiding the recorded table values', async () => {
     const wrapper = mount(ErrorCauseTrends, { props: { submissions: records } })
     await wrapper.get('button').trigger('click')
-    expect(wrapper.findAll('circle')).toHaveLength(0)
+    expect(wrapper.findAll('circle')).toHaveLength(12)
     expect(wrapper.get('button').attributes('aria-pressed')).toBe('false')
     expect(wrapper.get('table').text()).toContain('5건')
     expect(wrapper.get('table').text()).toContain('0건')
