@@ -12,6 +12,7 @@ const testId = route.params.id as string
 
 const loading = ref(false)
 const questions = ref<Question[]>([])
+const expectedQuestionIds = ref<number[]>([])
 const hasChanges = ref(false)
 
 const fetchQuestions = async () => {
@@ -19,6 +20,8 @@ const fetchQuestions = async () => {
   try {
     const response = await testAPI.getTestQuestions(Number(testId))
     questions.value = response.data.data || response.data
+    expectedQuestionIds.value = questions.value.map(question => question.id)
+      .filter((id): id is number => id != null)
     // 번호 순으로 정렬
     questions.value.sort((a, b) => (a.number || 0) - (b.number || 0))
     reorderQuestions()
@@ -97,11 +100,13 @@ const reorderQuestions = () => {
 }
 
 const handleSaveAll = async () => {
+  if (loading.value) return
   try {
     loading.value = true
 
     // 일괄 저장 API 사용 (학생 답안을 삭제하지 않고 업데이트)
     const answersToSave = questions.value.map(q => ({
+      id: q.id ?? null,
       number: q.number!,
       answer: q.answer || '',
       multipleAnswers: q.questionType === 'OBJECTIVE' && Boolean(q.multipleAnswers),
@@ -110,13 +115,13 @@ const handleSaveAll = async () => {
       topic: q.topic || null
     }))
 
-    await testAPI.saveTestAnswers(Number(testId), answersToSave)
+    await testAPI.saveTestAnswers(Number(testId), answersToSave, expectedQuestionIds.value)
 
     ElMessage.success('모든 정답이 저장되었습니다.')
     hasChanges.value = false
     await fetchQuestions()
-  } catch (error) {
-    ElMessage.error('저장에 실패했습니다.')
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message || '저장에 실패했습니다.')
   } finally {
     loading.value = false
   }

@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -23,6 +24,7 @@ public class TestQuestionDto {
     private QuestionType questionType;
     private String topic;
     private List<String> topicLevels;
+    private LocalDateTime updatedAt;
     private TextbookProblemMetaDto textbookProblem; // null = 수동 출제
 
     public static TestQuestionDto from(TestQuestion question) {
@@ -39,6 +41,7 @@ public class TestQuestionDto {
                 .questionType(question.getQuestionType())
                 .topic(question.getTopic())
                 .topicLevels(collectLevels(question))
+                .updatedAt(question.getUpdatedAt())
                 .textbookProblem(TextbookProblemMetaDto.fromOrNull(question.getTextbookProblem()))
                 .build();
     }

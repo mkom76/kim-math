@@ -3,9 +3,10 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { authAPI, testAPI, submissionAPI } from '@/api/client'
-import type { Test, Question, AuthResponse } from '@/api/client'
+import type { Test, Question, QuestionSnapshot, AuthResponse } from '@/api/client'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { parseMultipleAnswer, serializeMultipleAnswer } from '@/utils/examAnswers'
+import { createQuestionSnapshot } from '@/utils/questionSnapshot'
 
 const router = useRouter()
 const route = useRoute()
@@ -14,6 +15,7 @@ const submitting = ref(false)
 const currentUser = ref<AuthResponse>({})
 const test = ref<Test | null>(null)
 const questions = ref<Question[]>([])
+const questionSnapshot = ref<QuestionSnapshot[]>([])
 const answers = ref<Record<number, string>>({})
 
 const setMultipleAnswer = (questionNumber: number, selected: string[]) => {
@@ -47,6 +49,7 @@ const fetchTestData = async () => {
     // Fetch test questions
     const questionsResponse = await testAPI.getTestQuestions(testId.value)
     questions.value = questionsResponse.data
+    questionSnapshot.value = createQuestionSnapshot(questions.value)
 
     // Initialize answers object
     questions.value.forEach(q => {
@@ -83,15 +86,14 @@ const handleSubmit = async () => {
 
     submitting.value = true
 
-    // Backend expects Map<Integer, String> (question number -> answer)
-    await submissionAPI.submitMyAnswers(testId.value, answers.value)
+    await submissionAPI.submitMyAnswers(testId.value, answers.value, questionSnapshot.value)
 
     ElMessage.success('시험이 성공적으로 제출되었습니다')
     router.push('/student/dashboard')
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('Failed to submit test:', error)
-      ElMessage.error('시험 제출에 실패했습니다')
+      ElMessage.error(error.response?.data?.message || '시험 제출에 실패했습니다')
     }
   } finally {
     submitting.value = false

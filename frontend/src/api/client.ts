@@ -267,13 +267,19 @@ interface Question {
   updatedAt?: string;
 }
 
+export interface QuestionSnapshot {
+  id: number | null;
+  number: number;
+  updatedAt: string | null;
+}
+
 export interface SubmissionDetail {
   id: number;
   questionNumber: number;
   studentAnswer?: string;
   correctAnswer?: string;
   isCorrect?: boolean | null;
-  earnedPoints?: number;
+  earnedPoints?: number | null;
   maxPoints?: number;
   teacherComment?: string;
   questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY';
@@ -572,8 +578,8 @@ export const testAPI = {
   getUnattachedTests: (academyId: number, classId: number) =>
     client.get('/tests/unattached', { params: { academyId, classId } }),
   recalculateScores: (id: number) => client.post(`/tests/${id}/recalculate`),
-  saveTestAnswers: (id: number, answers: Array<{ number: number; answer: string; multipleAnswers?: boolean; points: number; questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY'; topic?: string | null }>) =>
-    client.put(`/tests/${id}/answers`, { testId: id, answers }),
+  saveTestAnswers: (id: number, answers: Array<{ id: number | null; number: number; answer: string; multipleAnswers?: boolean; points: number; questionType?: 'OBJECTIVE' | 'SUBJECTIVE' | 'ESSAY'; topic?: string | null }>, expectedQuestionIds: number[]) =>
+    client.put(`/tests/${id}/answers`, { testId: id, answers, expectedQuestionIds }),
   addQuestionsFromTextbook: (testId: number, items: Array<{ textbookProblemId: number; number: number; points: number }>) =>
     client.post(`/tests/${testId}/questions/from-textbook`, items),
 };
@@ -582,12 +588,12 @@ export const testAPI = {
 export const submissionAPI = {
   saveErrorCauses: (submissionId: number, counts: ErrorCauseCounts) =>
     client.put<ErrorCauses>(`/submissions/${submissionId}/error-causes`, counts),
-  submitAnswers: (studentId: number, testId: number, answers: SubmissionAnswers) =>
-    client.post('/submissions', answers, { params: { studentId, testId } }),
-  submitMyAnswers: (testId: number, answers: SubmissionAnswers) =>
-    client.post('/submissions/me/test/' + testId, answers),
-  saveAnswersForStudent: (studentId: number, testId: number, answers: SubmissionAnswers) =>
-    client.put<SubmissionResult>(`/submissions/students/${studentId}/tests/${testId}`, answers),
+  submitAnswers: (studentId: number, testId: number, answers: SubmissionAnswers, expectedQuestions: QuestionSnapshot[]) =>
+    client.post('/submissions', { answers, expectedQuestions }, { params: { studentId, testId } }),
+  submitMyAnswers: (testId: number, answers: SubmissionAnswers, expectedQuestions: QuestionSnapshot[]) =>
+    client.post('/submissions/me/test/' + testId, { answers, expectedQuestions }),
+  saveAnswersForStudent: (studentId: number, testId: number, answers: SubmissionAnswers, expectedQuestions: QuestionSnapshot[]) =>
+    client.put<SubmissionResult>(`/submissions/students/${studentId}/tests/${testId}`, { answers, expectedQuestions }),
   getByTestId: (testId: number) => client.get(`/submissions/test/${testId}`),
   getStudentSubmissions: (studentId: number) => client.get(`/submissions/student/${studentId}`),
   gradeEssay: (detailId: number, earnedPoints: number, teacherComment?: string) =>

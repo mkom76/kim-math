@@ -155,14 +155,15 @@ class TestQuestionsFromTextbookControllerTest {
                         .content(addBody))
                 .andExpect(status().isOk());
 
+        Long questionId = testQuestionRepository.findByTestIdOrderByNumber(test.getId()).getFirst().getId();
         mockMvc.perform(put("/api/tests/{id}/answers", test.getId())
                         .session(teacherSession())
                         .contentType("application/json")
                         .content("""
-                                {"answers":[{"number":1,"answer":"3","points":5,
+                                {"expectedQuestionIds":[%d],"answers":[{"id":%d,"number":1,"answer":"3","points":5,
                                   "questionType":"OBJECTIVE",
                                   "topic":"미적분 / 미분법 > 초월함수 미분"}]}
-                                """))
+                                """.formatted(questionId, questionId)))
                 .andExpect(status().isOk());
 
         var saved = testQuestionRepository.findByTestIdOrderByNumber(test.getId()).getFirst();
@@ -176,9 +177,9 @@ class TestQuestionsFromTextbookControllerTest {
                         .session(teacherSession())
                         .contentType("application/json")
                         .content("""
-                                {"answers":[{"number":1,"answer":"3","points":5,
+                                {"expectedQuestionIds":[%d],"answers":[{"id":%d,"number":1,"answer":"3","points":5,
                                   "questionType":"OBJECTIVE","topic":""}]}
-                                """))
+                                """.formatted(questionId, questionId)))
                 .andExpect(status().isOk());
 
         var cleared = testQuestionRepository.findByTestIdOrderByNumber(test.getId()).getFirst();

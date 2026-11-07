@@ -26,6 +26,17 @@ describe('formatIncorrectQuestionNumbers', () => {
     ])).toBe('')
   })
 
+  it('includes zero-point and partially credited essays, excluding ungraded and full-credit essays', () => {
+    expect(formatIncorrectQuestionNumbers([
+      { questionNumber: 6, questionType: 'ESSAY', isCorrect: null, earnedPoints: 0, maxPoints: 10 },
+      { questionNumber: 3, questionType: 'ESSAY', isCorrect: null, earnedPoints: 5, maxPoints: 10 },
+      { questionNumber: 4, questionType: 'ESSAY', isCorrect: null, earnedPoints: 10, maxPoints: 10 },
+      { questionNumber: 5, questionType: 'ESSAY', isCorrect: null, earnedPoints: null, maxPoints: 10 },
+      { questionNumber: 7, questionType: 'ESSAY', isCorrect: null, maxPoints: 10 },
+      { questionNumber: 1, questionType: 'OBJECTIVE', isCorrect: false },
+    ])).toBe('1,3,6')
+  })
+
   it('copies the formatted text with the Clipboard API', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', {

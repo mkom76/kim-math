@@ -5,6 +5,8 @@ import com.example.dto.EssayGradeRequest;
 import com.example.dto.ErrorCausesDto;
 import com.example.dto.StudentSubmissionDto;
 import com.example.dto.SubmissionDetailDto;
+import com.example.dto.QuestionSnapshot;
+import com.example.dto.SaveAnswersRequest;
 import com.example.entity.*;
 import com.example.exception.ForbiddenException;
 import com.example.repository.*;
@@ -68,15 +70,15 @@ public class SubmissionService {
         return count == null ? 0 : count.intValueExact();
     }
 
-    public StudentSubmissionDto submitMyAnswers(Long testId, Map<Integer, String> answers) {
+    public StudentSubmissionDto submitMyAnswers(Long testId, SaveAnswersRequest request) {
         TenantContext.Context ctx = TenantContext.current();
         if (ctx == null || ctx.role() != null) {
             throw new ForbiddenException("학생 인증이 필요합니다");
         }
-        return submitAnswersAsStudent(ctx.teacherId(), testId, answers);
+        return submitAnswersAsStudent(ctx.teacherId(), testId, request);
     }
 
-    public StudentSubmissionDto submitAnswers(Long studentId, Long testId, Map<Integer, String> answers) {
+    public StudentSubmissionDto submitAnswers(Long studentId, Long testId, SaveAnswersRequest request) {
         TenantContext.Context ctx = TenantContext.current();
         if (ctx == null) {
             throw new ForbiddenException("인증 컨텍스트가 없습니다");
@@ -85,35 +87,44 @@ public class SubmissionService {
             if (!ctx.teacherId().equals(studentId)) {
                 throw new ForbiddenException("본인 답안만 제출할 수 있습니다");
             }
-            return submitAnswersAsStudent(studentId, testId, answers);
+            return submitAnswersAsStudent(studentId, testId, request);
         }
-        return saveAnswersForStudent(studentId, testId, answers);
+        return saveAnswersForStudent(studentId, testId, request);
     }
 
-    private StudentSubmissionDto submitAnswersAsStudent(Long studentId, Long testId, Map<Integer, String> answers) {
+    private StudentSubmissionDto submitAnswersAsStudent(Long studentId, Long testId, SaveAnswersRequest request) {
         authorizationService.assertStudentClassWritable();
         if (submissionRepository.findByStudentIdAndTestId(studentId, testId).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 제출한 시험은 수정할 수 없습니다");
         }
-        return saveSubmission(studentId, testId, answers, false);
+        return saveSubmission(studentId, testId, request, false);
     }
 
-    public StudentSubmissionDto saveAnswersForStudent(Long studentId, Long testId, Map<Integer, String> answers) {
+    public StudentSubmissionDto saveAnswersForStudent(Long studentId, Long testId, SaveAnswersRequest request) {
         TenantContext.Context ctx = TenantContext.current();
         if (ctx == null || ctx.role() == null) {
             throw new ForbiddenException("선생님 권한이 필요합니다");
         }
-        return saveSubmission(studentId, testId, answers, true);
+        return saveSubmission(studentId, testId, request, true);
     }
 
-    private StudentSubmissionDto saveSubmission(Long studentId, Long testId, Map<Integer, String> answers, boolean allowExistingUpdate) {
+    private StudentSubmissionDto saveSubmission(Long studentId, Long testId, SaveAnswersRequest request, boolean allowExistingUpdate) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         authorizationService.assertCanAccessStudent(student);
-        Test test = testRepository.findById(testId)
+        Test test = testRepository.findByIdForQuestionRead(testId)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
         authorizationService.assertCanAccessTest(test);
         assertStudentBelongsToTest(student, test);
+
+        // 문항 변경 트랜잭션과 함께 잠그고, 답안을 변경하기 전에 입력 화면의 문항을 검증한다.
+        List<TestQuestion> questions = questionRepository.findByTestIdForSnapshot(testId);
+        List<QuestionSnapshot> currentQuestions = questions.stream().map(QuestionSnapshot::from).toList();
+        if (request == null || request.answers() == null || !currentQuestions.equals(request.expectedQuestions())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "시험 문항이 변경되었거나 문항 정보를 확인할 수 없습니다. 새로고침 후 다시 시도해주세요");
+        }
+        Map<Integer, String> answers = request.answers();
         
         // 기존 제출 확인
         StudentSubmission submission = submissionRepository.findByStudentIdAndTestId(studentId, testId)
@@ -130,9 +141,6 @@ public class SubmissionService {
                         detail -> detail.getQuestion().getNumber(),
                         detail -> detail,
                         (left, right) -> left));
-        
-        // 문제 가져오기
-        List<TestQuestion> questions = questionRepository.findByTestIdOrderByNumber(testId);
         
         // 답안 저장 및 채점
         List<StudentSubmissionDetail> details = new ArrayList<>();

@@ -10,8 +10,10 @@ import {
   type SubmissionDetail,
   type TestSubmissionRoster,
   type Question,
+  type QuestionSnapshot,
 } from '../api/client'
 import { parseMultipleAnswer, serializeMultipleAnswer } from '@/utils/examAnswers'
+import { createQuestionSnapshot } from '@/utils/questionSnapshot'
 import { copyTextToClipboard, formatIncorrectQuestionNumbers } from '@/utils/incorrectQuestions'
 import ErrorCauseEditor from '@/components/ErrorCauseEditor.vue'
 import { errorCauseStatus } from '@/utils/errorCauses'
@@ -129,6 +131,7 @@ const answerSaving = ref(false)
 const copyingSubmissionId = ref<number | null>(null)
 const selectedRoster = ref<TestSubmissionRoster | null>(null)
 const answerQuestions = ref<Question[]>([])
+const answerQuestionSnapshot = ref<QuestionSnapshot[]>([])
 const answerForm = ref<Record<number, string>>({})
 
 const setMultipleAnswer = (questionNumber: number, selected: string[]) => {
@@ -150,11 +153,13 @@ const openAnswerEntry = async (row: TestSubmissionRoster) => {
   answerDialogVisible.value = true
   answerLoading.value = true
   answerForm.value = {}
+  answerQuestionSnapshot.value = []
 
   try {
     const questionsResponse = await testAPI.getTestQuestions(Number(testId))
     answerQuestions.value = (questionsResponse.data.data || questionsResponse.data)
       .sort((a: Question, b: Question) => a.number - b.number)
+    answerQuestionSnapshot.value = createQuestionSnapshot(answerQuestions.value)
 
     const nextAnswers: Record<number, string> = {}
     answerQuestions.value.forEach(question => {
@@ -205,6 +210,7 @@ const saveStudentAnswers = async () => {
       row.studentId,
       Number(testId),
       answerForm.value,
+      answerQuestionSnapshot.value,
     )
 
     ElMessage.success(isEditing ? '답안이 수정되었습니다' : '답안이 저장되었습니다')
@@ -229,7 +235,7 @@ const openEssayGradeFromRoster = (row: TestSubmissionRoster) => {
 }
 
 const copyIncorrectQuestions = async (row: TestSubmissionRoster) => {
-  if (!row.submitted || !row.submissionId) return
+  if (!row.submitted || !row.submissionId || copyingSubmissionId.value !== null) return
 
   copyingSubmissionId.value = row.submissionId
   try {
@@ -648,6 +654,7 @@ onMounted(() => {
                 type="danger"
                 plain
                 :loading="copyingSubmissionId === row.submissionId"
+                :disabled="copyingSubmissionId !== null"
                 @click="copyIncorrectQuestions(row)"
               >
                 오답 복사

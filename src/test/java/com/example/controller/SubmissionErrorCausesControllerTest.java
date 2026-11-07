@@ -1,6 +1,9 @@
 package com.example.controller;
 
 import com.example.entity.*;
+import com.example.dto.QuestionSnapshot;
+import com.example.dto.SaveAnswersRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
@@ -35,6 +39,7 @@ class SubmissionErrorCausesControllerTest {
             {"calculationMistake":0,"conceptGap":2,"conditionMisread":1,"ideaGap":0,"timeManagement":1}
             """;
     @Autowired private MockMvc mvc;
+    @Autowired private ObjectMapper objectMapper;
     @PersistenceContext private EntityManager em;
     private Academy academy;
     private AcademyClass clazz;
@@ -191,9 +196,13 @@ class SubmissionErrorCausesControllerTest {
     @Test
     void answerCorrectionPreservesCountsAndRequiresReviewUntilSavedAgain() throws Exception {
         save(COUNTS).andExpect(status().isOk());
+        em.flush();
+        var questions = em.createQuery("SELECT q FROM TestQuestion q WHERE q.test.id = :id ORDER BY q.number", TestQuestion.class)
+                .setParameter("id", exam.getId()).getResultList();
+        var request = new SaveAnswersRequest(Map.of(1, "2", 2, "풀이"), questions.stream().map(QuestionSnapshot::from).toList());
         mvc.perform(put("/api/submissions/students/{studentId}/tests/{testId}", student.getId(), exam.getId())
                         .session(teacherSession(teacher, academy)).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"1\":\"2\",\"2\":\"풀이\"}"))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.errorCauses.conceptGap").value(2))
                 .andExpect(jsonPath("$.errorCauses.status").value("NEEDS_REVIEW"));
         save(COUNTS).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETE"));

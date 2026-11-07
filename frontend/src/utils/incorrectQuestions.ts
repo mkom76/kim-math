@@ -1,11 +1,14 @@
 import type { SubmissionDetail } from '@/api/client'
 
-type IncorrectQuestionDetail = Pick<SubmissionDetail, 'questionNumber' | 'isCorrect'>
+type IncorrectQuestionDetail = Pick<SubmissionDetail,
+  'questionNumber' | 'isCorrect' | 'questionType' | 'earnedPoints' | 'maxPoints'>
 
 export const formatIncorrectQuestionNumbers = (details: IncorrectQuestionDetail[]): string =>
   [...new Set(
     details
-      .filter(detail => detail.isCorrect === false)
+      .filter(detail => detail.questionType === 'ESSAY'
+        ? detail.earnedPoints != null && detail.maxPoints != null && detail.earnedPoints < detail.maxPoints
+        : detail.isCorrect === false)
       .map(detail => detail.questionNumber),
   )]
     .sort((left, right) => left - right)

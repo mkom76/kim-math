@@ -8,13 +8,17 @@ import com.example.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -153,64 +157,81 @@ public class TestService {
     }
 
     public void saveTestAnswers(TestAnswersDto dto) {
-        Test test = testRepository.findById(dto.getTestId())
+        Test test = testRepository.findByIdForQuestionWrite(dto.getTestId())
                 .orElseThrow(() -> new RuntimeException("Test not found"));
         authorizationService.assertCanAccessTest(test);
 
         // 기존 문제 조회
-        List<TestQuestion> existingQuestions = testQuestionRepository.findByTestIdOrderByNumber(dto.getTestId());
+        List<TestQuestion> existingQuestions = testQuestionRepository.findByTestIdForSnapshot(dto.getTestId());
 
-        // 기존 문제를 Map으로 변환 (문제 번호 -> TestQuestion)
-        java.util.Map<Integer, TestQuestion> existingQuestionsMap = existingQuestions.stream()
-                .collect(java.util.stream.Collectors.toMap(TestQuestion::getNumber, q -> q));
+        Map<Long, TestQuestion> existingQuestionsById = existingQuestions.stream()
+                .collect(Collectors.toMap(TestQuestion::getId, question -> question));
+        if (dto.getExpectedQuestionIds() == null || dto.getExpectedQuestionIds().contains(null)
+                || new HashSet<>(dto.getExpectedQuestionIds()).size() != dto.getExpectedQuestionIds().size()) {
+            throw new IllegalArgumentException("문항 목록을 다시 불러온 후 저장해주세요");
+        }
+        if (!existingQuestionsById.keySet().equals(new HashSet<>(dto.getExpectedQuestionIds()))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "시험 문항이 변경되었습니다. 새로고침 후 다시 시도해주세요");
+        }
+        if (dto.getAnswers() == null) {
+            throw new IllegalArgumentException("문항 목록이 필요합니다");
+        }
+        Set<Long> retainedQuestionIds = new HashSet<>();
+        Set<Integer> questionNumbers = new HashSet<>();
+        for (TestAnswersDto.QuestionAnswer answer : dto.getAnswers()) {
+            if (answer == null || answer.number() == null || answer.number() < 1
+                    || !questionNumbers.add(answer.number())) {
+                throw new IllegalArgumentException("문항 번호는 중복되지 않는 양의 정수여야 합니다");
+            }
+            if (answer.id() != null && (!existingQuestionsById.containsKey(answer.id())
+                    || !retainedQuestionIds.add(answer.id()))) {
+                throw new IllegalArgumentException("문항 정보를 확인할 수 없습니다. 새로고침 후 다시 시도해주세요");
+            }
+        }
 
-        // 새로운 문제 번호 Set
-        java.util.Set<Integer> newQuestionNumbers = dto.getAnswers().stream()
-                .map(TestAnswersDto.QuestionAnswer::getNumber)
-                .collect(java.util.stream.Collectors.toSet());
-
-        // 삭제할 문제 (새로운 문제 리스트에 없는 문제들)
+        // 번호가 바뀌어도 남아 있는 문항은 ID로 식별한다.
         List<TestQuestion> questionsToDelete = existingQuestions.stream()
-                .filter(q -> !newQuestionNumbers.contains(q.getNumber()))
-                .collect(java.util.stream.Collectors.toList());
+                .filter(question -> !retainedQuestionIds.contains(question.getId()))
+                .collect(Collectors.toList());
 
         // 업데이트 또는 생성
         List<TestQuestion> questionsToSave = new ArrayList<>();
         for (TestAnswersDto.QuestionAnswer answer : dto.getAnswers()) {
-            TestQuestion question = existingQuestionsMap.get(answer.getNumber());
-            Double points = answer.getPoints() != null ? answer.getPoints() : 0.0;
-            QuestionType questionType = answer.getQuestionType() != null ? answer.getQuestionType() : QuestionType.SUBJECTIVE;
+            TestQuestion question = answer.id() != null ? existingQuestionsById.get(answer.id()) : null;
+            Double points = answer.points() != null ? answer.points() : 0.0;
+            QuestionType questionType = answer.questionType() != null ? answer.questionType() : QuestionType.SUBJECTIVE;
             boolean multipleAnswers = questionType == QuestionType.OBJECTIVE
-                    && Boolean.TRUE.equals(answer.getMultipleAnswers());
-            String correctAnswer = TestAnswerMatcher.canonicalize(answer.getAnswer(), multipleAnswers);
+                    && Boolean.TRUE.equals(answer.multipleAnswers());
+            String correctAnswer = TestAnswerMatcher.canonicalize(answer.answer(), multipleAnswers);
 
-            if (question != null) {
-                // 기존 문제 업데이트 (ID 유지 - 학생 답안 보존)
-                question.setAnswer(correctAnswer);
-                question.setMultipleAnswers(multipleAnswers);
-                question.setPoints(points);
-                question.setQuestionType(questionType);
-                applyTopic(question, answer.getTopic());
-            } else {
-                // 새 문제 생성
+            if (question == null) {
                 question = TestQuestion.builder()
                         .test(test)
-                        .number(answer.getNumber())
-                        .answer(correctAnswer)
-                        .multipleAnswers(multipleAnswers)
-                        .points(points)
-                        .questionType(questionType)
                         .build();
-                applyTopic(question, answer.getTopic());
             }
+            question.setNumber(answer.number());
+            question.setAnswer(correctAnswer);
+            question.setMultipleAnswers(multipleAnswers);
+            question.setPoints(points);
+            question.setQuestionType(questionType);
+            applyTopic(question, answer.topic());
             questionsToSave.add(question);
         }
 
         // 저장
         testQuestionRepository.saveAll(questionsToSave);
 
-        // 삭제 (CASCADE로 관련 StudentSubmissionDetail도 삭제됨 - 학생이 제출하지 않은 새로 삭제된 문제만)
+        // 삭제한 문항의 상세 답안만 함께 제거한다.
         if (!questionsToDelete.isEmpty()) {
+            Set<Long> deletedQuestionIds = questionsToDelete.stream()
+                    .map(TestQuestion::getId).collect(Collectors.toSet());
+            for (StudentSubmission submission : studentSubmissionRepository.findByTestId(dto.getTestId())) {
+                submission.getDetails().removeIf(detail -> deletedQuestionIds.contains(detail.getQuestion().getId()));
+            }
+            // 삭제된 문항을 참조하는 답안을 먼저 지운 뒤 문항을 삭제한다.
+            studentSubmissionRepository.flush();
+            test.getQuestions().removeIf(question -> deletedQuestionIds.contains(question.getId()));
             testQuestionRepository.deleteAll(questionsToDelete);
         }
 
@@ -227,34 +248,37 @@ public class TestService {
         List<TestQuestion> questions = testQuestionRepository.findByTestIdOrderByNumber(testId);
 
         for (StudentSubmission submission : submissions) {
+            Map<Long, StudentSubmissionDetail> detailsByQuestionId = submission.getDetails().stream()
+                    .collect(Collectors.toMap(detail -> detail.getQuestion().getId(), detail -> detail));
             double earnedPoints = 0.0;
             double totalPoints = 0.0;
 
-            for (StudentSubmissionDetail detail : submission.getDetails()) {
-                TestQuestion question = questions.stream()
-                        .filter(q -> q.getNumber().equals(detail.getQuestion().getNumber()))
-                        .findFirst()
-                        .orElse(null);
+            for (TestQuestion question : questions) {
+                StudentSubmissionDetail detail = detailsByQuestionId.get(question.getId());
+                if (detail == null) {
+                    // 제출 이후 추가된 문항도 미응답 기록을 만들어 재채점에 포함한다.
+                    detail = StudentSubmissionDetail.builder()
+                            .submission(submission)
+                            .question(question)
+                            .build();
+                    submission.getDetails().add(detail);
+                }
+                totalPoints += question.getPoints();
 
-                if (question != null) {
-                    // 배점 합산
-                    totalPoints += question.getPoints();
-
-                    QuestionType questionType = question.getQuestionType() != null
-                            ? question.getQuestionType()
-                            : QuestionType.SUBJECTIVE;
-                    if (questionType != QuestionType.ESSAY) {
-                        boolean isCorrect = TestAnswerMatcher.matches(question, detail.getStudentAnswer());
-                        detail.setIsCorrect(isCorrect);
-                        detail.setEarnedPoints(isCorrect ? question.getPoints() : 0.0);
-                        if (isCorrect) {
-                            earnedPoints += question.getPoints();
-                        }
-                    } else {
-                        detail.setIsCorrect(null);
-                        if (detail.getEarnedPoints() != null) {
-                            earnedPoints += detail.getEarnedPoints();
-                        }
+                QuestionType questionType = question.getQuestionType() != null
+                        ? question.getQuestionType()
+                        : QuestionType.SUBJECTIVE;
+                if (questionType != QuestionType.ESSAY) {
+                    boolean isCorrect = TestAnswerMatcher.matches(question, detail.getStudentAnswer());
+                    detail.setIsCorrect(isCorrect);
+                    detail.setEarnedPoints(isCorrect ? question.getPoints() : 0.0);
+                    if (isCorrect) {
+                        earnedPoints += question.getPoints();
+                    }
+                } else {
+                    detail.setIsCorrect(null);
+                    if (detail.getEarnedPoints() != null) {
+                        earnedPoints += detail.getEarnedPoints();
                     }
                 }
             }
@@ -422,7 +446,7 @@ public class TestService {
      * textbook_problem_id FK를 채워서 라이브 메타데이터(주제/해설영상) 조회 경로를 남긴다.
      */
     public List<TestQuestionDto> addQuestionsFromTextbook(Long testId, List<FromTextbookItem> items) {
-        Test test = testRepository.findById(testId)
+        Test test = testRepository.findByIdForQuestionWrite(testId)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
         authorizationService.assertCanAccessTest(test);
 
@@ -459,7 +483,7 @@ public class TestService {
     public record FromTextbookItem(Long textbookProblemId, Integer number, Double points) {}
 
     public TestQuestionDto addQuestion(Long testId, TestQuestionDto dto) {
-        Test test = testRepository.findById(testId)
+        Test test = testRepository.findByIdForQuestionWrite(testId)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
         authorizationService.assertCanAccessTest(test);
 

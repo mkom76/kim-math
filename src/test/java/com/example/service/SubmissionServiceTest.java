@@ -2,6 +2,8 @@ package com.example.service;
 
 import com.example.config.security.TenantContext;
 import com.example.dto.StudentSubmissionDto;
+import com.example.dto.SaveAnswersRequest;
+import com.example.dto.QuestionSnapshot;
 import com.example.entity.AcademyClass;
 import com.example.entity.QuestionType;
 import com.example.entity.Student;
@@ -81,14 +83,15 @@ class SubmissionServiceTest {
         when(submissionRepository.findByStudentIdAndTestId(student.getId(), test.getId()))
                 .thenReturn(Optional.empty());
         when(studentRepository.findById(student.getId())).thenReturn(Optional.of(student));
-        when(testRepository.findById(test.getId())).thenReturn(Optional.of(test));
+        when(testRepository.findByIdForQuestionRead(test.getId())).thenReturn(Optional.of(test));
         when(studentClassEnrollmentService.isActivelyEnrolled(student.getId(), academyClass.getId()))
                 .thenReturn(true);
-        when(questionRepository.findByTestIdOrderByNumber(test.getId())).thenReturn(List.of(question));
+        when(questionRepository.findByTestIdForSnapshot(test.getId())).thenReturn(List.of(question));
         when(submissionRepository.save(any(StudentSubmission.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        StudentSubmissionDto result = submissionService.submitMyAnswers(test.getId(), Map.of());
+        StudentSubmissionDto result = submissionService.submitMyAnswers(test.getId(),
+                new SaveAnswersRequest(Map.of(), List.of(QuestionSnapshot.from(question))));
 
         assertThat(result.getTotalScore()).isZero();
         assertThat(result.getDetails()).singleElement().satisfies(detail -> {

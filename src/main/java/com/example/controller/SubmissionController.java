@@ -4,6 +4,7 @@ import com.example.dto.EssayGradeRequest;
 import com.example.dto.ErrorCausesDto;
 import com.example.dto.StudentSubmissionDto;
 import com.example.dto.SubmissionDetailDto;
+import com.example.dto.SaveAnswersRequest;
 import com.example.service.SubmissionService;
 import com.example.service.StudentClassContextService;
 import jakarta.servlet.http.HttpSession;
@@ -28,17 +29,17 @@ public class SubmissionController {
     public ResponseEntity<StudentSubmissionDto> submitAnswers(
             @RequestParam Long studentId,
             @RequestParam Long testId,
-            @RequestBody Map<Integer, String> answers) {
+            @RequestBody SaveAnswersRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(submissionService.submitAnswers(studentId, testId, answers));
+                .body(submissionService.submitAnswers(studentId, testId, request));
     }
 
     @PostMapping("/me/test/{testId}")
     public ResponseEntity<StudentSubmissionDto> submitMyAnswers(
             @PathVariable Long testId,
-            @RequestBody Map<Integer, String> answers) {
+            @RequestBody SaveAnswersRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(submissionService.submitMyAnswers(testId, answers));
+                .body(submissionService.submitMyAnswers(testId, request));
     }
 
     @PreAuthorize("hasRole('TEACHER')")
@@ -46,8 +47,8 @@ public class SubmissionController {
     public ResponseEntity<StudentSubmissionDto> saveAnswersForStudent(
             @PathVariable Long studentId,
             @PathVariable Long testId,
-            @RequestBody Map<Integer, String> answers) {
-        return ResponseEntity.ok(submissionService.saveAnswersForStudent(studentId, testId, answers));
+            @RequestBody SaveAnswersRequest request) {
+        return ResponseEntity.ok(submissionService.saveAnswersForStudent(studentId, testId, request));
     }
 
     @GetMapping("/{id}")
