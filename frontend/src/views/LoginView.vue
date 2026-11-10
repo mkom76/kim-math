@@ -7,7 +7,7 @@ import { useAuthStore } from '@/stores/auth'
 import { isNativeApp } from '@/utils/platform'
 import { clearCredential } from '@/utils/credentialStore'
 import { initPushNotifications } from '@/utils/push'
-import appIconUrl from '@/assets/app-icon.svg'
+import appIconUrl from '@/assets/app-icon.png'
 
 const router = useRouter()
 const authStore = useAuthStore()

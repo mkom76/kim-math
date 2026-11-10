@@ -38,29 +38,24 @@ resize_png() {
   sips -z "$height" "$width" "$source_path" --out "$output_path" >/dev/null
 }
 
-APP_ICON_SVG="$FRONTEND_DIR/src/assets/app-icon.svg"
-GRAY_ICON_SVG="$FRONTEND_DIR/src/assets/app-icon-grayscale.svg"
-BRAND_MARK_SVG="$FRONTEND_DIR/store-assets/app-icon-foreground-source.svg"
-ROUND_ICON_SVG="$FRONTEND_DIR/store-assets/app-icon-round-source.svg"
 FEATURE_SVG="$FRONTEND_DIR/store-assets/feature-graphic-source.svg"
 SPLASH_PORTRAIT_SVG="$FRONTEND_DIR/store-assets/splash-portrait-source.svg"
 SPLASH_LANDSCAPE_SVG="$FRONTEND_DIR/store-assets/splash-landscape-source.svg"
 
 APP_ICON_SOURCE="$FRONTEND_DIR/store-assets/app-icon-source.png"
 GRAY_ICON_SOURCE="$FRONTEND_DIR/store-assets/app-icon-grayscale-source.png"
-ROUND_ICON_SOURCE="$BRAND_TMP_DIR/app-icon-round.png"
-FOREGROUND_SOURCE="$BRAND_TMP_DIR/app-icon-foreground.png"
+ROUND_ICON_SOURCE="$FRONTEND_DIR/store-assets/app-icon-round-source.png"
+# Prepared 108dp layers keep the approved card artwork inside the adaptive safe area.
+FOREGROUND_SOURCE="$FRONTEND_DIR/store-assets/app-icon-foreground-source.png"
+MONOCHROME_SOURCE="$FRONTEND_DIR/store-assets/app-icon-monochrome-source.png"
 
-render_svg "$APP_ICON_SVG" "$APP_ICON_SOURCE" 1254 1254 "--default-background-color=00000000"
+# The approved raster is the master; do not regenerate it from the retired logo.
 resize_png "$APP_ICON_SOURCE" "$FRONTEND_DIR/store-assets/app-icon-1024.png" 1024 1024
 resize_png "$APP_ICON_SOURCE" "$FRONTEND_DIR/store-assets/app-icon-512.png" 512 512
+cp "$FRONTEND_DIR/store-assets/app-icon-512.png" "$FRONTEND_DIR/src/assets/app-icon.png"
 
-render_svg "$GRAY_ICON_SVG" "$GRAY_ICON_SOURCE" 1254 1254 "--default-background-color=00000000"
 resize_png "$GRAY_ICON_SOURCE" "$FRONTEND_DIR/store-assets/app-icon-grayscale-1024.png" 1024 1024
 resize_png "$GRAY_ICON_SOURCE" "$FRONTEND_DIR/store-assets/app-icon-grayscale-512.png" 512 512
-
-render_svg "$ROUND_ICON_SVG" "$ROUND_ICON_SOURCE" 1024 1024 "--default-background-color=00000000"
-render_svg "$BRAND_MARK_SVG" "$FOREGROUND_SOURCE" 432 432 "--default-background-color=00000000"
 
 for density_and_size in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
   density="${density_and_size%%:*}"
@@ -75,6 +70,7 @@ for density_and_size in mdpi:108 hdpi:162 xhdpi:216 xxhdpi:324 xxxhdpi:432; do
   size="${density_and_size##*:}"
   resource_dir="$FRONTEND_DIR/android/app/src/main/res/mipmap-$density"
   resize_png "$FOREGROUND_SOURCE" "$resource_dir/ic_launcher_foreground.png" "$size" "$size"
+  resize_png "$MONOCHROME_SOURCE" "$resource_dir/ic_launcher_monochrome.png" "$size" "$size"
 done
 
 render_svg "$FEATURE_SVG" "$FRONTEND_DIR/store-assets/feature-graphic-source.png" 2048 1000
@@ -111,6 +107,9 @@ CLANG_MODULE_CACHE_PATH="$BRAND_SWIFT_CACHE" \
   "$FRONTEND_DIR/public/apple-touch-icon.png" \
   "$FRONTEND_DIR/public/favicon-32.png" \
   "$FRONTEND_DIR/public/favicon-16.png"
-cp "$FRONTEND_DIR/public/favicon-32.png" "$FRONTEND_DIR/public/favicon.ico"
+node "$FRONTEND_DIR/scripts/write-ico.mjs" \
+  "$FRONTEND_DIR/public/favicon.ico" \
+  "$FRONTEND_DIR/public/favicon-16.png" \
+  "$FRONTEND_DIR/public/favicon-32.png"
 
-echo "Brand assets rendered from SVG sources."
+echo "Brand assets rendered from approved raster icon and SVG illustration sources."
