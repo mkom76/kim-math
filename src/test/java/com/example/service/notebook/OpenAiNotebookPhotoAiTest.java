@@ -32,7 +32,7 @@ class OpenAiNotebookPhotoAiTest {
     }
     @Test void providerErrorsDoNotRetryOrExposeResponseBody() throws Exception {
         int[] count={0};var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
-        server.createContext("/",exchange->{count[0]++;byte[] bytes="PRIVATE upstream content".getBytes(StandardCharsets.UTF_8);exchange.sendResponseHeaders(429,bytes.length);exchange.getResponseBody().write(bytes);exchange.close();});server.start();
-        try {byte[] png=NotebookPhotoTrialServiceTest.photo();var provider=new OpenAiNotebookPhotoAi(WebClient.create("http://127.0.0.1:"+server.getAddress().getPort()),new ObjectMapper(),true,List.of(png,png,png));assertThatThrownBy(()->provider.solve(png)).isInstanceOf(IllegalStateException.class).hasMessageNotContaining("PRIVATE");assertThat(count[0]).isEqualTo(1);assertThat(provider.failures()).containsExactly(new OpenAiNotebookPhotoAi.Failure("solve",429,"upstream_error"));}finally{server.stop(0);}
+        server.createContext("/",exchange->{count[0]++;byte[] bytes="{\"error\":{\"code\":\"credit_balance_exhausted\",\"message\":\"PRIVATE credit balance exhausted\",\"param\":null}}".getBytes(StandardCharsets.UTF_8);exchange.sendResponseHeaders(429,bytes.length);exchange.getResponseBody().write(bytes);exchange.close();});server.start();
+        try {byte[] png=NotebookPhotoTrialServiceTest.photo();var provider=new OpenAiNotebookPhotoAi(WebClient.create("http://127.0.0.1:"+server.getAddress().getPort()),new ObjectMapper(),true,List.of(png,png,png));assertThatThrownBy(()->provider.solve(png)).isInstanceOf(IllegalStateException.class).hasMessageNotContaining("PRIVATE");assertThat(count[0]).isEqualTo(1);assertThat(provider.failures()).containsExactly(new OpenAiNotebookPhotoAi.Failure("solve",429,"credit_balance_exhausted","","billing_or_quota"));}finally{server.stop(0);}
     }
 }
