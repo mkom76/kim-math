@@ -26,6 +26,7 @@ import sampleUrl from '@/assets/handwriting-solution-sample.png'
 const router = useRouter(),
   auth = useAuthStore()
 const fileInput = ref<HTMLInputElement | null>(null)
+const cameraInput = ref<HTMLInputElement | null>(null)
 const photo = ref(''),
   fileName = ref(''),
   rotation = ref(0),
@@ -133,6 +134,24 @@ function onFileChange(event: Event) {
   const input = event.target as HTMLInputElement
   selectFile(input.files?.[0])
   input.value = ''
+}
+function onPaste(event: ClipboardEvent) {
+  // Leave ordinary text pasting and editing fields alone.
+  const target = event.target
+  if (
+    target instanceof Element &&
+    target.closest('input, textarea, [contenteditable]:not([contenteditable="false"])')
+  )
+    return
+  const data = event.clipboardData
+  const file =
+    Array.from(data?.files ?? []).find((f) => f.type.startsWith('image/')) ??
+    Array.from(data?.items ?? [])
+      .find((item) => item.kind === 'file' && item.type.startsWith('image/'))
+      ?.getAsFile()
+  if (!file) return
+  event.preventDefault()
+  selectFile(file)
 }
 function showSample() {
   reset()
@@ -261,6 +280,7 @@ async function generate() {
 }
 onMounted(async () => {
   window.addEventListener('keydown', onEscape)
+  window.addEventListener('paste', onPaste)
   try {
     const c = await solutionNotebookAPI.config()
     if (c.mode === 'mock') config.value = c
@@ -273,6 +293,7 @@ onBeforeUnmount(() => {
   clearPhoto()
   clearResult()
   window.removeEventListener('keydown', onEscape)
+  window.removeEventListener('paste', onPaste)
 })
 </script>
 
@@ -327,6 +348,15 @@ onBeforeUnmount(() => {
             aria-label="문제 사진 선택"
             @change="onFileChange"
           />
+          <input
+            ref="cameraInput"
+            type="file"
+            class="file-input"
+            accept="image/jpeg,image/png,image/webp"
+            capture="environment"
+            aria-label="카메라로 문제 촬영"
+            @change="onFileChange"
+          />
           <div v-if="photo" class="photo-preview">
             <div class="photo-stage">
               <img
@@ -371,6 +401,21 @@ onBeforeUnmount(() => {
             ><strong>문제 사진을 여기에 놓아주세요</strong><span>또는 클릭해서 사진 선택</span
             ><small>JPG, PNG, WEBP · 최대 12MB</small>
           </button>
+          <div class="photo-actions">
+            <button type="button" class="camera-button" @click="cameraInput?.click()">
+              <el-icon><Camera /></el-icon>카메라로 촬영
+            </button>
+            <button type="button" @click="fileInput?.click()">
+              <el-icon><Picture /></el-icon>사진 선택
+            </button>
+          </div>
+          <p class="paste-help">
+            컴퓨터에서는 이미지를 복사한 뒤 이 화면에서 Ctrl+V / ⌘V로 붙여넣으세요. 문제 내용 입력란
+            밖에서 사용할 수 있어요.
+          </p>
+          <p class="photo-status" role="status" aria-live="polite">
+            {{ fileName ? `사진을 불러왔어요: ${fileName}` : '' }}
+          </p>
           <p class="photo-help">
             <el-icon><Camera /></el-icon>수식과 조건이 잘 보이도록, 한 문제만 담아주세요.
           </p>
@@ -582,6 +627,48 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.photo-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+.photo-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex: 1;
+  min-height: 46px;
+  padding: 10px;
+  border: 1px solid #dce3d6;
+  border-radius: 10px;
+  background: #fff;
+  color: #40583b;
+  font: inherit;
+  cursor: pointer;
+}
+.photo-actions .camera-button {
+  background: #eff4e9;
+}
+.photo-actions button:focus-visible {
+  outline: 2px solid #496641;
+  outline-offset: 3px;
+}
+@media (max-width: 480px) {
+  .photo-actions {
+    flex-direction: column;
+  }
+}
+.paste-help,
+.photo-status {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #727c6c;
+  overflow-wrap: anywhere;
+}
+.photo-status:empty {
+  display: none;
+}
 .handwriting-notebook {
   --note-ink: #2b3c33;
   --note-muted: #879280;

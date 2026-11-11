@@ -104,6 +104,66 @@ describe('손글씨 풀이 시제품의 샘플 구분과 사진 수명', () => {
     expect(fetch).not.toHaveBeenCalled()
     view.unmount()
   })
+  it('카메라 입력을 열고 촬영 결과를 기존 사진 검증과 미리보기로 처리한다', async () => {
+    const view = mountView()
+    const camera = view.get('input[capture="environment"]')
+    const open = vi.spyOn(camera.element as HTMLInputElement, 'click')
+    await view.get('.camera-button').trigger('click')
+    expect(open).toHaveBeenCalledOnce()
+    Object.defineProperty(camera.element, 'files', {
+      value: [new File(['camera'], 'camera.jpg', { type: 'image/jpeg' })],
+    })
+    await camera.trigger('change')
+    expect(view.get('.photo-preview img').attributes('src')).toBe('blob:local-photo')
+    expect(view.get('[role="status"]').text()).toContain('camera.jpg')
+    expect(fetch).not.toHaveBeenCalled()
+    view.unmount()
+  })
+  it('복사된 이미지만 붙여넣어 샘플을 비우고 화면 종료 후 리스너를 제거한다', async () => {
+    const view = mountView()
+    await clickSample(view)
+    const event = new Event('paste', { cancelable: true })
+    Object.defineProperty(event, 'clipboardData', {
+      value: {
+        files: [],
+        items: [
+          {
+            kind: 'file',
+            type: 'image/png',
+            getAsFile: () => new File(['paste'], 'clipboard.png', { type: 'image/png' }),
+          },
+        ],
+      },
+    })
+    window.dispatchEvent(event)
+    await flushPromises()
+    expect(event.defaultPrevented).toBe(true)
+    expect(view.get('.photo-toolbar').text()).toContain('clipboard.png')
+    expect(view.find('.sample-image-button').exists()).toBe(false)
+    expect(api.read).not.toHaveBeenCalled()
+    expect(fetch).not.toHaveBeenCalled()
+    view.unmount()
+    const calls = vi.mocked(URL.createObjectURL).mock.calls.length
+    window.dispatchEvent(event)
+    expect(vi.mocked(URL.createObjectURL).mock.calls).toHaveLength(calls)
+  })
+  it('일반 텍스트와 문제 입력란의 붙여넣기는 가로채지 않는다', async () => {
+    const view = mountView()
+    const text = new Event('paste', { cancelable: true })
+    Object.defineProperty(text, 'clipboardData', { value: { files: [], items: [] } })
+    window.dispatchEvent(text)
+    const editing = new Event('paste', { cancelable: true })
+    Object.defineProperty(editing, 'target', { value: view.get('textarea').element })
+    Object.defineProperty(editing, 'clipboardData', {
+      value: { files: [new File(['paste'], 'image.png', { type: 'image/png' })] },
+    })
+    window.dispatchEvent(editing)
+    await flushPromises()
+    expect(text.defaultPrevented).toBe(false)
+    expect(editing.defaultPrevented).toBe(false)
+    expect(URL.createObjectURL).not.toHaveBeenCalled()
+    view.unmount()
+  })
   it('모의 판독에는 사진 없이 식별자만 전송하고 확인 후 이미지 API 결과를 표시한다', async () => {
     api.config.mockResolvedValue({
       enabled: true,
