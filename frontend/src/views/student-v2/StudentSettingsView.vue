@@ -55,6 +55,11 @@ async function logout() {
         <h2 id="privacy-title">서비스 정보</h2>
       </div>
       <div class="settings-surface">
+        <button type="button" class="settings-row" @click="router.push('/student/solution-notebook')">
+          <span class="settings-row__icon"><el-icon><EditPen /></el-icon></span>
+          <span class="settings-row__content"><strong>손글씨 풀이 체험</strong><small>문제 사진과 선생님 해설 샘플을 살펴봐요.</small></span>
+          <el-icon class="settings-row__arrow"><ArrowRight /></el-icon>
+        </button>
         <button type="button" class="settings-row" @click="feedbackDialogVisible = true">
           <span class="settings-row__icon"
             ><el-icon><ChatDotRound /></el-icon

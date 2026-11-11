@@ -220,6 +220,11 @@ onBeforeUnmount(() => {
           <span>수업 관리</span>
         </el-menu-item>
 
+        <el-menu-item index="/solution-notebook">
+          <el-icon><EditPen /></el-icon>
+          <span>손글씨 풀이 체험</span>
+        </el-menu-item>
+
         <el-menu-item index="/clinics">
           <el-icon><MagicStick /></el-icon>
           <span>클리닉 관리</span>

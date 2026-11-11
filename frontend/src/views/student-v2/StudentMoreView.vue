@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import type { Component } from 'vue'
-import { Bell, Calendar, DataLine, Notebook, Setting, VideoPlay } from '@element-plus/icons-vue'
+import { Bell, Calendar, DataLine, EditPen, Notebook, Setting, VideoPlay } from '@element-plus/icons-vue'
 import StudentPageHeader from '@/components/student-v2/StudentPageHeader.vue'
 
 const router = useRouter()
@@ -46,6 +46,13 @@ const statisticMenus: MoreMenuItem[] = [
 ]
 
 const serviceMenus: MoreMenuItem[] = [
+  {
+    title: '손글씨 풀이 체험',
+    description: '문제 사진 · 선생님 해설 샘플',
+    path: '/student/solution-notebook',
+    icon: EditPen,
+    tone: 'green',
+  },
   {
     title: '알림',
     description: '새 소식과 학습 안내 확인',
