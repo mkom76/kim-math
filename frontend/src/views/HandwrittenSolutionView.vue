@@ -39,6 +39,9 @@ const config = ref<NotebookConfig | null>(null),
   busy = ref(''),
   confirmed = ref(false),
   readJobId = ref('')
+const trialConfig = ref({ ready: false, used: false, notice: '' })
+const trialConsent = ref(false)
+const resultMode = ref<'mock' | 'live'>('mock')
 const resultImage = ref(''),
   resultSolution = ref<NotebookSolution | null>(null),
   resultMessage = ref('')
@@ -51,30 +54,34 @@ const photoStyle = computed(() => ({
 const displayedImage = computed(() => (sampleVisible.value ? sampleUrl : resultImage.value))
 const hasResult = computed(() => sampleVisible.value || resultSolution.value !== null)
 const phases: Record<string, string> = {
-  QUEUED: '모의 작업 대기',
-  READING: '모의 문제 읽기',
-  SOLVING: '모의 풀이 작성',
-  VERIFYING: '모의 풀이 검토',
-  RENDERING: '모의 이미지 준비',
-  CHECKING_IMAGE: '모의 이미지 검토',
+  QUEUED: '작업 대기',
+  READING: '문제 읽기',
+  SOLVING: '풀이 작성',
+  VERIFYING: '풀이 검토',
+  RENDERING: '이미지 준비',
+  CHECKING_IMAGE: '이미지 검토',
 }
 let epoch = 0,
   controller: AbortController | null = null,
   expiryTimer: ReturnType<typeof setTimeout> | undefined
 const jobs = new Set<string>()
+const liveJobs = new Set<string>()
 function reason(e: unknown) {
   const v = e as { response?: { data?: { message?: string } }; message?: string }
   return v.response?.data?.message || v.message || '처리하지 못했어요. 다시 시도해주세요.'
 }
 function removeJob(id: string) {
   jobs.delete(id)
-  void solutionNotebookAPI.remove(id).catch(() => undefined)
+  const remove = liveJobs.has(id) ? solutionNotebookAPI.photoRemove : solutionNotebookAPI.remove
+  liveJobs.delete(id)
+  void remove(id).catch(() => undefined)
 }
 function clearResult() {
   if (resultImage.value) URL.revokeObjectURL(resultImage.value)
   resultImage.value = ''
   resultSolution.value = null
   resultMessage.value = ''
+  resultMode.value = 'mock'
   expanded.value = false
   clearTimeout(expiryTimer)
 }
@@ -101,6 +108,7 @@ function reset() {
   error.value = ''
   sampleVisible.value = false
   tab.value = 'image'
+  trialConsent.value = false
 }
 function selectFile(file?: File) {
   dragging.value = false
@@ -153,6 +161,7 @@ function onEscape(event: KeyboardEvent) {
   if (event.key === 'Escape') expanded.value = false
 }
 async function poll(job: NotebookJob, n: number): Promise<NotebookJob> {
+  const mode = job.mode
   const until = Date.now() + 300000
   while (
     ['QUEUED', 'READING', 'SOLVING', 'VERIFYING', 'RENDERING', 'CHECKING_IMAGE'].includes(job.state)
@@ -176,11 +185,97 @@ async function poll(job: NotebookJob, n: number): Promise<NotebookJob> {
       if (signal.aborted) aborted()
       else signal.addEventListener('abort', aborted, { once: true })
     })
-    job = await solutionNotebookAPI.status(job.id, signal)
-    if (job.mode !== 'mock') throw new Error('허용되지 않은 API 모드입니다.')
+    job = await (mode === 'live' ? solutionNotebookAPI.photoStatus : solutionNotebookAPI.status)(
+      job.id,
+      signal,
+    )
+    if (job.mode !== mode) throw new Error('허용되지 않은 API 모드입니다.')
   }
   if (job.state === 'FAILED') throw new Error(job.message)
   return job
+}
+async function photoBlob(source: string): Promise<Blob> {
+  const image = new Image()
+  image.src = source
+  await image.decode()
+  const scale = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight))
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale))
+  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale))
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('사진을 변환하지 못했어요.')
+  ctx.fillStyle = '#fff'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+  return new Promise((resolve, reject) =>
+    canvas.toBlob(
+      (blob) => {
+        if (!blob || blob.size > 4 * 1024 * 1024)
+          reject(new Error('사진을 작게 잘라 다시 선택해주세요.'))
+        else resolve(blob)
+      },
+      'image/jpeg',
+      0.9,
+    ),
+  )
+}
+async function generatePhoto() {
+  if (busy.value || !photo.value || !trialConfig.value.ready || !trialConsent.value) return
+  const source = photo.value,
+    turn = rotation.value
+  cancel()
+  clearResult()
+  sampleVisible.value = false
+  error.value = ''
+  const n = epoch
+  controller = new AbortController()
+  busy.value = '사진 준비 중'
+  try {
+    const blob = await photoBlob(source)
+    if (n !== epoch) return
+    const started = await solutionNotebookAPI.photo(blob, turn)
+    liveJobs.add(started.id)
+    if (n !== epoch) {
+      removeJob(started.id)
+      return
+    }
+    jobs.add(started.id)
+    trialConfig.value.ready = false
+    trialConfig.value.used = true
+    resultMode.value = 'live'
+    const job = await poll(started, n)
+    if (n !== epoch) return
+    question.value = job.question
+    resultMode.value = 'live'
+    resultSolution.value = job.solution
+    resultMessage.value = job.message
+    if (job.imageAvailable && job.verified) {
+      const blob = await solutionNotebookAPI.photoImage(job.id)
+      if (n !== epoch) return
+      if (blob.type !== 'image/png') throw new Error('이미지 형식을 확인하지 못했어요.')
+      resultImage.value = URL.createObjectURL(blob)
+      tab.value = 'image'
+    } else {
+      error.value = job.message
+      tab.value = 'text'
+    }
+    expiryTimer = setTimeout(
+      () => {
+        clearResult()
+        error.value = '시험 결과가 만료됐어요.'
+      },
+      Math.max(0, Date.parse(job.expiresAt) - Date.now()),
+    )
+  } catch (e) {
+    if (n === epoch) error.value = reason(e)
+  } finally {
+    if (n === epoch) busy.value = ''
+    try {
+      trialConfig.value = await solutionNotebookAPI.trialConfig()
+    } catch {
+      trialConfig.value.ready = false
+    }
+  }
 }
 async function readProblem() {
   if (busy.value || !config.value?.enabled) return
@@ -267,6 +362,12 @@ async function generate() {
 onMounted(async () => {
   window.addEventListener('keydown', onEscape)
   window.addEventListener('paste', onPaste)
+  void solutionNotebookAPI
+    .trialConfig()
+    .then((c) => {
+      trialConfig.value = c
+    })
+    .catch(() => undefined)
   try {
     const c = await solutionNotebookAPI.config()
     if (c.mode === 'mock') config.value = c
@@ -289,7 +390,11 @@ onBeforeUnmount(() => {
       <button type="button" class="back-button" @click="router.push(backPath)">
         <el-icon><ArrowLeft /></el-icon>돌아가기
       </button>
-      <span class="prototype-badge">모의 API · 외부 전송 없음</span>
+      <span class="prototype-badge">{{
+        trialConfig.ready || trialConfig.used || resultMode === 'live'
+          ? '실제 API · 샘플 1건 시험'
+          : '모의 API · 외부 전송 없음'
+      }}</span>
     </div>
     <div class="notebook-intro">
       <div>
@@ -316,8 +421,13 @@ onBeforeUnmount(() => {
       </li>
     </ol>
     <p class="demo-notice" role="note">
-      <i />모의 API 체험입니다. 내 사진은 미리보기만 가능하며 아직 분석하지 않습니다. 자동 처리
-      과정은 아래의 예제로 따로 체험할 수 있어요.
+      <i />{{
+        trialConfig.ready
+          ? trialConfig.notice
+          : trialConfig.used
+            ? '승인된 실제 API 시험 1건을 사용했습니다. 추가 호출은 별도 확인이 필요합니다.'
+            : '내 사진은 미리보기만 가능합니다. 실제 API는 서버 키와 샘플 시험 설정이 준비되어야 사용할 수 있어요. 예제 체험은 별도로 이용할 수 있습니다.'
+      }}
     </p>
     <div class="notebook-columns">
       <div class="input-stack">
@@ -404,12 +514,30 @@ onBeforeUnmount(() => {
           <p class="photo-help">
             <el-icon><Camera /></el-icon>수식과 조건이 잘 보이도록, 한 문제만 담아주세요.
           </p>
-          <button v-if="photo" type="button" class="automatic-button" disabled>
-            <el-icon><EditPen /></el-icon>내 사진 풀이 · 실제 연결 준비 중
+          <label v-if="photo && trialConfig.ready" class="confirm-question">
+            <input v-model="trialConsent" type="checkbox" :disabled="!!busy" />개인정보 없는
+            샘플이며, 사진·풀이·필체 참고 3개의 OpenAI 전송과 예상 $0.08~$0.15 비용을 확인했어요.
+            시험 예산은 $1이며 확정 과금 상한은 아닙니다.
+          </label>
+          <button
+            v-if="photo"
+            type="button"
+            class="automatic-button"
+            :disabled="!!busy || !trialConfig.ready || !trialConsent"
+            @click="generatePhoto"
+          >
+            <el-icon><EditPen /></el-icon
+            >{{
+              busy ||
+              (trialConfig.ready
+                ? '수희쌤 풀이 받기 · 실제 API'
+                : trialConfig.used
+                  ? '샘플 시험 1회 사용 완료'
+                  : '내 사진 풀이 · 서버 연결 준비 중')
+            }}
           </button>
-          <p v-if="photo" class="photo-help">
-            이 사진은 아직 읽지 않았어요. 실제 연결 후에는 사진에서 문제를 읽고 바로 풀이를
-            작성합니다.
+          <p v-if="photo && !trialConfig.ready && !trialConfig.used" class="photo-help">
+            이 사진은 아직 읽지 않았어요. 서버 설정 완료 후 문제를 읽고 바로 풀이를 작성합니다.
           </p>
           <button
             type="button"
@@ -440,7 +568,13 @@ onBeforeUnmount(() => {
           <div class="notebook-card-title">
             <h2><span>02</span>나의 해설 노트</h2>
             <small>{{
-              sampleVisible ? '사전 제작 샘플' : resultSolution ? '모의 API 결과' : '미리보기'
+              sampleVisible
+                ? '사전 제작 샘플'
+                : resultSolution
+                  ? resultMode === 'live'
+                    ? '실제 AI 시험 결과'
+                    : '모의 API 결과'
+                  : '미리보기'
             }}</small>
           </div>
           <div class="notebook-tabs">
@@ -469,11 +603,19 @@ onBeforeUnmount(() => {
           <div v-if="busy" class="mock-progress" role="status">
             <el-icon class="mock-spinner"><RefreshRight /></el-icon>
             <h3>{{ busy }}</h3>
-            <p>고정된 예제로 처리 흐름을 확인하고 있어요.</p>
+            <p>
+              {{
+                liveJobs.size
+                  ? '문제 사진에서 풀이를 작성하고 검토하고 있어요.'
+                  : '처리 흐름을 확인하고 있어요.'
+              }}
+            </p>
           </div>
           <div v-else-if="tab === 'text'" class="solution-text">
             <template v-if="resultSolution"
-              ><small>모의 API · 예제 문제</small>
+              ><small>{{
+                resultMode === 'live' ? '실제 사진 · AI 풀이' : '모의 API · 예제 문제'
+              }}</small>
               <h3>{{ resultSolution.title }}</h3>
               <p v-for="(step, index) in resultSolution.steps" :key="index">
                 <b>{{ index + 1 }}</b
@@ -508,7 +650,11 @@ onBeforeUnmount(() => {
           >
             <img
               :src="displayedImage"
-              alt="유리함수의 점근선과 그래프를 설명하는 사전 제작 손글씨 해설"
+              :alt="
+                resultMode === 'live'
+                  ? '문제 사진에서 생성한 AI 손글씨 해설'
+                  : '유리함수의 점근선과 그래프를 설명하는 사전 제작 손글씨 해설'
+              "
             />
           </button>
           <div v-else class="notebook-placeholder">
@@ -524,10 +670,15 @@ onBeforeUnmount(() => {
               sampleVisible
                 ? '식 변형·점근선·절편을 사전 확인한 예제'
                 : resultSolution
-                  ? '모의 API · 예제용 사전 제작 이미지'
+                  ? resultMode === 'live'
+                    ? '실제 AI 시험 · 오류가 있을 수 있어요'
+                    : '모의 API · 예제용 사전 제작 이미지'
                   : '별도 모델 훈련 없이 만든 해설 시안'
             }}</span
-            ><a v-if="displayedImage" :href="displayedImage" download="김수학_모의해설.png"
+            ><a
+              v-if="displayedImage"
+              :href="displayedImage"
+              :download="resultMode === 'live' ? '김수학_AI해설.png' : '김수학_모의해설.png'"
               ><el-icon><Download /></el-icon>이미지 저장</a
             >
           </div>
@@ -543,8 +694,11 @@ onBeforeUnmount(() => {
       </div>
     </div>
     <p class="notebook-privacy">
-      선택한 사진은 브라우저 안에만 있어요. 서버의 모의 작업은 약 10분 후 삭제되며 새로고침 시 이
-      화면의 진행 상태는 사라져요. 실제 AI 연결과 학생 사진 전송은 별도 확인 후 진행합니다.
+      사진 선택만으로는 외부 전송하지 않습니다. 실제 API 시험 버튼을 누르면 사진·풀이와 필체 참고
+      3개를 OpenAI로 전송합니다. 사진 안의 이름·얼굴도 포함될 수 있으니 개인정보 없는 샘플만
+      사용해주세요. 서버의 사진·결과는 약 10분 후 삭제됩니다. OpenAI는 API 자료를 기본적으로 모델
+      훈련에 사용하지 않지만 악용 감시 기록을 통상 최대 30일 보관할 수 있습니다. 새로고침 시 화면의
+      진행 상태는 사라지며, 승인된 시험 사용 기록은 서버 재시작 후에도 유지됩니다.
     </p>
     <el-dialog
       v-model="expanded"

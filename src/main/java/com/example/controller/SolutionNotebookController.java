@@ -2,6 +2,8 @@ package com.example.controller;
 
 import com.example.config.security.TenantContext;
 import com.example.service.notebook.SolutionNotebookService;
+import com.example.service.notebook.NotebookPhotoTrialService;
+import com.example.service.notebook.NotebookPhotoCodec;
 import com.example.service.notebook.NotebookTypes.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +25,49 @@ import java.util.Set;
 public class SolutionNotebookController {
     private final SolutionNotebookService service;
     private final ObjectMapper mapper;
+    private final NotebookPhotoTrialService trial;
+
+    @GetMapping("/trial-config")
+    public ResponseEntity<NotebookPhotoTrialService.TrialConfig> trialConfig(HttpServletRequest request, Authentication authentication) {
+        localTrial(request);
+        return json(trial.configuration(owner(request, authentication)));
+    }
+    @PostMapping("/photo-jobs")
+    public ResponseEntity<JobView> photo(HttpServletRequest request, Authentication authentication,
+                                        @RequestParam(defaultValue="0") int rotation) throws IOException {
+        localTrial(request);
+        Owner owner = owner(request, authentication);
+        trial.requireReady(owner);
+        if (!"sample-v1".equals(request.getHeader("X-Notebook-Consent")))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "개인정보 없는 샘플의 전송·비용 안내를 확인해주세요.");
+        if (!Set.of("image/jpeg", "image/png").contains(java.util.Objects.toString(request.getContentType(), "")))
+            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "JPG 또는 PNG 사진이 필요합니다.");
+        if (request.getContentLengthLong() > NotebookPhotoCodec.MAX_BYTES)
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "사진 용량이 너무 큽니다.");
+        byte[] bytes = request.getInputStream().readNBytes(NotebookPhotoCodec.MAX_BYTES + 1);
+        try {return json(trial.start(owner, bytes, rotation));}
+        finally {java.util.Arrays.fill(bytes, (byte)0);}
+    }
+    @GetMapping("/photo-jobs/{id}")
+    public ResponseEntity<JobView> photoStatus(@PathVariable String id, HttpServletRequest request, Authentication authentication) {
+        localTrial(request); return json(trial.status(owner(request, authentication), id));
+    }
+    @GetMapping("/photo-jobs/{id}/image")
+    public ResponseEntity<byte[]> photoImage(@PathVariable String id, HttpServletRequest request, Authentication authentication) {
+        localTrial(request);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).contentType(MediaType.IMAGE_PNG)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=qa-solution.png")
+                .header("X-Content-Type-Options", "nosniff").body(trial.image(owner(request, authentication), id));
+    }
+    @DeleteMapping("/photo-jobs/{id}")
+    public ResponseEntity<Void> photoDelete(@PathVariable String id, HttpServletRequest request, Authentication authentication) {
+        localTrial(request); trial.delete(owner(request, authentication), id);
+        return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
+    }
+    private void localTrial(HttpServletRequest request) {
+        if (!Set.of("127.0.0.1", "0:0:0:0:0:0:0:1", "::1").contains(request.getRemoteAddr()))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "현재 실제 API 시험은 이 컴퓨터에서만 가능합니다.");
+    }
 
     @GetMapping("/config")
     public ResponseEntity<Configuration> config(HttpServletRequest request, Authentication authentication) {

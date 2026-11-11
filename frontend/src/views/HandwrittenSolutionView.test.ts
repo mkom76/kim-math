@@ -10,6 +10,11 @@ const api = vi.hoisted(() => ({
   status: vi.fn(),
   image: vi.fn(),
   remove: vi.fn(),
+  trialConfig: vi.fn(),
+  photo: vi.fn(),
+  photoStatus: vi.fn(),
+  photoImage: vi.fn(),
+  photoRemove: vi.fn(),
 }))
 vi.mock('@/api/solutionNotebook', () => ({ solutionNotebookAPI: api }))
 vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }) }))
@@ -47,6 +52,8 @@ describe('손글씨 풀이 시제품의 샘플 구분과 사진 수명', () => {
       dailySolutionLimit: 3,
     })
     api.remove.mockResolvedValue(undefined)
+    api.trialConfig.mockResolvedValue({ ready: false, used: false, mode: 'live', notice: '' })
+    api.photoRemove.mockResolvedValue(undefined)
 
     revoke.mockClear()
     vi.stubGlobal(
@@ -269,5 +276,64 @@ describe('손글씨 풀이 시제품의 샘플 구분과 사진 수명', () => {
     expect(view.get('[role="alert"]').text()).toContain('사용량 초과')
     expect(view.find('a[download]').exists()).toBe(false)
     view.unmount()
+  })
+  it('실제 API는 샘플 전송 동의 후 사진만 보내며 실제 결과로 표시한다', async () => {
+    api.trialConfig
+      .mockResolvedValueOnce({ ready: true, used: false, mode: 'live', notice: '샘플 시험' })
+      .mockResolvedValue({ ready: false, used: true, mode: 'live', notice: '' })
+    const decode = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'decode')
+    Object.defineProperty(HTMLImageElement.prototype, 'decode', {
+      configurable: true,
+      value: vi.fn().mockResolvedValue(undefined),
+    })
+    const context = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      fillStyle: '',
+      fillRect: vi.fn(),
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D)
+    const toBlob = vi
+      .spyOn(HTMLCanvasElement.prototype, 'toBlob')
+      .mockImplementation((callback) =>
+        callback(new Blob(['normalized-pixels'], { type: 'image/jpeg' })),
+      )
+    api.photo.mockResolvedValue({
+      id: 'real-1',
+      mode: 'live',
+      state: 'SUCCEEDED',
+      question: '새 문제',
+      solution: { title: '실제 풀이', steps: ['단계'], answer: '2' },
+      imageAvailable: true,
+      verified: true,
+      message: '사진으로 만든 해설',
+      expiresAt: new Date(Date.now() + 600000).toISOString(),
+    })
+    api.photoImage.mockResolvedValue(new Blob(['png'], { type: 'image/png' }))
+    const view = mountView()
+    try {
+      await flushPromises()
+      await choose(
+        view,
+        new File(['private-original'], 'private-file-name.png', { type: 'image/png' }),
+      )
+      expect(view.get('.automatic-button').attributes('disabled')).toBeDefined()
+      expect(api.photo).not.toHaveBeenCalled()
+      await view.get('.confirm-question input').setValue(true)
+      await view.get('.automatic-button').trigger('click')
+      await flushPromises()
+      expect(api.photo).toHaveBeenCalledExactlyOnceWith(expect.any(Blob), 0)
+      expect(api.photo.mock.calls[0]?.[0]?.type).toBe('image/jpeg')
+      expect(api.read).not.toHaveBeenCalled()
+      expect(api.solve).not.toHaveBeenCalled()
+      expect(view.text()).toContain('실제 AI 시험 결과')
+      expect(view.get('a[download]').attributes('download')).toBe('김수학_AI해설.png')
+      expect(view.get('.automatic-button').attributes('disabled')).toBeDefined()
+    } finally {
+      view.unmount()
+      context.mockRestore()
+      toBlob.mockRestore()
+      if (decode) Object.defineProperty(HTMLImageElement.prototype, 'decode', decode)
+      else Reflect.deleteProperty(HTMLImageElement.prototype, 'decode')
+    }
+    expect(api.photoRemove).toHaveBeenCalledWith('real-1')
   })
 })

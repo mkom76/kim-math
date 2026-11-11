@@ -35,7 +35,7 @@ export interface NotebookJob {
   id: string
   kind: 'READ' | 'SOLUTION'
   state: NotebookState
-  mode: 'mock'
+  mode: 'mock' | 'live'
   question: string
   uncertainties: string[]
   solution: NotebookSolution | null
@@ -45,6 +45,34 @@ export interface NotebookJob {
   expiresAt: string
 }
 export const solutionNotebookAPI = {
+  trialConfig: () =>
+    client
+      .get<{
+        ready: boolean
+        used: boolean
+        mode: 'live'
+        notice: string
+      }>('/solution-notebook/trial-config')
+      .then((r) => r.data),
+  photo: (image: Blob, rotation: number) =>
+    client
+      .post<NotebookJob>('/solution-notebook/photo-jobs', image, {
+        params: { rotation },
+        headers: { 'Content-Type': image.type, 'X-Notebook-Consent': 'sample-v1' },
+      })
+      .then((r) => r.data),
+  photoStatus: (id: string, signal?: AbortSignal) =>
+    client
+      .get<NotebookJob>(`/solution-notebook/photo-jobs/${encodeURIComponent(id)}`, { signal })
+      .then((r) => r.data),
+  photoImage: (id: string) =>
+    client
+      .get<Blob>(`/solution-notebook/photo-jobs/${encodeURIComponent(id)}/image`, {
+        responseType: 'blob',
+      })
+      .then((r) => r.data),
+  photoRemove: (id: string) =>
+    client.delete(`/solution-notebook/photo-jobs/${encodeURIComponent(id)}`).then(() => undefined),
   config: () => client.get<NotebookConfig>('/solution-notebook/config').then((r) => r.data),
   read: (fixture: string, scenario: NotebookScenario) =>
     client

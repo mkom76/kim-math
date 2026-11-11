@@ -31,6 +31,11 @@ class SolutionNotebookControllerTest {
     @Test void authenticationAndCsrfAreEnforced() throws Exception {
         mvc.perform(get("/api/solution-notebook/config")).andExpect(status().isUnauthorized());
         mvc.perform(post("/api/solution-notebook/read-jobs").session(student(1,1,1)).contentType("application/json").content("{\"fixture\":\"rational-asymptote\"}")).andExpect(status().isForbidden());
+        mvc.perform(post("/api/solution-notebook/photo-jobs").session(student(1,1,1)).contentType("image/png").content(new byte[]{1,2})).andExpect(status().isForbidden());
+        mvc.perform(post("/api/solution-notebook/photo-jobs").session(student(1,1,1)).with(csrf()).contentType("image/png").content(new byte[]{1,2})).andExpect(status().isServiceUnavailable());
+        mvc.perform(get("/api/solution-notebook/trial-config").session(student(1,1,1))).andExpect(status().isOk()).andExpect(jsonPath("$.ready").value(false));
+        mvc.perform(get("/api/solution-notebook/trial-config").session(student(1,1,1)).with(r -> {r.setRemoteAddr("203.0.113.1");return r;})).andExpect(status().isForbidden());
+        verifyNoInteractions(externalAi);
     }
     @Test void mockContractRejectsPhotosOversizedBodiesAndMalformedRequests() throws Exception {
         var s=student(2,1,1);
