@@ -62,19 +62,21 @@ describe('손글씨 풀이 시제품의 샘플 구분과 사진 수명', () => {
   })
   it('자동 생성이 꺼져 있고 샘플을 열기 전에는 답을 표시하지 않는다', () => {
     const view = mountView()
-    expect(view.get('.automatic-button').attributes('disabled')).toBeDefined()
+    expect(view.find('textarea').exists()).toBe(false)
+    expect(view.text()).not.toContain('문제와 풀이 설정')
+    expect(view.text()).not.toContain('체험 상황')
     expect(view.find('.sample-image-button').exists()).toBe(false)
     expect(fetch).not.toHaveBeenCalled()
     view.unmount()
   })
-  it('사전 제작 샘플임을 표시하며 문제를 편집하면 기존 샘플 답을 숨긴다', async () => {
+  it('사전 제작 샘플임을 표시하며 내 사진으로 바꾸면 기존 샘플 답을 숨긴다', async () => {
     const view = mountView()
     await clickSample(view)
     expect(view.get('.sample-disclaimer').text()).toContain(
       '새로 올린 사진을 분석한 결과가 아니에요',
     )
     expect(view.find('.sample-image-button').exists()).toBe(true)
-    await view.get('textarea').setValue('서로 다른 새 문제')
+    await choose(view, new File(['new'], 'new.png', { type: 'image/png' }))
     expect(view.find('.sample-image-button').exists()).toBe(false)
     expect(view.find('a[download]').exists()).toBe(false)
     expect(fetch).not.toHaveBeenCalled()
@@ -86,10 +88,22 @@ describe('손글씨 풀이 시제품의 샘플 구분과 사진 수명', () => {
     await choose(view, new File(['image'], 'problem.png', { type: 'image/png' }))
     expect(view.get('.photo-preview img').attributes('src')).toBe('blob:local-photo')
     expect(view.find('.sample-image-button').exists()).toBe(false)
-    expect((view.get('textarea').element as HTMLTextAreaElement).value).toBe('')
     expect(fetch).not.toHaveBeenCalled()
     view.unmount()
     expect(revoke).toHaveBeenCalledWith('blob:local-photo')
+  })
+  it('내 사진에는 임의의 예제 문제나 해설을 채우지 않는다', async () => {
+    api.config.mockResolvedValue({ enabled: true, mode: 'mock', fixture: 'rational-asymptote' })
+    const view = mountView()
+    await flushPromises()
+    await choose(view, new File(['private'], 'my-problem.png', { type: 'image/png' }))
+    expect(view.get('.automatic-button').attributes('disabled')).toBeDefined()
+    expect(view.text()).toContain('이 사진은 아직 읽지 않았어요')
+    expect(view.find('textarea').exists()).toBe(false)
+    expect(view.find('.sample-image-button').exists()).toBe(false)
+    expect(api.read).not.toHaveBeenCalled()
+    expect(api.solve).not.toHaveBeenCalled()
+    view.unmount()
   })
   it('잘못된 형식과 크기가 큰 사진을 거절하고 기존 사진을 보존한다', async () => {
     const view = mountView()
@@ -153,7 +167,7 @@ describe('손글씨 풀이 시제품의 샘플 구분과 사진 수명', () => {
     Object.defineProperty(text, 'clipboardData', { value: { files: [], items: [] } })
     window.dispatchEvent(text)
     const editing = new Event('paste', { cancelable: true })
-    Object.defineProperty(editing, 'target', { value: view.get('textarea').element })
+    Object.defineProperty(editing, 'target', { value: document.createElement('textarea') })
     Object.defineProperty(editing, 'clipboardData', {
       value: { files: [new File(['paste'], 'image.png', { type: 'image/png' })] },
     })
@@ -164,7 +178,7 @@ describe('손글씨 풀이 시제품의 샘플 구분과 사진 수명', () => {
     expect(URL.createObjectURL).not.toHaveBeenCalled()
     view.unmount()
   })
-  it('모의 판독에는 사진 없이 식별자만 전송하고 확인 후 이미지 API 결과를 표시한다', async () => {
+  it('한 번 누르면 예제 판독부터 이미지까지 자동 진행하며 내 사진은 전송하지 않는다', async () => {
     api.config.mockResolvedValue({
       enabled: true,
       mode: 'mock',
@@ -205,10 +219,8 @@ describe('손글씨 풀이 시제품의 샘플 구분과 사진 수명', () => {
     await flushPromises()
     expect(api.read).toHaveBeenCalledExactlyOnceWith('rational-asymptote', 'SUCCESS')
     expect(JSON.stringify(api.read.mock.calls)).not.toContain('private')
-    expect(view.get('.automatic-button').attributes('disabled')).toBeDefined()
-    await view.get('.confirm-question input').setValue(true)
-    await view.get('.automatic-button').trigger('click')
-    await flushPromises()
+    expect(view.find('.confirm-question').exists()).toBe(false)
+    expect(view.find('.photo-preview').exists()).toBe(false)
     expect(api.solve).toHaveBeenCalledWith(
       expect.objectContaining({ readJobId: 'read-1', confirmed: true, question }),
     )
@@ -240,9 +252,6 @@ describe('손글씨 풀이 시제품의 샘플 구분과 사진 수명', () => {
     const view = mountView()
     await flushPromises()
     await view.get('.mock-read-button').trigger('click')
-    await flushPromises()
-    await view.get('.confirm-question input').setValue(true)
-    await view.get('.automatic-button').trigger('click')
     await flushPromises()
     expect(view.get('[role="alert"]').text()).toContain('이미지 검토 실패')
     expect(api.image).not.toHaveBeenCalled()

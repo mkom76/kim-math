@@ -18,7 +18,6 @@ import {
   solutionNotebookAPI,
   type NotebookConfig,
   type NotebookJob,
-  type NotebookScenario,
   type NotebookSolution,
 } from '@/api/solutionNotebook'
 import sampleUrl from '@/assets/handwriting-solution-sample.png'
@@ -36,9 +35,6 @@ const dragging = ref(false),
   sampleVisible = ref(false),
   tab = ref<'image' | 'text'>('image'),
   expanded = ref(false)
-const grade = ref('고1'),
-  depth = ref('핵심 위주'),
-  scenario = ref<NotebookScenario>('SUCCESS')
 const config = ref<NotebookConfig | null>(null),
   busy = ref(''),
   confirmed = ref(false),
@@ -62,14 +58,6 @@ const phases: Record<string, string> = {
   RENDERING: '모의 이미지 준비',
   CHECKING_IMAGE: '모의 이미지 검토',
 }
-const scenarios: { value: NotebookScenario; label: string }[] = [
-  { value: 'SUCCESS', label: '정상 흐름' },
-  { value: 'UNREADABLE', label: '판독 실패' },
-  { value: 'TIMEOUT', label: '시간 초과' },
-  { value: 'RATE_LIMIT', label: '사용량 초과' },
-  { value: 'MATH_FAILED', label: '풀이 검토 실패' },
-  { value: 'IMAGE_FAILED', label: '이미지 검토 실패' },
-]
 let epoch = 0,
   controller: AbortController | null = null,
   expiryTimer: ReturnType<typeof setTimeout> | undefined
@@ -158,11 +146,6 @@ function showSample() {
   question.value = sampleQuestion
   sampleVisible.value = true
 }
-function editQuestion() {
-  sampleVisible.value = false
-  confirmed.value = false
-  clearResult()
-}
 function onDrop(event: DragEvent) {
   selectFile(event.dataTransfer?.files[0])
 }
@@ -202,6 +185,7 @@ async function poll(job: NotebookJob, n: number): Promise<NotebookJob> {
 async function readProblem() {
   if (busy.value || !config.value?.enabled) return
   cancel()
+  clearPhoto()
   clearResult()
   question.value = ''
   sampleVisible.value = false
@@ -211,7 +195,7 @@ async function readProblem() {
   busy.value = '모의 문제 읽기'
   try {
     // IMPORTANT: only fixture/scenario are sent; never photo.value, File, data URL or file name.
-    const started = await solutionNotebookAPI.read(config.value.fixture, scenario.value)
+    const started = await solutionNotebookAPI.read(config.value.fixture, 'SUCCESS')
     if (n !== epoch) {
       removeJob(started.id)
       return
@@ -221,8 +205,10 @@ async function readProblem() {
     if (n !== epoch) return
     readJobId.value = job.id
     question.value = job.question
-    confirmed.value = false
-    resultMessage.value = job.message
+    // Mock fixture only: continue automatically; this is not user confirmation of a photo.
+    confirmed.value = true
+    busy.value = ''
+    await generate()
   } catch (e) {
     if (n === epoch) error.value = reason(e)
   } finally {
@@ -242,9 +228,9 @@ async function generate() {
       readJobId: readJobId.value,
       question: question.value,
       confirmed: confirmed.value,
-      grade: grade.value,
-      depth: depth.value === '차근차근' ? 'detailed' : 'standard',
-      scenario: scenario.value,
+      grade: '고1',
+      depth: 'detailed',
+      scenario: 'SUCCESS',
     })
     if (n !== epoch) {
       removeJob(started.id)
@@ -322,7 +308,7 @@ onBeforeUnmount(() => {
       </li>
       <li :class="{ complete: question }">
         <span>{{ question ? '✓' : '2' }}</span
-        >문제 확인
+        >자동 풀이
       </li>
       <li :class="{ complete: hasResult }">
         <span>{{ hasResult ? '✓' : '3' }}</span
@@ -330,8 +316,8 @@ onBeforeUnmount(() => {
       </li>
     </ol>
     <p class="demo-notice" role="note">
-      <i />모의 API 체험입니다. 선택한 사진은 서버에 보내지 않고 고정된 예제로 진행해요. 외부 AI
-      호출·과금은 없습니다.
+      <i />모의 API 체험입니다. 내 사진은 미리보기만 가능하며 아직 분석하지 않습니다. 자동 처리
+      과정은 아래의 예제로 따로 체험할 수 있어요.
     </p>
     <div class="notebook-columns">
       <div class="input-stack">
@@ -410,8 +396,7 @@ onBeforeUnmount(() => {
             </button>
           </div>
           <p class="paste-help">
-            컴퓨터에서는 이미지를 복사한 뒤 이 화면에서 Ctrl+V / ⌘V로 붙여넣으세요. 문제 내용 입력란
-            밖에서 사용할 수 있어요.
+            컴퓨터에서는 이미지를 복사한 뒤 이 화면에서 Ctrl+V / ⌘V로 붙여넣으세요.
           </p>
           <p class="photo-status" role="status" aria-live="polite">
             {{ fileName ? `사진을 불러왔어요: ${fileName}` : '' }}
@@ -419,95 +404,41 @@ onBeforeUnmount(() => {
           <p class="photo-help">
             <el-icon><Camera /></el-icon>수식과 조건이 잘 보이도록, 한 문제만 담아주세요.
           </p>
+          <button v-if="photo" type="button" class="automatic-button" disabled>
+            <el-icon><EditPen /></el-icon>내 사진 풀이 · 실제 연결 준비 중
+          </button>
+          <p v-if="photo" class="photo-help">
+            이 사진은 아직 읽지 않았어요. 실제 연결 후에는 사진에서 문제를 읽고 바로 풀이를
+            작성합니다.
+          </p>
           <button
             type="button"
             class="sample-button mock-read-button"
             :disabled="!!busy || !config?.enabled"
             @click="readProblem"
           >
-            예제로 문제 읽기 (모의 API)
+            {{ busy || '예제로 자동 풀이 체험' }}
           </button>
-          <p v-if="!config?.enabled" class="photo-help">
-            모의 API 서버 연결 전입니다. 준비된 샘플은 계속 볼 수 있어요.
+          <p class="photo-help">
+            예제 체험은 선택한 사진과 별개로, 준비된 유리함수 문제를 자동으로 읽고 해설을
+            보여줍니다.
           </p>
-          <p v-if="error" class="photo-error" role="alert">{{ error }}</p>
-        </section>
-        <section class="notebook-card input-card">
-          <div class="notebook-card-title">
-            <h2><span>02</span>문제와 풀이 설정</h2>
-            <small>한 번 확인해요</small>
-          </div>
-          <label class="question-label" for="notebook-question"
-            >문제 내용<small>모의 판독 후 예제의 수식과 조건을 확인해주세요.</small></label
-          >
-          <textarea
-            id="notebook-question"
-            v-model="question"
-            maxlength="6000"
-            placeholder="문제의 수식과 조건을 적어보세요."
-            :disabled="!!busy"
-            @input="editQuestion"
-          />
-          <label v-if="readJobId" class="confirm-question"
-            ><input v-model="confirmed" type="checkbox" :disabled="!!busy" />문제의 수식과 조건을
-            확인했어요</label
-          >
-          <label class="mock-scenario"
-            >체험 상황<select v-model="scenario" :disabled="!!busy">
-              <option v-for="item in scenarios" :key="item.value" :value="item.value">
-                {{ item.label }}
-              </option>
-            </select></label
-          >
-          <div class="notebook-options">
-            <label
-              >학년<select v-model="grade" :disabled="!!busy">
-                <option>중학생</option>
-                <option>고1</option>
-                <option>고2</option>
-                <option>고3</option>
-              </select></label
-            >
-            <fieldset>
-              <legend>설명 깊이</legend>
-              <div class="depth-options">
-                <button
-                  v-for="option in ['핵심 위주', '차근차근']"
-                  :key="option"
-                  type="button"
-                  :aria-pressed="depth === option"
-                  :class="{ selected: depth === option }"
-                  :disabled="!!busy"
-                  @click="depth = option"
-                >
-                  {{ option }}
-                </button>
-              </div>
-            </fieldset>
-          </div>
-          <button
-            type="button"
-            class="automatic-button"
-            :disabled="!!busy || !confirmed || !readJobId || !config?.enabled"
-            @click="generate"
-          >
-            <el-icon><EditPen /></el-icon>{{ busy || '수희쌤 풀이 받기 (모의 API)' }}
-          </button>
           <button v-if="busy" type="button" class="sample-button cancel-job" @click="cancel">
             작업 취소
           </button>
-          <p class="automatic-help">
-            모의 풀이는 하루 {{ config?.dailySolutionLimit || 3 }}회 · 서버 재시작 시 초기화됩니다.
+          <p v-if="!config?.enabled" class="photo-help">
+            모의 API 서버 연결 전입니다. 상단의 샘플 먼저 보기를 이용해주세요.
           </p>
-          <button type="button" class="sample-button" @click="showSample">
-            준비된 샘플 해설 보기<el-icon><ArrowRight /></el-icon>
-          </button>
+          <p class="automatic-help">
+            예제 자동 풀이는 하루 {{ config?.dailySolutionLimit || 3 }}회 체험할 수 있어요.
+          </p>
+          <p v-if="error" class="photo-error" role="alert">{{ error }}</p>
         </section>
       </div>
       <div class="output-stack">
         <section class="notebook-card result-card">
           <div class="notebook-card-title">
-            <h2><span>03</span>나의 해설 노트</h2>
+            <h2><span>02</span>나의 해설 노트</h2>
             <small>{{
               sampleVisible ? '사전 제작 샘플' : resultSolution ? '모의 API 결과' : '미리보기'
             }}</small>
