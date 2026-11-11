@@ -104,7 +104,7 @@ onBeforeUnmount(() => {
     <div class="notebook-intro">
       <div>
         <p class="notebook-eyebrow">KIM MATH · 선생님 풀이노트</p>
-        <h1>사진 한 장이,<br /><em>이해되는 풀이로.</em></h1>
+        <h1>수희쌤 스타일로,<br /><em>손글씨풀이</em></h1>
         <p class="intro-copy">선생님의 풀이 방식과 손글씨를 참고한 해설을 미리 만나보세요.</p>
       </div>
       <button type="button" class="sample-link" @click="showSample">

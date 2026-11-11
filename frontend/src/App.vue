@@ -222,7 +222,7 @@ onBeforeUnmount(() => {
 
         <el-menu-item index="/solution-notebook">
           <el-icon><EditPen /></el-icon>
-          <span>손글씨 풀이 체험</span>
+          <span>Q&A</span>
         </el-menu-item>
 
         <el-menu-item index="/clinics">
