@@ -69,7 +69,7 @@ public class OpenAiNotebookPhotoAi implements NotebookPhotoAi {
         var parts = new LinkedMultiValueMap<String, Object>();
         parts.add("model", "gpt-image-2"); parts.add("quality", "medium"); parts.add("size", "1024x1536");
         parts.add("n", "1"); parts.add("output_format", "png");
-        parts.add("prompt", "첨부된 세 이미지는 오직 필체와 선/강조 방식의 참고다. 첨부의 예제 수식/정답을 복사하지 말고 아래 데이터만 써라. 흰 종이에 한국어 손글씨 수학 해설 한 페이지. 분수, 첨자, 음수 부호를 정확히 보존. 검정 필기와 필요한 붉은 강조, 마지막 답 표시. 긴 풀이를 생략하거나 사진 내용을 새로 추측하지 마라. " + STYLE + " 검증한 문제/풀이 데이터: " + data(draft));
+        parts.add("prompt", "첨부된 세 이미지는 오직 필체와 선/강조 방식의 참고다. 첨부의 예제 수식/정답을 복사하지 말고 아래 데이터만 써라. 흰 종이에 한국어 손글씨 수학 해설 한 페이지. 분수, 첨자, 음수 부호를 정확히 보존. 검정 필기와 필요한 붉은 강조, 마지막 답 표시. 긴 풀이를 생략하거나 사진 내용을 새로 추측하지 마라. 좌표축과 함수 그래프는 그리지 마라. 그래프 설명은 글과 수식 및 부호 판단으로 바꾸어 써라. 첨부 참고 이미지에 그래프가 있어도 옮기지 마라. 원문 객관식 문제에 보기 번호가 있으면 원문의 선택지 번호와 정답 내용을 정확히 함께 써라. " + STYLE + " 검증한 문제/풀이 데이터: " + data(draft));
         for (int i = 0; i < references.size(); i++) {
             final String file = "reference-" + (i + 1) + ".jpg";
             var bytes = new ByteArrayResource(references.get(i)) {public String getFilename() {return file;}};
@@ -83,7 +83,7 @@ public class OpenAiNotebookPhotoAi implements NotebookPhotoAi {
         } catch (IllegalArgumentException e) {throw failure("해설 이미지 형식을 확인하지 못했어요.");}
     }
     public boolean verifyImage(byte[] image, Draft draft) {
-        return chat("verify_image", "이미지의 모든 풀이/수식을 기준 데이터와 비교해라. 문자, 부호, 첨자, 분수, 그래프와 결론이 모두 일치하고 읽을 수 있어야 통과한다. 누락/추가/왜곡/불확실은 실패. JSON만 출력: {\"passed\":true 또는 false}. 기준 데이터: " + data(draft), image).path("passed").asBoolean(false);
+        return chat("verify_image", "이미지의 모든 풀이/수식을 기준 데이터와 비교해라. 문자, 부호, 첨자, 분수와 결론이 모두 일치하고 읽을 수 있어야 통과한다. 이 출력은 수식과 글 중심의 해설이다. 좌표축이나 함수 그래프가 그려져 있으면 실패로 판정하라. 원문 보기 번호가 주어졌으면 정답의 선택지 번호도 일치해야 한다. 수학 내용의 누락/추가/왜곡/불확실은 실패. JSON만 출력: {\"passed\":true 또는 false}. 기준 데이터: " + data(draft), image).path("passed").asBoolean(false);
     }
     private JsonNode chat(String stage, String prompt, byte[] photo) {
         if (!ready()) throw failure("실제 AI 연결 설정이 필요합니다.");
