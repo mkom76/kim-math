@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Camera,
+  Close,
   Download,
   EditPen,
   FullScreen,
@@ -13,29 +14,90 @@ import {
   UploadFilled,
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
+import {
+  solutionNotebookAPI,
+  type NotebookConfig,
+  type NotebookJob,
+  type NotebookScenario,
+  type NotebookSolution,
+} from '@/api/solutionNotebook'
 import sampleUrl from '@/assets/handwriting-solution-sample.png'
 
-const router = useRouter()
-const auth = useAuthStore()
+const router = useRouter(),
+  auth = useAuthStore()
 const fileInput = ref<HTMLInputElement | null>(null)
-const photo = ref('')
-const fileName = ref('')
-const rotation = ref(0)
-const question = ref('')
-const error = ref('')
-const dragging = ref(false)
-const sampleVisible = ref(false)
-const tab = ref<'image' | 'text'>('image')
-const expanded = ref(false)
-const grade = ref('고1')
-const depth = ref('핵심 위주')
+const photo = ref(''),
+  fileName = ref(''),
+  rotation = ref(0),
+  question = ref(''),
+  error = ref('')
+const dragging = ref(false),
+  sampleVisible = ref(false),
+  tab = ref<'image' | 'text'>('image'),
+  expanded = ref(false)
+const grade = ref('고1'),
+  depth = ref('핵심 위주'),
+  scenario = ref<NotebookScenario>('SUCCESS')
+const config = ref<NotebookConfig | null>(null),
+  busy = ref(''),
+  confirmed = ref(false),
+  readJobId = ref('')
+const resultImage = ref(''),
+  resultSolution = ref<NotebookSolution | null>(null),
+  resultMessage = ref('')
 const sampleQuestion = '유리함수 f(x)=(2x+1)/(x−1)의 그래프를 그리고, 두 점근선의 교점을 구하시오.'
 const backPath = computed(() => (auth.role === 'STUDENT' ? '/student/more' : '/students'))
 const photoStyle = computed(() => ({
   transform: `rotate(${rotation.value}deg)`,
   maxWidth: rotation.value % 180 ? '55%' : '100%',
 }))
-
+const displayedImage = computed(() => (sampleVisible.value ? sampleUrl : resultImage.value))
+const hasResult = computed(() => sampleVisible.value || resultSolution.value !== null)
+const phases: Record<string, string> = {
+  QUEUED: '모의 작업 대기',
+  READING: '모의 문제 읽기',
+  SOLVING: '모의 풀이 작성',
+  VERIFYING: '모의 풀이 검토',
+  RENDERING: '모의 이미지 준비',
+  CHECKING_IMAGE: '모의 이미지 검토',
+}
+const scenarios: { value: NotebookScenario; label: string }[] = [
+  { value: 'SUCCESS', label: '정상 흐름' },
+  { value: 'UNREADABLE', label: '판독 실패' },
+  { value: 'TIMEOUT', label: '시간 초과' },
+  { value: 'RATE_LIMIT', label: '사용량 초과' },
+  { value: 'MATH_FAILED', label: '풀이 검토 실패' },
+  { value: 'IMAGE_FAILED', label: '이미지 검토 실패' },
+]
+let epoch = 0,
+  controller: AbortController | null = null,
+  expiryTimer: ReturnType<typeof setTimeout> | undefined
+const jobs = new Set<string>()
+function reason(e: unknown) {
+  const v = e as { response?: { data?: { message?: string } }; message?: string }
+  return v.response?.data?.message || v.message || '처리하지 못했어요. 다시 시도해주세요.'
+}
+function removeJob(id: string) {
+  jobs.delete(id)
+  void solutionNotebookAPI.remove(id).catch(() => undefined)
+}
+function clearResult() {
+  if (resultImage.value) URL.revokeObjectURL(resultImage.value)
+  resultImage.value = ''
+  resultSolution.value = null
+  resultMessage.value = ''
+  expanded.value = false
+  clearTimeout(expiryTimer)
+}
+function cancel() {
+  epoch++
+  controller?.abort()
+  controller = null
+  for (const id of [...jobs]) removeJob(id)
+  busy.value = ''
+  readJobId.value = ''
+  confirmed.value = false
+}
 function clearPhoto() {
   if (photo.value) URL.revokeObjectURL(photo.value)
   photo.value = ''
@@ -43,12 +105,13 @@ function clearPhoto() {
   rotation.value = 0
 }
 function reset() {
+  cancel()
   clearPhoto()
+  clearResult()
   question.value = ''
   error.value = ''
   sampleVisible.value = false
   tab.value = 'image'
-  expanded.value = false
 }
 function selectFile(file?: File) {
   dragging.value = false
@@ -78,7 +141,8 @@ function showSample() {
 }
 function editQuestion() {
   sampleVisible.value = false
-  expanded.value = false
+  confirmed.value = false
+  clearResult()
 }
 function onDrop(event: DragEvent) {
   selectFile(event.dataTransfer?.files[0])
@@ -86,9 +150,128 @@ function onDrop(event: DragEvent) {
 function onEscape(event: KeyboardEvent) {
   if (event.key === 'Escape') expanded.value = false
 }
-onMounted(() => window.addEventListener('keydown', onEscape))
+async function poll(job: NotebookJob, n: number): Promise<NotebookJob> {
+  const until = Date.now() + 300000
+  while (
+    ['QUEUED', 'READING', 'SOLVING', 'VERIFYING', 'RENDERING', 'CHECKING_IMAGE'].includes(job.state)
+  ) {
+    if (n !== epoch) throw new Error('취소된 작업입니다.')
+    if (Date.now() > until) {
+      removeJob(job.id)
+      throw new Error('모의 처리 시간이 초과됐어요. 다시 시도해주세요.')
+    }
+    busy.value = phases[job.state] || '모의 처리 중'
+    const signal = controller!.signal
+    await new Promise<void>((resolve, reject) => {
+      const aborted = () => {
+        clearTimeout(timer)
+        reject(new Error('작업 취소'))
+      }
+      const timer = setTimeout(() => {
+        signal.removeEventListener('abort', aborted)
+        resolve()
+      }, 300)
+      if (signal.aborted) aborted()
+      else signal.addEventListener('abort', aborted, { once: true })
+    })
+    job = await solutionNotebookAPI.status(job.id, signal)
+    if (job.mode !== 'mock') throw new Error('허용되지 않은 API 모드입니다.')
+  }
+  if (job.state === 'FAILED') throw new Error(job.message)
+  return job
+}
+async function readProblem() {
+  if (busy.value || !config.value?.enabled) return
+  cancel()
+  clearResult()
+  question.value = ''
+  sampleVisible.value = false
+  error.value = ''
+  const n = epoch
+  controller = new AbortController()
+  busy.value = '모의 문제 읽기'
+  try {
+    // IMPORTANT: only fixture/scenario are sent; never photo.value, File, data URL or file name.
+    const started = await solutionNotebookAPI.read(config.value.fixture, scenario.value)
+    if (n !== epoch) {
+      removeJob(started.id)
+      return
+    }
+    jobs.add(started.id)
+    const job = await poll(started, n)
+    if (n !== epoch) return
+    readJobId.value = job.id
+    question.value = job.question
+    confirmed.value = false
+    resultMessage.value = job.message
+  } catch (e) {
+    if (n === epoch) error.value = reason(e)
+  } finally {
+    if (n === epoch) busy.value = ''
+  }
+}
+async function generate() {
+  if (busy.value || !readJobId.value || !confirmed.value || !config.value?.enabled) return
+  clearResult()
+  sampleVisible.value = false
+  error.value = ''
+  const n = epoch
+  controller = new AbortController()
+  busy.value = '모의 풀이 작성'
+  try {
+    const started = await solutionNotebookAPI.solve({
+      readJobId: readJobId.value,
+      question: question.value,
+      confirmed: confirmed.value,
+      grade: grade.value,
+      depth: depth.value === '차근차근' ? 'detailed' : 'standard',
+      scenario: scenario.value,
+    })
+    if (n !== epoch) {
+      removeJob(started.id)
+      return
+    }
+    jobs.add(started.id)
+    const job = await poll(started, n)
+    if (n !== epoch) return
+    resultSolution.value = job.solution
+    resultMessage.value = job.message
+    if (job.imageAvailable && job.verified) {
+      const blob = await solutionNotebookAPI.image(job.id)
+      if (n !== epoch) return
+      if (blob.type !== 'image/png') throw new Error('이미지 형식을 확인하지 못했어요.')
+      resultImage.value = URL.createObjectURL(blob)
+      tab.value = 'image'
+    } else {
+      error.value = job.message
+      tab.value = 'text'
+    }
+    expiryTimer = setTimeout(
+      () => {
+        clearResult()
+        error.value = '모의 결과가 만료됐어요. 다시 시작해주세요.'
+      },
+      Math.max(0, Date.parse(job.expiresAt) - Date.now()),
+    )
+  } catch (e) {
+    if (n === epoch) error.value = reason(e)
+  } finally {
+    if (n === epoch) busy.value = ''
+  }
+}
+onMounted(async () => {
+  window.addEventListener('keydown', onEscape)
+  try {
+    const c = await solutionNotebookAPI.config()
+    if (c.mode === 'mock') config.value = c
+  } catch {
+    config.value = null
+  }
+})
 onBeforeUnmount(() => {
+  cancel()
   clearPhoto()
+  clearResult()
   window.removeEventListener('keydown', onEscape)
 })
 </script>
@@ -99,7 +282,7 @@ onBeforeUnmount(() => {
       <button type="button" class="back-button" @click="router.push(backPath)">
         <el-icon><ArrowLeft /></el-icon>돌아가기
       </button>
-      <span class="prototype-badge">샘플 체험 · 준비 중인 기능</span>
+      <span class="prototype-badge">모의 API · 외부 전송 없음</span>
     </div>
     <div class="notebook-intro">
       <div>
@@ -120,14 +303,14 @@ onBeforeUnmount(() => {
         <span>{{ question ? '✓' : '2' }}</span
         >문제 확인
       </li>
-      <li :class="{ complete: sampleVisible }">
-        <span>{{ sampleVisible ? '✓' : '3' }}</span
+      <li :class="{ complete: hasResult }">
+        <span>{{ hasResult ? '✓' : '3' }}</span
         >해설 노트
       </li>
     </ol>
     <p class="demo-notice" role="note">
-      <i />지금은 샘플 체험 단계예요. 새 사진의 자동 풀이는 준비 중이며, 사진은 이 화면에서만
-      보여요.
+      <i />모의 API 체험입니다. 선택한 사진은 서버에 보내지 않고 고정된 예제로 진행해요. 외부 AI
+      호출·과금은 없습니다.
     </p>
     <div class="notebook-columns">
       <div class="input-stack">
@@ -191,6 +374,17 @@ onBeforeUnmount(() => {
           <p class="photo-help">
             <el-icon><Camera /></el-icon>수식과 조건이 잘 보이도록, 한 문제만 담아주세요.
           </p>
+          <button
+            type="button"
+            class="sample-button mock-read-button"
+            :disabled="!!busy || !config?.enabled"
+            @click="readProblem"
+          >
+            예제로 문제 읽기 (모의 API)
+          </button>
+          <p v-if="!config?.enabled" class="photo-help">
+            모의 API 서버 연결 전입니다. 준비된 샘플은 계속 볼 수 있어요.
+          </p>
           <p v-if="error" class="photo-error" role="alert">{{ error }}</p>
         </section>
         <section class="notebook-card input-card">
@@ -199,18 +393,30 @@ onBeforeUnmount(() => {
             <small>한 번 확인해요</small>
           </div>
           <label class="question-label" for="notebook-question"
-            >문제 내용<small>자동 판독 연결 전에는 직접 입력할 수 있어요.</small></label
+            >문제 내용<small>모의 판독 후 예제의 수식과 조건을 확인해주세요.</small></label
           >
           <textarea
             id="notebook-question"
             v-model="question"
             maxlength="6000"
             placeholder="문제의 수식과 조건을 적어보세요."
+            :disabled="!!busy"
             @input="editQuestion"
           />
+          <label v-if="readJobId" class="confirm-question"
+            ><input v-model="confirmed" type="checkbox" :disabled="!!busy" />문제의 수식과 조건을
+            확인했어요</label
+          >
+          <label class="mock-scenario"
+            >체험 상황<select v-model="scenario" :disabled="!!busy">
+              <option v-for="item in scenarios" :key="item.value" :value="item.value">
+                {{ item.label }}
+              </option>
+            </select></label
+          >
           <div class="notebook-options">
             <label
-              >학년<select v-model="grade">
+              >학년<select v-model="grade" :disabled="!!busy">
                 <option>중학생</option>
                 <option>고1</option>
                 <option>고2</option>
@@ -226,6 +432,7 @@ onBeforeUnmount(() => {
                   type="button"
                   :aria-pressed="depth === option"
                   :class="{ selected: depth === option }"
+                  :disabled="!!busy"
                   @click="depth = option"
                 >
                   {{ option }}
@@ -233,10 +440,20 @@ onBeforeUnmount(() => {
               </div>
             </fieldset>
           </div>
-          <button type="button" class="automatic-button" disabled>
-            <el-icon><EditPen /></el-icon>새 문제 자동 풀이 · 준비 중
+          <button
+            type="button"
+            class="automatic-button"
+            :disabled="!!busy || !confirmed || !readJobId || !config?.enabled"
+            @click="generate"
+          >
+            <el-icon><EditPen /></el-icon>{{ busy || '수희쌤 풀이 받기 (모의 API)' }}
           </button>
-          <p class="automatic-help">입력한 문제를 분석하거나 외부로 전송하지 않습니다.</p>
+          <button v-if="busy" type="button" class="sample-button cancel-job" @click="cancel">
+            작업 취소
+          </button>
+          <p class="automatic-help">
+            모의 풀이는 하루 {{ config?.dailySolutionLimit || 3 }}회 · 서버 재시작 시 초기화됩니다.
+          </p>
           <button type="button" class="sample-button" @click="showSample">
             준비된 샘플 해설 보기<el-icon><ArrowRight /></el-icon>
           </button>
@@ -246,7 +463,9 @@ onBeforeUnmount(() => {
         <section class="notebook-card result-card">
           <div class="notebook-card-title">
             <h2><span>03</span>나의 해설 노트</h2>
-            <small>{{ sampleVisible ? '사전 제작 샘플' : '미리보기' }}</small>
+            <small>{{
+              sampleVisible ? '사전 제작 샘플' : resultSolution ? '모의 API 결과' : '미리보기'
+            }}</small>
           </div>
           <div class="notebook-tabs">
             <div>
@@ -259,7 +478,7 @@ onBeforeUnmount(() => {
             <button
               type="button"
               aria-label="해설 이미지 크게 보기"
-              :disabled="!sampleVisible"
+              :disabled="!displayedImage"
               @click="expanded = true"
             >
               <el-icon><FullScreen /></el-icon>
@@ -268,8 +487,27 @@ onBeforeUnmount(() => {
           <p v-if="sampleVisible" class="sample-disclaimer">
             아래 예제의 사전 제작 해설입니다. 새로 올린 사진을 분석한 결과가 아니에요.
           </p>
-          <div v-if="tab === 'text'" class="solution-text">
-            <template v-if="sampleVisible"
+          <p v-if="!sampleVisible && resultMessage" class="sample-disclaimer">
+            {{ resultMessage }}
+          </p>
+          <div v-if="busy" class="mock-progress" role="status">
+            <el-icon class="mock-spinner"><RefreshRight /></el-icon>
+            <h3>{{ busy }}</h3>
+            <p>고정된 예제로 처리 흐름을 확인하고 있어요.</p>
+          </div>
+          <div v-else-if="tab === 'text'" class="solution-text">
+            <template v-if="resultSolution"
+              ><small>모의 API · 예제 문제</small>
+              <h3>{{ resultSolution.title }}</h3>
+              <p v-for="(step, index) in resultSolution.steps" :key="index">
+                <b>{{ index + 1 }}</b
+                >{{ step }}
+              </p>
+              <div class="sample-answer">
+                답 <strong>{{ resultSolution.answer }}</strong>
+              </div></template
+            >
+            <template v-else-if="sampleVisible"
               ><small>샘플 문제 · 유리함수</small>
               <h3>그래프를 읽기 쉬운 꼴로!</h3>
               <p><b>①</b>분자를 2(x−1)+3으로 바꿔요.</p>
@@ -286,14 +524,14 @@ onBeforeUnmount(() => {
             </div>
           </div>
           <button
-            v-else-if="sampleVisible"
+            v-else-if="displayedImage"
             type="button"
             class="sample-image-button"
             aria-label="샘플 해설 확대"
             @click="expanded = true"
           >
             <img
-              :src="sampleUrl"
+              :src="displayedImage"
               alt="유리함수의 점근선과 그래프를 설명하는 사전 제작 손글씨 해설"
             />
           </button>
@@ -309,9 +547,11 @@ onBeforeUnmount(() => {
             <span>{{
               sampleVisible
                 ? '식 변형·점근선·절편을 사전 확인한 예제'
-                : '별도 모델 훈련 없이 만든 해설 시안'
+                : resultSolution
+                  ? '모의 API · 예제용 사전 제작 이미지'
+                  : '별도 모델 훈련 없이 만든 해설 시안'
             }}</span
-            ><a v-if="sampleVisible" :href="sampleUrl" download="김수학_샘플해설.png"
+            ><a v-if="displayedImage" :href="displayedImage" download="김수학_모의해설.png"
               ><el-icon><Download /></el-icon>이미지 저장</a
             >
           </div>
@@ -327,8 +567,8 @@ onBeforeUnmount(() => {
       </div>
     </div>
     <p class="notebook-privacy">
-      사진과 입력 내용은 이 화면을 벗어나거나 새로고침하면 사라져요. 샘플 이미지의 필체는 원본과
-      완전히 같지는 않습니다.
+      선택한 사진은 브라우저 안에만 있어요. 서버의 모의 작업은 약 10분 후 삭제되며 새로고침 시 이
+      화면의 진행 상태는 사라져요. 실제 AI 연결과 학생 사진 전송은 별도 확인 후 진행합니다.
     </p>
     <el-dialog
       v-model="expanded"
@@ -336,7 +576,7 @@ onBeforeUnmount(() => {
       width="min(850px, 95vw)"
       align-center
       destroy-on-close
-      ><img class="expanded-solution" :src="sampleUrl" alt="확대한 샘플 손글씨 해설"
+      ><img class="expanded-solution" :src="displayedImage" alt="확대한 샘플 손글씨 해설"
     /></el-dialog>
   </section>
 </template>
@@ -1063,6 +1303,69 @@ onBeforeUnmount(() => {
 @media (prefers-reduced-motion: reduce) {
   .photo-stage img {
     transition: none;
+  }
+}
+
+.mock-read-button {
+  margin-bottom: 20px;
+}
+.confirm-question {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 15px 23px;
+  color: #6c8555;
+  font-size: 11px;
+}
+.mock-scenario {
+  display: block;
+  margin: 17px 23px;
+  color: #7b9066;
+  font-size: 11px;
+}
+.mock-scenario select {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  border: 1px solid #dfe7d3;
+  border-radius: 6px;
+  padding: 9px;
+  background: #fff;
+  color: #708851;
+  font-size: 12px;
+}
+.mock-progress {
+  min-height: 350px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background: #f9fcf4;
+  color: #7c9662;
+}
+.mock-progress h3 {
+  font-size: 15px;
+  font-weight: 500;
+}
+.mock-progress p {
+  font-size: 11px;
+  color: #9bad88;
+}
+.mock-spinner {
+  font-size: 29px;
+  animation: mock-spin 1.5s linear infinite;
+}
+.cancel-job {
+  margin-top: 12px;
+}
+@keyframes mock-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mock-spinner {
+    animation: none;
   }
 }
 </style>
