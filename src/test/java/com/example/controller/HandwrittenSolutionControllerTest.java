@@ -50,7 +50,7 @@ class HandwrittenSolutionControllerTest {
         mvc.perform(get("/api/solution-notebook/live-jobs/"+id+"/image").session(s)).andExpect(status().isOk()).andExpect(content().contentType("image/png")).andExpect(header().string("Cache-Control","no-store")).andExpect(content().bytes(png));
         mvc.perform(delete("/api/solution-notebook/live-jobs/"+id).session(s).with(csrf())).andExpect(status().isNoContent());
         mvc.perform(get("/api/solution-notebook/live-jobs/"+id).session(s)).andExpect(status().isNotFound());
-        mvc.perform(get("/api/solution-notebook/live-config").session(s)).andExpect(jsonPath("$.remainingToday").value(1)).andExpect(jsonPath("$.enabled").value(true));
+        mvc.perform(get("/api/solution-notebook/live-config").session(s)).andExpect(jsonPath("$.dailyLimit").value(3)).andExpect(jsonPath("$.remainingToday").value(2)).andExpect(jsonPath("$.enabled").value(true));
         verify(ai,times(1)).solve(any());verify(ai,times(1)).render(any());verifyNoInteractions(feedback);
     }
     static MockHttpSession session(Long id){var s=new MockHttpSession();s.setAttribute("userId",id);s.setAttribute("userRole","STUDENT");s.setAttribute("studentAcademyId",1L);s.setAttribute("activeStudentClassId",1L);return s;}

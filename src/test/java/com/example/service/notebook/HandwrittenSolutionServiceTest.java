@@ -22,6 +22,28 @@ class HandwrittenSolutionServiceTest {
         for(int i=0;i<300;i++){var j=s.status(OWNER,id);if(Set.of(State.SUCCEEDED,State.FAILED,State.REVIEW_REQUIRED).contains(j.state()))return j;Thread.sleep(10);}
         throw new AssertionError("not completed");
     }
+    @Test void defaultLimitAllowsThreePhotosThenRejectsFourthWithoutAnotherAiCall() throws Exception {
+        var ai=new NotebookPhotoTrialServiceTest.FakeAi();
+        var env=new org.springframework.mock.env.MockEnvironment()
+                .withProperty("app.solution-notebook.live.enabled","true")
+                .withProperty("app.solution-notebook.live.usage-dir",root.toString());
+        var s=new HandwrittenSolutionService(ai,new ObjectMapper(),env);
+        try {
+            assertThat(s.configuration(OWNER).dailyLimit()).isEqualTo(3);
+            for(int remaining=2;remaining>=0;remaining--) {
+                var j=complete(s,s.start(OWNER,photo(),0).id());
+                assertThat(j.state()).isEqualTo(State.SUCCEEDED);
+                assertThat(s.configuration(OWNER).remainingToday()).isEqualTo(remaining);
+                s.delete(OWNER,j.id());
+            }
+            assertThatThrownBy(()->s.start(OWNER,photo(),0)).isInstanceOfSatisfying(ResponseStatusException.class,
+                    e->assertThat(e.getStatusCode().value()).isEqualTo(429));
+            assertThat(Collections.frequency(ai.calls,"solve")).isEqualTo(3);
+            assertThat(Collections.frequency(ai.calls,"render")).isEqualTo(3);
+        }finally{s.close();}
+        var restarted=new HandwrittenSolutionService(ai,new ObjectMapper(),env);
+        try{assertThat(restarted.configuration(OWNER).remainingToday()).isZero();assertThat(restarted.configuration(OWNER).ready()).isFalse();}finally{restarted.close();}
+    }
     @Test void verifiedImageIsBoundToExactOwnerAndDeletingDoesNotRefundQuota() throws Exception {
         var ai=new NotebookPhotoTrialServiceTest.FakeAi(); var s=service(ai);
         try {

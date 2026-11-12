@@ -67,7 +67,7 @@ app:
     live:
       enabled: ${SOLUTION_NOTEBOOK_ENABLED:false}
       usage-dir: ${SOLUTION_NOTEBOOK_USAGE_DIR:}
-      daily-limit: ${SOLUTION_NOTEBOOK_DAILY_LIMIT:2}
+      daily-limit: ${SOLUTION_NOTEBOOK_DAILY_LIMIT:3}
       global-daily-limit: ${SOLUTION_NOTEBOOK_GLOBAL_DAILY_LIMIT:20}
       global-monthly-limit: ${SOLUTION_NOTEBOOK_GLOBAL_MONTHLY_LIMIT:200}
   consent:

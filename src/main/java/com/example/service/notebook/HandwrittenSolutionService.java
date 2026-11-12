@@ -34,7 +34,7 @@ public class HandwrittenSolutionService {
                             || env.acceptsProfiles(Profiles.of("local")) && !env.acceptsProfiles(Profiles.of("prod"))),
                 env.getProperty("app.solution-notebook.live.preview", Boolean.class, false),
                 env.getProperty("app.solution-notebook.live.usage-dir", ""),
-                env.getProperty("app.solution-notebook.live.daily-limit", Integer.class, 2),
+                env.getProperty("app.solution-notebook.live.daily-limit", Integer.class, 3),
                 env.getProperty("app.solution-notebook.live.global-daily-limit", Integer.class, 20),
                 env.getProperty("app.solution-notebook.live.global-monthly-limit", Integer.class, 200), Clock.systemUTC());
     }
