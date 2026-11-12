@@ -30,14 +30,17 @@ class HandwrittenSolutionServiceTest {
         var s=new HandwrittenSolutionService(ai,new ObjectMapper(),env);
         try {
             assertThat(s.configuration(OWNER).dailyLimit()).isEqualTo(3);
+            assertThat(s.configuration(OWNER).dailyLimitReached()).isFalse();
             for(int remaining=2;remaining>=0;remaining--) {
                 var j=complete(s,s.start(OWNER,photo(),0).id());
                 assertThat(j.state()).isEqualTo(State.SUCCEEDED);
                 assertThat(s.configuration(OWNER).remainingToday()).isEqualTo(remaining);
+                assertThat(s.configuration(OWNER).dailyLimitReached()).isEqualTo(remaining == 0);
                 s.delete(OWNER,j.id());
             }
             assertThatThrownBy(()->s.start(OWNER,photo(),0)).isInstanceOfSatisfying(ResponseStatusException.class,
-                    e->assertThat(e.getStatusCode().value()).isEqualTo(429));
+                    e->{assertThat(e.getStatusCode().value()).isEqualTo(429);assertThat(e.getReason()).contains("밤 12시(한국 시간)");});
+            assertThat(s.configuration(OWNER).notice()).contains("오늘 질문 3번", "밤 12시(한국 시간)");
             assertThat(Collections.frequency(ai.calls,"solve")).isEqualTo(3);
             assertThat(Collections.frequency(ai.calls,"render")).isEqualTo(3);
         }finally{s.close();}
@@ -77,6 +80,7 @@ class HandwrittenSolutionServiceTest {
             assertThatThrownBy(()->s.start(OWNER,new byte[]{1,2},0)).isInstanceOf(ResponseStatusException.class);
             assertThat(s.configuration(OWNER).remainingToday()).isEqualTo(2);
             ai.ready=false;assertThatThrownBy(()->s.start(OWNER,photo(),0)).isInstanceOf(ResponseStatusException.class);
+            assertThat(s.configuration(OWNER).dailyLimitReached()).isFalse();
             assertThat(ai.calls).isEmpty();
         }finally{s.close();}
         var off=new HandwrittenSolutionService(ai,new ObjectMapper(),new org.springframework.mock.env.MockEnvironment());

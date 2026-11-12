@@ -74,6 +74,95 @@ describe('손글씨 풀이 시제품의 샘플 구분과 사진 수명', () => {
     )
     URL.revokeObjectURL = revoke
   })
+  it('질문 전에도 하루 3회 한도와 한국 시간 밤 12시 초기화를 안내한다', async () => {
+    api.liveConfig.mockResolvedValue({
+      enabled: true,
+      ready: true,
+      dailyLimit: 3,
+      remainingToday: 3,
+      dailyLimitReached: false,
+    })
+    const view = mountView()
+    await flushPromises()
+    expect(view.get('.question-quota').text()).toContain('하루 최대 3번 질문할 수 있어요.')
+    expect(view.get('.question-quota').text()).toContain('매일 밤 12시(한국 시간)에 초기화돼요.')
+    expect(view.get('.question-quota').text()).toContain('오늘 남은 질문 3 / 3회')
+    expect(view.find('.daily-limit-notice').exists()).toBe(false)
+    expect(api.livePhoto).not.toHaveBeenCalled()
+    view.unmount()
+  })
+  it('3회 소진 후 추가 사진에는 자정 안내를 표시하고 새 AI 요청을 막는다', async () => {
+    api.liveConfig.mockResolvedValue({
+      enabled: true,
+      ready: false,
+      dailyLimit: 3,
+      remainingToday: 0,
+      dailyLimitReached: true,
+    })
+    const view = mountView()
+    await flushPromises()
+    await choose(view, new File(['new'], 'another.png', { type: 'image/png' }))
+    expect(view.get('.daily-limit-notice').attributes('role')).toBe('status')
+    expect(view.get('.daily-limit-notice').text()).toContain('오늘 질문 3번을 모두 사용했어요.')
+    expect(view.get('.daily-limit-notice').text()).toContain(
+      '밤 12시(한국 시간)에 횟수가 초기화되면 다시 질문할 수 있어요.',
+    )
+    expect(view.get('.automatic-button').text()).toBe('밤 12시에 다시 질문할 수 있어요')
+    expect(view.get('.automatic-button').attributes('disabled')).toBeDefined()
+    expect(api.livePhoto).not.toHaveBeenCalled()
+    view.unmount()
+  })
+  it('서버 준비 중인 상태를 개인 질문 한도 소진으로 안내하지 않는다', async () => {
+    api.liveConfig.mockResolvedValue({
+      enabled: true,
+      ready: false,
+      dailyLimit: 3,
+      remainingToday: 0,
+      dailyLimitReached: false,
+      notice: '서버 준비 중',
+    })
+    const view = mountView()
+    await flushPromises()
+    expect(view.find('.daily-limit-notice').exists()).toBe(false)
+    expect(view.text()).not.toContain('오늘 남은 질문 0')
+    expect(view.text()).toContain('서버 준비 중')
+    view.unmount()
+  })
+  it('페이지를 열어둔 채 한국 시간 자정을 지나면 남은 질문을 다시 확인한다', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    vi.setSystemTime(new Date('2026-11-12T14:59:59.500Z'))
+    api.liveConfig
+      .mockResolvedValueOnce({
+        enabled: true,
+        ready: false,
+        dailyLimit: 3,
+        remainingToday: 0,
+        dailyLimitReached: true,
+      })
+      .mockResolvedValue({
+        enabled: true,
+        ready: true,
+        dailyLimit: 3,
+        remainingToday: 3,
+        dailyLimitReached: false,
+      })
+    const view = mountView()
+    try {
+      await flushPromises()
+      expect(view.find('.daily-limit-notice').exists()).toBe(true)
+      await vi.advanceTimersByTimeAsync(1500)
+      await flushPromises()
+      expect(api.liveConfig).toHaveBeenCalledTimes(2)
+      expect(view.find('.daily-limit-notice').exists()).toBe(false)
+      expect(view.get('.question-quota').text()).toContain('오늘 남은 질문 3 / 3회')
+      view.unmount()
+      await vi.advanceTimersByTimeAsync(86400000)
+      expect(api.liveConfig).toHaveBeenCalledTimes(2)
+    } finally {
+      view.unmount()
+      vi.useRealTimers()
+    }
+  })
   it('자동 생성이 꺼져 있고 샘플을 열기 전에는 답을 표시하지 않는다', () => {
     const view = mountView()
     expect(view.find('textarea').exists()).toBe(false)

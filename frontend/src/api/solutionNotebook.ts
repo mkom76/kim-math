@@ -51,6 +51,7 @@ export interface NotebookLiveConfig {
   mode: 'live'
   dailyLimit: number
   remainingToday: number
+  dailyLimitReached: boolean
   retentionMinutes: number
   notice: string
 }

@@ -70,7 +70,7 @@ final class NotebookUsageLedger {
                     boolean available = remaining > 0 && dayUsed < daily && monthUsed < monthly;
                     if (!reserve) return new Quota(remaining, available);
                     if (!available) throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
-                            remaining == 0 ? "오늘 이용 가능한 풀이 횟수를 모두 사용했어요. 내일 다시 이용해주세요." : "현재 풀이 서비스의 이용 한도에 도달했어요. 잠시 후 또는 다음 이용 기간에 다시 시도해주세요.");
+                            remaining == 0 ? "오늘 질문 " + personal + "번을 모두 사용했어요. 밤 12시(한국 시간)에 횟수가 초기화되면 다시 질문할 수 있어요." : "현재 풀이 서비스의 이용 한도에 도달했어요. 잠시 후 또는 다음 이용 기간에 다시 시도해주세요.");
                     ObjectNode d = today.isMissingNode() ? days.putObject(date) : (ObjectNode)today;
                     ObjectNode accounts = d.has("accounts") ? (ObjectNode)d.get("accounts") : d.putObject("accounts");
                     accounts.put(key, used + 1); d.put("total", dayUsed + 1);

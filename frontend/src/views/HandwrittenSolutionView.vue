@@ -47,6 +47,9 @@ const serviceConfig = ref<NotebookLiveConfig | null>(null)
 const photoReady = computed(() =>
   serviceConfig.value?.enabled ? serviceConfig.value.ready : trialConfig.value.ready,
 )
+const dailyLimitReached = computed(
+  () => !!serviceConfig.value?.enabled && serviceConfig.value.dailyLimitReached,
+)
 const trialConsent = ref(false)
 const resultMode = ref<'mock' | 'live'>('mock')
 const resultImage = ref(''),
@@ -77,6 +80,28 @@ const phases: Record<string, string> = {
 let epoch = 0,
   controller: AbortController | null = null,
   expiryTimer: ReturnType<typeof setTimeout> | undefined
+let quotaResetTimer: ReturnType<typeof setTimeout> | undefined
+let disposed = false
+function scheduleQuotaRefresh() {
+  clearTimeout(quotaResetTimer)
+  if (disposed || !serviceConfig.value?.enabled) return
+  const day = 86400000,
+    koreaOffset = 9 * 3600000,
+    now = Date.now()
+  const nextMidnight = (Math.floor((now + koreaOffset) / day) + 1) * day - koreaOffset
+  quotaResetTimer = setTimeout(refreshQuotaAtMidnight, nextMidnight - now + 1000)
+}
+async function refreshQuotaAtMidnight() {
+  if (disposed) return
+  try {
+    const c = await solutionNotebookAPI.liveConfig()
+    if (disposed) return
+    serviceConfig.value = c
+    scheduleQuotaRefresh()
+  } catch {
+    if (!disposed) quotaResetTimer = setTimeout(refreshQuotaAtMidnight, 60000)
+  }
+}
 const jobs = new Set<string>()
 const liveJobs = new Set<string>()
 const productionJobs = new Set<string>()
@@ -398,7 +423,9 @@ onMounted(async () => {
   void solutionNotebookAPI
     .liveConfig()
     .then((c) => {
+      if (disposed) return
       serviceConfig.value = c
+      scheduleQuotaRefresh()
     })
     .catch(() => undefined)
   void solutionNotebookAPI
@@ -415,6 +442,8 @@ onMounted(async () => {
   }
 })
 onBeforeUnmount(() => {
+  disposed = true
+  clearTimeout(quotaResetTimer)
   cancel()
   clearPhoto()
   clearResult()
@@ -561,8 +590,21 @@ onBeforeUnmount(() => {
           <p class="photo-help">
             <el-icon><Camera /></el-icon>수식과 조건이 잘 보이도록, 한 문제만 담아주세요.
           </p>
+          <div v-if="serviceConfig?.enabled" class="question-quota">
+            <strong>하루 최대 {{ serviceConfig.dailyLimit }}번 질문할 수 있어요.</strong>
+            <p>질문 횟수는 매일 밤 12시(한국 시간)에 초기화돼요.</p>
+            <p v-if="serviceConfig.ready || dailyLimitReached">
+              오늘 남은 질문 {{ serviceConfig.remainingToday }} / {{ serviceConfig.dailyLimit }}회
+            </p>
+          </div>
+          <div v-if="dailyLimitReached" class="daily-limit-notice" role="status" aria-live="polite">
+            <strong>오늘 질문 {{ serviceConfig?.dailyLimit }}번을 모두 사용했어요.</strong>
+            <p>
+              더 궁금한 문제가 있나요? 밤 12시(한국 시간)에 횟수가 초기화되면 다시 질문할 수 있어요.
+              조금만 기다렸다가 다시 만나요!
+            </p>
+          </div>
           <p v-if="serviceConfig?.enabled" class="photo-help">
-            오늘 남은 풀이 {{ serviceConfig.remainingToday }} / {{ serviceConfig.dailyLimit }}회 ·
             결과는 10분 동안 볼 수 있어요. 요청 후 취소하거나 생성에 실패해도 횟수에 포함됩니다.
           </p>
           <label
@@ -594,7 +636,9 @@ onBeforeUnmount(() => {
               (serviceConfig?.enabled
                 ? serviceConfig.ready
                   ? '수희쌤 풀이 받기'
-                  : '지금은 풀이를 받을 수 없어요'
+                  : dailyLimitReached
+                    ? '밤 12시에 다시 질문할 수 있어요'
+                    : '지금은 풀이를 받을 수 없어요'
                 : trialConfig.ready
                   ? '수희쌤 풀이 받기 · 실제 API'
                   : trialConfig.used
@@ -794,6 +838,28 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.question-quota,
+.daily-limit-notice {
+  margin: 14px 23px;
+  padding: 14px;
+  border-radius: 9px;
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.question-quota {
+  background: #f0f5eb;
+  color: #40583b;
+}
+.daily-limit-notice {
+  background: #fff5e6;
+  color: #775325;
+  border: 1px solid #ecd9b8;
+}
+.question-quota p,
+.daily-limit-notice p {
+  margin: 5px 0 0;
+}
 .read-question {
   margin: 14px 23px;
   font-size: 12px;

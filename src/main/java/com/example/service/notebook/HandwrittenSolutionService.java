@@ -16,7 +16,7 @@ import java.util.concurrent.*;
 @Service
 public class HandwrittenSolutionService {
     public record LiveConfig(boolean enabled, boolean ready, boolean preview, String mode,
-                             int dailyLimit, int remainingToday, int retentionMinutes, String notice) {}
+                             int dailyLimit, int remainingToday, int retentionMinutes, String notice, boolean dailyLimitReached) {}
     private final NotebookPhotoAi ai;
     private final boolean enabled, preview;
     private final int dailyLimit;
@@ -50,13 +50,13 @@ public class HandwrittenSolutionService {
         purge();
         String notice = preview ? "로컬 화면 검증용 가짜 응답입니다. 실제 사진 판독·유료 AI 호출은 하지 않습니다."
                 : "사진·문제·풀이와 필체 참고 2개를 OpenAI로 전송해 손글씨 해설을 만듭니다. 이름·얼굴·연락처 없이 한 문제만 담아주세요. AI 해설에는 오류가 있을 수 있어요.";
-        if (!enabled) return new LiveConfig(false, false, false, "live", dailyLimit, 0, 10, "손글씨 풀이를 준비하고 있어요. 준비된 샘플을 먼저 볼 수 있습니다.");
-        if (!validOwner(owner) || !ai.ready()) return new LiveConfig(true, false, preview, "live", dailyLimit, 0, 10, "지금은 풀이를 준비 중입니다. 잠시 후 다시 이용해주세요.");
+        if (!enabled) return new LiveConfig(false, false, false, "live", dailyLimit, 0, 10, "손글씨 풀이를 준비하고 있어요. 준비된 샘플을 먼저 볼 수 있습니다.", false);
+        if (!validOwner(owner) || !ai.ready()) return new LiveConfig(true, false, preview, "live", dailyLimit, 0, 10, "지금은 풀이를 준비 중입니다. 잠시 후 다시 이용해주세요.", false);
         try {
             var q = ledger.quota(account(owner));
             return new LiveConfig(true, q.available(), preview, "live", dailyLimit, q.remainingToday(), 10,
-                    q.available() ? notice : q.remainingToday() == 0 ? "오늘의 풀이 횟수를 모두 사용했어요. 내일 다시 이용해주세요." : "현재 서비스 이용 한도에 도달했어요. 나중에 다시 이용해주세요.");
-        } catch (ResponseStatusException e) {return new LiveConfig(true, false, preview, "live", dailyLimit, 0, 10, "지금은 이용 횟수를 확인할 수 없어 요청을 중단했어요. 잠시 후 다시 이용해주세요.");}
+                    q.available() ? notice : q.remainingToday() == 0 ? "오늘 질문 " + dailyLimit + "번을 모두 사용했어요. 밤 12시(한국 시간)에 횟수가 초기화되면 다시 질문할 수 있어요." : "현재 서비스 이용 한도에 도달했어요. 나중에 다시 이용해주세요.", q.remainingToday() == 0);
+        } catch (ResponseStatusException e) {return new LiveConfig(true, false, preview, "live", dailyLimit, 0, 10, "지금은 이용 횟수를 확인할 수 없어 요청을 중단했어요. 잠시 후 다시 이용해주세요.", false);}
     }
     public synchronized void requireReady(Owner owner) {
         LiveConfig config = configuration(owner);
