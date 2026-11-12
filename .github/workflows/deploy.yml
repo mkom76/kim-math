@@ -4,6 +4,18 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      operation:
+        description: Deployment or read-only handwritten-solution preflight
+        type: choice
+        default: deploy
+        options:
+          - deploy
+          - notebook-preflight
+      expected_server_sha:
+        description: Expected current server commit for the read-only preflight
+        type: string
+        required: false
 
 env:
   REGISTRY: ghcr.io
@@ -11,6 +23,7 @@ env:
 
 jobs:
   build-and-push:
+    if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -69,6 +82,39 @@ jobs:
           labels: ${{ steps.meta-frontend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  notebook-preflight:
+    if: github.event_name == 'workflow_dispatch' && inputs.operation == 'notebook-preflight' && github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      NOTEBOOK_EXPECTED_SERVER_SHA: ${{ inputs.expected_server_sha }}
+      NOTEBOOK_SOURCE_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate expected revision and prepare read-only script
+        id: notebook-script
+        shell: bash
+        run: |
+          [[ "$NOTEBOOK_EXPECTED_SERVER_SHA" =~ ^[a-f0-9]{40}$ ]]
+          bash -n scripts/notebook-production-preflight.sh
+          delimiter="SCRIPT_$(openssl rand -hex 16)"
+          {
+            echo "script<<$delimiter"
+            cat scripts/notebook-production-preflight.sh
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
+      - name: Check server without changing application or database
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 3m
+          envs: NOTEBOOK_EXPECTED_SERVER_SHA,NOTEBOOK_SOURCE_SHA
+          script: ${{ steps.notebook-script.outputs.script }}
 
   deploy:
     needs: build-and-push
