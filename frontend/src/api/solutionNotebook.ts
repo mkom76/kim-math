@@ -44,7 +44,39 @@ export interface NotebookJob {
   message: string
   expiresAt: string
 }
+export interface NotebookLiveConfig {
+  enabled: boolean
+  ready: boolean
+  preview: boolean
+  mode: 'live'
+  dailyLimit: number
+  remainingToday: number
+  retentionMinutes: number
+  notice: string
+}
 export const solutionNotebookAPI = {
+  liveConfig: () =>
+    client.get<NotebookLiveConfig>('/solution-notebook/live-config').then((r) => r.data),
+  livePhoto: (image: Blob, rotation: number) =>
+    client
+      .post<NotebookJob>('/solution-notebook/live-jobs', image, {
+        params: { rotation },
+        timeout: 60000,
+        headers: { 'Content-Type': image.type, 'X-Notebook-Consent': 'notebook-v1' },
+      })
+      .then((r) => r.data),
+  liveStatus: (id: string, signal?: AbortSignal) =>
+    client
+      .get<NotebookJob>(`/solution-notebook/live-jobs/${encodeURIComponent(id)}`, { signal })
+      .then((r) => r.data),
+  liveImage: (id: string) =>
+    client
+      .get<Blob>(`/solution-notebook/live-jobs/${encodeURIComponent(id)}/image`, {
+        responseType: 'blob',
+      })
+      .then((r) => r.data),
+  liveRemove: (id: string) =>
+    client.delete(`/solution-notebook/live-jobs/${encodeURIComponent(id)}`).then(() => undefined),
   trialConfig: () =>
     client
       .get<{

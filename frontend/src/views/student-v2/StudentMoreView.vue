@@ -48,7 +48,7 @@ const statisticMenus: MoreMenuItem[] = [
 const serviceMenus: MoreMenuItem[] = [
   {
     title: 'Q&A',
-    description: '문제 사진 · 선생님 해설 샘플',
+    description: '문제 사진 · 수희쌤 스타일 손글씨 풀이',
     path: '/student/solution-notebook',
     icon: EditPen,
     tone: 'green',

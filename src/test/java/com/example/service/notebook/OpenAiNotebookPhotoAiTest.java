@@ -26,7 +26,7 @@ class OpenAiNotebookPhotoAiTest {
             var draft=provider.solve(NotebookPhotoCodec.photo(png,0));assertThat(provider.verifyMath(NotebookPhotoCodec.photo(png,0),draft)).isTrue();byte[] image=provider.render(draft);assertThat(provider.verifyImage(image,draft)).isTrue();
             assertThat(paths).containsExactly("/v1/chat/completions","/v1/chat/completions","/v1/images/edits","/v1/chat/completions");
             for(int i:List.of(0,1,3)){var json=mapper.readTree(bodies.get(i));assertThat(json.path("model").asText()).isEqualTo("gpt-6-luna");assertThat(json.path("store").asBoolean()).isFalse();assertThat(json.path("max_completion_tokens").asInt()).isLessThanOrEqualTo(6000);assertThat(bodies.get(i)).doesNotContain("studentId","sessionId","fileName");}
-            assertThat(types.get(2)).startsWith("multipart/form-data");assertThat(bodies.get(2)).contains("gpt-image-2","1024x1536","medium","reference-1.jpg","reference-2.jpg","reference-3.jpg").doesNotContain("file_id","http://","https://");
+            assertThat(types.get(2)).startsWith("multipart/form-data");assertThat(bodies.get(2)).contains("gpt-image-2","1024x1536","medium","reference-1.jpg","reference-2.jpg").doesNotContain("reference-3.jpg","file_id","http://","https://");
             assertThat(provider.usage()).hasSize(4);assertThat(provider.usage().get(2).outputTokens()).isEqualTo(200);
         } finally {server.stop(0);}
     }

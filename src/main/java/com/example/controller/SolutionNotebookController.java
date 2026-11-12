@@ -26,6 +26,42 @@ public class SolutionNotebookController {
     private final SolutionNotebookService service;
     private final ObjectMapper mapper;
     private final NotebookPhotoTrialService trial;
+    private final com.example.service.notebook.HandwrittenSolutionService live;
+
+    @GetMapping("/live-config")
+    public ResponseEntity<com.example.service.notebook.HandwrittenSolutionService.LiveConfig> liveConfig(HttpServletRequest request, Authentication authentication) {
+        return json(live.configuration(owner(request, authentication)));
+    }
+    @PostMapping("/live-jobs")
+    public ResponseEntity<JobView> livePhoto(HttpServletRequest request, Authentication authentication,
+                                            @RequestParam(defaultValue="0") int rotation) throws IOException {
+        Owner owner = owner(request, authentication);
+        live.requireReady(owner);
+        if (!"notebook-v1".equals(request.getHeader("X-Notebook-Consent")))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "사진과 풀이의 외부 전송 안내를 확인해주세요.");
+        if (!Set.of("image/jpeg", "image/png").contains(java.util.Objects.toString(request.getContentType(), "")))
+            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "JPG 또는 PNG 사진이 필요합니다.");
+        if (request.getContentLengthLong() > NotebookPhotoCodec.MAX_BYTES)
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "사진 용량이 너무 큽니다.");
+        byte[] bytes = request.getInputStream().readNBytes(NotebookPhotoCodec.MAX_BYTES + 1);
+        try {return json(live.start(owner, bytes, rotation));}
+        finally {java.util.Arrays.fill(bytes, (byte)0);}
+    }
+    @GetMapping("/live-jobs/{id}")
+    public ResponseEntity<JobView> liveStatus(@PathVariable String id, HttpServletRequest request, Authentication authentication) {
+        return json(live.status(owner(request, authentication), id));
+    }
+    @GetMapping("/live-jobs/{id}/image")
+    public ResponseEntity<byte[]> liveImage(@PathVariable String id, HttpServletRequest request, Authentication authentication) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).contentType(MediaType.IMAGE_PNG)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=kim-math-solution.png")
+                .header("X-Content-Type-Options", "nosniff").body(live.image(owner(request, authentication), id));
+    }
+    @DeleteMapping("/live-jobs/{id}")
+    public ResponseEntity<Void> liveDelete(@PathVariable String id, HttpServletRequest request, Authentication authentication) {
+        live.delete(owner(request, authentication), id);
+        return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
+    }
 
     @GetMapping("/trial-config")
     public ResponseEntity<NotebookPhotoTrialService.TrialConfig> trialConfig(HttpServletRequest request, Authentication authentication) {

@@ -40,12 +40,21 @@ services:
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SOLUTION_NOTEBOOK_ENABLED=${SOLUTION_NOTEBOOK_ENABLED:-false}
+      - SOLUTION_NOTEBOOK_REFERENCE_DIR=/run/notebook-references
+      - SOLUTION_NOTEBOOK_USAGE_DIR=/var/lib/kim-math/notebook-usage
+      - SOLUTION_NOTEBOOK_DAILY_LIMIT=${SOLUTION_NOTEBOOK_DAILY_LIMIT:-2}
+      - SOLUTION_NOTEBOOK_GLOBAL_DAILY_LIMIT=${SOLUTION_NOTEBOOK_GLOBAL_DAILY_LIMIT:-20}
+      - SOLUTION_NOTEBOOK_GLOBAL_MONTHLY_LIMIT=${SOLUTION_NOTEBOOK_GLOBAL_MONTHLY_LIMIT:-200}
       - PUSH_ENABLED=${PUSH_ENABLED:-false}
       - PARENT_CONSENT_REQUIRED=${PARENT_CONSENT_REQUIRED:-false}
       - STUDENT_UI_V2_DEFAULT_ACADEMY_IDS=${STUDENT_UI_V2_DEFAULT_ACADEMY_IDS:-2,4}
       - FCM_CREDENTIALS_PATH=/run/secrets/firebase_adminsdk
     secrets:
       - firebase_adminsdk
+    volumes:
+      - notebook-usage:/var/lib/kim-math/notebook-usage
+      - ${SOLUTION_NOTEBOOK_REFERENCE_HOST_DIR:-./notebook-reference-data}:/run/notebook-references:ro
     networks:
       - kim-math-network
     depends_on:
@@ -96,6 +105,8 @@ networks:
     driver: bridge
 
 volumes:
+  notebook-usage:
+    driver: local
   mysql-data:
     driver: local
 

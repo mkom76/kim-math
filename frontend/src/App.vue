@@ -25,6 +25,7 @@ const drawerVisible = ref(false)
 
 const isLoginPage = computed(() => route.path === '/login')
 const isExamTimer = computed(() => route.path === '/exam-timer')
+const isNotebook = computed(() => ['/solution-notebook', '/student/solution-notebook'].includes(route.path))
 const isTeacherRoute = computed(
   () => currentUser.value.role === 'TEACHER' && !isLoginPage.value && !isExamTimer.value,
 )
@@ -114,7 +115,7 @@ onBeforeUnmount(() => {
 <template>
   <el-container
     class="app-shell"
-    :class="{ 'student-ui-v2': isStudentV2, 'teacher-app-shell': isTeacherRoute }"
+    :class="{ 'student-ui-v2': isStudentV2, 'teacher-app-shell': isTeacherRoute, 'notebook-app-shell': isNotebook }"
     style="
       min-height: 100vh;
       min-height: 100dvh;
@@ -268,6 +269,7 @@ onBeforeUnmount(() => {
     <el-main
       :class="{
         'student-app-main': isStudentV2,
+        'notebook-app-main': isNotebook,
         'has-student-nav': isStudentV2 && showStudentNav,
       }"
       :style="{
@@ -290,6 +292,9 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+@media (max-width: 768px) {
+  .notebook-app-main { padding-left: 0 !important; padding-right: 0 !important; }
+}
 .el-menu-item.is-active {
   background-color: #ecf5ff !important;
   color: #409eff !important;

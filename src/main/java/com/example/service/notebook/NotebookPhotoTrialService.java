@@ -42,7 +42,7 @@ public class NotebookPhotoTrialService {
     public synchronized TrialConfig configuration(Owner owner) {
         purge(); boolean used = marker != null && Files.exists(marker);
         return new TrialConfig(allowed(owner) && ai.ready() && !used, allowed(owner) && used, "live",
-                "개인정보 없는 샘플 1건의 실제 API 시험입니다. 사진·풀이와 필체 참고 3개를 OpenAI로 전송합니다. 예상 $0.08~$0.15, 승인 시험 예산 $1이며 확정 과금 상한은 아닙니다. 실패도 사용 횟수에 포함되며 자동 재시도하지 않습니다.",
+                "개인정보 없는 샘플 1건의 실제 API 시험입니다. 사진·풀이와 필체 참고 2개를 OpenAI로 전송합니다. 예상 $0.08~$0.15, 승인 시험 예산 $1이며 확정 과금 상한은 아닙니다. 실패도 사용 횟수에 포함되며 자동 재시도하지 않습니다.",
                 allowed(owner) && ai instanceof OpenAiNotebookPhotoAi provider ? provider.usage() : List.of(),
                 allowed(owner) && ai instanceof OpenAiNotebookPhotoAi provider ? provider.failures() : List.of());
     }
