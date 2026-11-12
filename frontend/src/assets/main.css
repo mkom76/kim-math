@@ -6,6 +6,10 @@
   font-weight: normal;
 }
 
+@media (max-width: 768px) {
+  #app:has(> .notebook-app-shell) { padding: 0; }
+}
+
 /* The preview student UI owns its mobile gutters. Keep the legacy shell intact. */
 #app.student-ui-v2-root {
   width: 100%;

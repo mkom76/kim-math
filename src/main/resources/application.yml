@@ -62,6 +62,14 @@ youtube:
 # 켜려면 PUSH_ENABLED=true + FCM_CREDENTIALS_PATH(서비스계정 JSON 경로) 지정.
 # 경로를 비워두면 GOOGLE_APPLICATION_CREDENTIALS(ADC)로 폴백.
 app:
+  solution-notebook:
+    references-dir: ${SOLUTION_NOTEBOOK_REFERENCE_DIR:}
+    live:
+      enabled: ${SOLUTION_NOTEBOOK_ENABLED:false}
+      usage-dir: ${SOLUTION_NOTEBOOK_USAGE_DIR:}
+      daily-limit: ${SOLUTION_NOTEBOOK_DAILY_LIMIT:3}
+      global-daily-limit: ${SOLUTION_NOTEBOOK_GLOBAL_DAILY_LIMIT:20}
+      global-monthly-limit: ${SOLUTION_NOTEBOOK_GLOBAL_MONTHLY_LIMIT:200}
   consent:
     parent-required: ${PARENT_CONSENT_REQUIRED:false}
   student-ui:

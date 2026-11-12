@@ -55,6 +55,16 @@ const startPreview = async () => {
       </div>
     </el-card>
 
+    <el-card shadow="never" style="margin-bottom: 24px">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap">
+        <div>
+          <div style="font-size: 16px; font-weight: 600">Q&A</div>
+          <p style="font-size: 13px; color: #909399">문제 사진으로 선생님 스타일의 손글씨 해설을 받아요.</p>
+        </div>
+        <el-button type="primary" plain @click="router.push(authStore.role === 'STUDENT' ? '/student/solution-notebook' : '/solution-notebook')">풀이 받기</el-button>
+      </div>
+    </el-card>
+
     <!-- AI Feedback Prompt Settings -->
     <el-card
       v-if="authStore.role === 'TEACHER'"

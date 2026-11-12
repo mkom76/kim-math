@@ -35,6 +35,7 @@ const tabs: Tab[] = [
     icon: MoreFilled,
     matchPrefix: [
       '/student/more',
+      '/student/solution-notebook',
       '/student/statistics',
       '/student/stats',
       '/student/notifications',

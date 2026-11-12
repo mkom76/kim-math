@@ -53,6 +53,7 @@ firebase-service-account*.json
 fcm-service-account*.json
 *firebase-adminsdk*.json
 secrets/
+notebook-reference-data/
 
 ### Android Release Signing ###
 **/*.jks

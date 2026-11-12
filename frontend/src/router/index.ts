@@ -58,6 +58,18 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresRole: 'TEACHER' }
     },
     {
+      path: '/solution-notebook',
+      name: 'solution-notebook',
+      component: () => import('../views/HandwrittenSolutionView.vue'),
+      meta: { requiresAuth: true, requiresRole: 'TEACHER' }
+    },
+    {
+      path: '/student/solution-notebook',
+      name: 'student-solution-notebook',
+      component: () => import('../views/HandwrittenSolutionView.vue'),
+      meta: { requiresAuth: true, requiresRole: 'STUDENT' }
+    },
+    {
       path: '/exam-timer',
       name: 'exam-timer',
       component: () => import('../views/ExamTimerView.vue'),
