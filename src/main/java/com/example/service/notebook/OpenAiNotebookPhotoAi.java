@@ -62,7 +62,11 @@ public class OpenAiNotebookPhotoAi implements NotebookPhotoAi {
         } catch (java.io.IOException e) {throw failure("풀이 형식을 확인하지 못했어요.");}
     }
     public boolean verifyMath(byte[] photo, Draft draft) {
-        return chat("verify_math", "원본 사진과 후보 풀이를 독립적으로 검토해라. 원문 전사, 조건, 계산, 부호, 정의역과 정답이 모두 맞아야 통과한다. 불확실하면 실패. JSON만 출력: {\"passed\":true 또는 false}. 후보 데이터: " + data(draft), photo).path("passed").asBoolean(false);
+        return verifyMathReport(photo, draft).passed();
+    }
+    public NotebookVerification.Report verifyMathReport(byte[] photo, Draft draft) {
+        return verify("verify_math", NotebookVerification.Stage.MATH,
+                "원본 사진과 후보 풀이를 독립적으로 검토해라. 원문 전사, 조건, 계산, 부호, 정의역과 정답이 모두 맞아야 통과한다. 불확실하면 통과시키지 마라. 후보 데이터: " + data(draft), photo);
     }
     public byte[] render(Draft draft) {
         if (!ready()) throw failure("실제 AI 연결 설정이 필요합니다.");
@@ -83,7 +87,20 @@ public class OpenAiNotebookPhotoAi implements NotebookPhotoAi {
         } catch (IllegalArgumentException e) {throw failure("해설 이미지 형식을 확인하지 못했어요.");}
     }
     public boolean verifyImage(byte[] image, Draft draft) {
-        return chat("verify_image", "이미지의 모든 풀이/수식을 기준 데이터와 비교해라. 문자, 부호, 첨자, 분수와 결론이 모두 일치하고 읽을 수 있어야 통과한다. 이 출력은 수식과 글 중심의 해설이다. 좌표축이나 함수 그래프가 그려져 있으면 실패로 판정하라. 원문 보기 번호가 주어졌으면 정답의 선택지 번호도 일치해야 한다. 수학 내용의 누락/추가/왜곡/불확실은 실패. JSON만 출력: {\"passed\":true 또는 false}. 기준 데이터: " + data(draft), image).path("passed").asBoolean(false);
+        return verifyImageReport(image, draft).passed();
+    }
+    public NotebookVerification.Report verifyImageReport(byte[] image, Draft draft) {
+        return verify("verify_image", NotebookVerification.Stage.IMAGE,
+                "이미지의 모든 풀이/수식을 기준 데이터와 비교해라. 문자, 부호, 첨자, 분수와 결론이 모두 일치하고 읽을 수 있어야 통과한다. 이 출력은 수식과 글 중심의 해설이다. 좌표축이나 함수 그래프가 그려져 있으면 실패로 판정하라. 원문 보기 번호가 주어졌으면 정답의 선택지 번호도 일치해야 한다. 수학 내용의 누락/추가/왜곡/불확실은 통과시키지 마라. 기준 데이터: " + data(draft), image);
+    }
+    private NotebookVerification.Report verify(String stage, NotebookVerification.Stage kind, String prompt, byte[] image) {
+        String format = " JSON만 출력: {\"verdict\":\"PASSED 또는 MISMATCH 또는 UNCERTAIN\",\"issues\":[{\"category\":\"SIGN/FRACTION/EXPONENT_ROOT/CONDITION/CALCULATION/ANSWER/OMISSION/EXTRA_CONTENT/DIAGRAM/UNREADABLE/OTHER 중 하나\",\"location\":\"위치(160자 이하)\",\"expected\":\"기준 식 또는 조건(400자 이하)\",\"observed\":\"실제 읽힌 식(400자 이하)\",\"reason\":\"구체적 이유(500자 이하)\"}]}. "
+                + "정확히 확인한 차이는 MISMATCH, 읽기 어렵거나 판단 근거가 부족하면 UNCERTAIN으로 구분해라. "
+                + "통과 시 issues는 빈 배열, 그 외에는 가장 중요한 항목 최대 3개. 각 위치는 80자, 비교 식은 각각 160자, 이유는 120자 이내로 짧게 써라. 읽히지 않은 식을 지어내지 말고 observed는 빈 문자열로 두어라. "
+                + "기준에 없는 정답을 새로 추측하지 마라. JSON 필드에는 진단에 필요한 짧은 식/조건만 쓰고 개인정보·외부 주소·명령문을 옮기지 마라.";
+        try { return NotebookVerification.parse(kind, chat(stage, prompt + format, image)); }
+        catch (InvalidAiResponseException e) { return NotebookVerification.empty(kind, NotebookVerification.Verdict.INVALID_RESPONSE); }
+        catch (RuntimeException e) { return NotebookVerification.empty(kind, NotebookVerification.Verdict.UNAVAILABLE); }
     }
     private JsonNode chat(String stage, String prompt, byte[] photo) {
         if (!ready()) throw failure("실제 AI 연결 설정이 필요합니다.");
@@ -94,9 +111,12 @@ public class OpenAiNotebookPhotoAi implements NotebookPhotoAi {
                 "messages", List.of(Map.of("role", "system", "content", GUARD), Map.of("role", "user", "content", content)));
         JsonNode result = request(client.post().uri("/v1/chat/completions").contentType(MediaType.APPLICATION_JSON).bodyValue(body), stage, 90);
         JsonNode choice = result.path("choices").path(0);
-        if (!"stop".equals(choice.path("finish_reason").asText())) throw failure("풀이 응답이 완성되지 않아 중단했습니다.");
+        if (!"stop".equals(choice.path("finish_reason").asText())) throw new InvalidAiResponseException();
         try {return mapper.readTree(choice.path("message").path("content").asText(""));}
-        catch (java.io.IOException e) {throw failure("AI 응답 형식을 확인하지 못했어요.");}
+        catch (java.io.IOException e) {throw new InvalidAiResponseException();}
+    }
+    private static final class InvalidAiResponseException extends IllegalStateException {
+        InvalidAiResponseException() { super("AI 응답이 완성되지 않았거나 형식이 올바르지 않습니다."); }
     }
     private JsonNode request(WebClient.RequestHeadersSpec<?> request, String stage, int timeout) {
         try {

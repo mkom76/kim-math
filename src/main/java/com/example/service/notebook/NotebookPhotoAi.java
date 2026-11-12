@@ -9,4 +9,10 @@ public interface NotebookPhotoAi {
     boolean verifyMath(byte[] photo, Draft draft);
     byte[] render(Draft draft);
     boolean verifyImage(byte[] image, Draft draft);
+    default NotebookVerification.Report verifyMathReport(byte[] photo, Draft draft) {
+        return NotebookVerification.legacy(NotebookVerification.Stage.MATH, verifyMath(photo, draft));
+    }
+    default NotebookVerification.Report verifyImageReport(byte[] image, Draft draft) {
+        return NotebookVerification.legacy(NotebookVerification.Stage.IMAGE, verifyImage(image, draft));
+    }
 }

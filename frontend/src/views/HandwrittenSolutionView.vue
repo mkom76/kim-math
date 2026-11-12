@@ -21,7 +21,9 @@ import {
   type NotebookLiveConfig,
   type NotebookJob,
   type NotebookSolution,
+  type NotebookVerification,
 } from '@/api/solutionNotebook'
+import NotebookVerificationPanel from '@/components/NotebookVerificationPanel.vue'
 import sampleUrl from '@/assets/handwriting-solution-sample.png'
 
 const router = useRouter(),
@@ -52,6 +54,7 @@ const dailyLimitReached = computed(
 )
 const trialConsent = ref(false)
 const resultMode = ref<'mock' | 'live'>('mock')
+const verification = ref<NotebookVerification | null>(null)
 const resultImage = ref(''),
   resultSolution = ref<NotebookSolution | null>(null),
   resultMessage = ref('')
@@ -126,6 +129,7 @@ function clearResult() {
   resultSolution.value = null
   resultMessage.value = ''
   resultMode.value = 'mock'
+  verification.value = null
   expanded.value = false
   clearTimeout(expiryTimer)
 }
@@ -238,7 +242,17 @@ async function poll(job: NotebookJob, n: number): Promise<NotebookJob> {
     )(job.id, signal)
     if (job.mode !== mode) throw new Error('허용되지 않은 API 모드입니다.')
   }
-  if (job.state === 'FAILED') throw new Error(job.message)
+  if (n !== epoch) throw new Error('취소된 작업입니다.')
+  verification.value = job.verification ?? null
+  if (job.state === 'FAILED') {
+    expiryTimer = setTimeout(
+      () => {
+        verification.value = null
+      },
+      Math.max(0, Date.parse(job.expiresAt) - Date.now()),
+    )
+    throw new Error(job.message)
+  }
   return job
 }
 async function photoBlob(source: string): Promise<Blob> {
@@ -678,6 +692,7 @@ onBeforeUnmount(() => {
         </section>
       </div>
       <div class="output-stack">
+        <NotebookVerificationPanel :report="verification" />
         <section class="notebook-card result-card">
           <div class="notebook-card-title">
             <h2><span>02</span>나의 해설 노트</h2>

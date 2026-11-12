@@ -86,23 +86,27 @@ public class HandwrittenSolutionService {
             var draft = ai.solve(job.photo);
             synchronized (this) {if (!alive(job)) return; job.question = draft.question();}
             if (!stage(job, State.VERIFYING)) return;
-            if (!ai.verifyMath(job.photo, draft)) {
-                synchronized (this) {if (alive(job)) {job.state = State.FAILED; job.message = "수식이나 계산을 확실히 확인하지 못했어요. 문제를 선명하게 다시 촬영해주세요.";}}
+            var mathReport = ai.verifyMathReport(job.photo, draft);
+            synchronized (this) {if (!alive(job)) return; job.verification = mathReport;}
+            if (!mathReport.passed()) {
+                synchronized (this) {if (alive(job)) {job.state = State.FAILED; job.message = "문제와 풀이의 수학 검증을 통과하지 못했어요. 아래 검증 내용을 확인해주세요.";}}
                 return;
             }
             synchronized (this) {if (!alive(job)) return; job.solution = draft.solution();}
             if (!stage(job, State.RENDERING)) return;
             byte[] image = ai.render(draft);
             if (!stage(job, State.CHECKING_IMAGE)) {Arrays.fill(image, (byte)0); return;}
-            boolean passed = ai.verifyImage(image, draft);
+            var imageReport = ai.verifyImageReport(image, draft);
+            boolean passed = imageReport.passed();
             synchronized (this) {
                 if (!alive(job)) {Arrays.fill(image, (byte)0); return;}
+                job.verification = imageReport;
                 job.verified = passed; job.image = passed ? image : null;
                 if (!passed) Arrays.fill(image, (byte)0);
                 job.state = passed ? State.SUCCEEDED : State.REVIEW_REQUIRED;
                 job.message = preview ? "로컬 검증용 가짜 결과입니다. 실제 사진을 분석한 해설이 아닙니다."
                         : passed ? "손글씨 해설이 준비됐어요. AI 해설에는 오류가 있을 수 있으니 풀이와 답을 확인해주세요."
-                        : "이미지의 수식을 확인하지 못해 풀이 텍스트만 제공합니다.";
+                        : "손글씨 이미지가 검증을 통과하지 못해 풀이 텍스트를 제공합니다. 아래 검증 내용을 확인해주세요.";
             }
         } catch (Exception e) {
             synchronized (this) {if (alive(job)) {
@@ -126,14 +130,14 @@ public class HandwrittenSolutionService {
     private synchronized boolean stage(Job j, State s) {if (!alive(j)) return false; j.state = s; return true;}
     private boolean alive(Job j) {return jobs.get(j.id) == j && clock.instant().isBefore(j.expiresAt);}
     private Job find(Owner o, String id) {purge(); var j = jobs.get(id); if (j == null || !j.owner.equals(o)) throw error(HttpStatus.NOT_FOUND, "작업이 없거나 접근할 수 없습니다. 만료됐다면 다시 시작해주세요."); return j;}
-    private JobView view(Job j) {return new JobView(j.id, Kind.SOLUTION, j.state, "live", j.question, List.of(), j.solution, j.verified && j.image != null, j.verified, j.message, j.expiresAt);}
+    private JobView view(Job j) {return new JobView(j.id, Kind.SOLUTION, j.state, "live", j.question, List.of(), j.solution, j.verified && j.image != null, j.verified, j.message, j.expiresAt, j.verification);}
     private synchronized void purge() {var expired = jobs.values().stream().filter(j -> !clock.instant().isBefore(j.expiresAt)).toList(); for (var j : expired) {jobs.remove(j.id); clear(j);}}
     private void clear(Job j) {if (j.task != null) j.task.cancel(true); Arrays.fill(j.photo, (byte)0); if (j.image != null) Arrays.fill(j.image, (byte)0);}
     @PreDestroy public synchronized void close() {for (var j : jobs.values()) clear(j); jobs.clear(); workers.shutdownNow(); cleaner.shutdownNow();}
     private static ResponseStatusException error(HttpStatus status, String message) {return new ResponseStatusException(status, message);}
     private static final class Job {
         final String id; final Owner owner; final Instant expiresAt; final byte[] photo;
-        Future<?> task; State state = State.QUEUED; String question = "", message = "풀이를 준비하고 있어요."; Solution solution; byte[] image; boolean verified;
+        Future<?> task; State state = State.QUEUED; String question = "", message = "풀이를 준비하고 있어요."; Solution solution; byte[] image; boolean verified; NotebookVerification.Report verification;
         Job(String id, Owner owner, Instant expiresAt, byte[] photo) {this.id=id; this.owner=owner; this.expiresAt=expiresAt; this.photo=photo;}
     }
 }

@@ -350,6 +350,19 @@ describe('손글씨 풀이 시제품의 샘플 구분과 사진 수명', () => {
       imageAvailable: false,
       verified: false,
       message: '모의 이미지 검토 실패',
+      verification: {
+        stage: 'IMAGE',
+        verdict: 'MISMATCH',
+        issues: [
+          {
+            category: 'FRACTION',
+            location: '두 번째 줄',
+            expected: '2/(x−2)',
+            observed: '2/x−2',
+            reason: '분모의 괄호가 빠졌습니다.',
+          },
+        ],
+      },
       expiresAt: new Date(Date.now() + 600000).toISOString(),
     })
     const view = mountView()
@@ -360,7 +373,57 @@ describe('손글씨 풀이 시제품의 샘플 구분과 사진 수명', () => {
     expect(api.image).not.toHaveBeenCalled()
     expect(view.find('a[download]').exists()).toBe(false)
     expect(view.get('.solution-text').text()).toContain('모의 풀이')
+    expect(view.get('[aria-label="검증 상세"]').text()).toContain('분모의 괄호가 빠졌습니다')
+    await choose(view, new File(['new'], 'new.png', { type: 'image/png' }))
+    expect(view.find('[aria-label="검증 상세"]').exists()).toBe(false)
     view.unmount()
+  })
+  it('수학 검증 실패에서도 진단을 보여주고 만료되면 비운다', async () => {
+    vi.useFakeTimers()
+    try {
+      api.config.mockResolvedValue({ enabled: true, mode: 'mock', fixture: 'rational-asymptote' })
+      api.read.mockResolvedValue({
+        id: 'read',
+        state: 'SUCCEEDED',
+        mode: 'mock',
+        question: '가상 문제',
+      })
+      api.solve.mockResolvedValue({
+        id: 'solve',
+        state: 'FAILED',
+        mode: 'mock',
+        question: '가상 문제',
+        solution: null,
+        imageAvailable: false,
+        verified: false,
+        message: '수학 검증 중단',
+        expiresAt: new Date(Date.now() + 1000).toISOString(),
+        verification: {
+          stage: 'MATH',
+          verdict: 'UNCERTAIN',
+          issues: [
+            {
+              category: 'CONDITION',
+              location: '첫 줄',
+              expected: 'x>0',
+              observed: '',
+              reason: '부등호를 확인하기 어렵습니다.',
+            },
+          ],
+        },
+      })
+      const view = mountView()
+      await flushPromises()
+      await view.get('.mock-read-button').trigger('click')
+      await flushPromises()
+      expect(view.get('[aria-label="검증 상세"]').text()).toContain('부등호를 확인하기 어렵습니다')
+      expect(api.image).not.toHaveBeenCalled()
+      await vi.advanceTimersByTimeAsync(1001)
+      expect(view.find('[aria-label="검증 상세"]').exists()).toBe(false)
+      view.unmount()
+    } finally {
+      vi.useRealTimers()
+    }
   })
   it('모의 API 오류는 재시도 안내로 표시하고 결과를 만들지 않는다', async () => {
     api.config.mockResolvedValue({ enabled: true, mode: 'mock', fixture: 'rational-asymptote' })
