@@ -71,14 +71,18 @@ public class NotebookPhotoTrialService {
             var draft = ai.solve(photo);
             synchronized (this) {if (!alive(current)) return; current.question = draft.question();}
             if (!stage(current, State.VERIFYING)) return;
-            if (!ai.verifyMath(photo, draft)) {fail(current, "문제의 조건이나 계산을 확인하지 못해 이미지 생성 전에 중단했습니다."); return;}
+            var mathReport = ai.verifyMathReport(photo, draft);
+            synchronized (this) {if (!alive(current)) return; current.verification = mathReport;}
+            if (!mathReport.passed()) {fail(current, "문제와 풀이의 수학 검증을 통과하지 못했어요. 아래 검증 내용을 확인해주세요."); return;}
             synchronized (this) {if (!alive(current)) return; current.solution = draft.solution();}
             if (!stage(current, State.RENDERING)) return;
             byte[] image = ai.render(draft);
             if (!stage(current, State.CHECKING_IMAGE)) return;
-            boolean passed = ai.verifyImage(image, draft);
+            var imageReport = ai.verifyImageReport(image, draft);
+            boolean passed = imageReport.passed();
             synchronized (this) {
                 if (!alive(current)) return;
+                current.verification = imageReport;
                 current.verified = passed; current.image = passed ? image : null;
                 current.state = passed ? State.SUCCEEDED : State.REVIEW_REQUIRED;
                 current.message = passed ? "실제 문제 사진으로 만든 시험용 AI 해설입니다. 오류가 있을 수 있으니 확인해주세요." : "검토한 수식과 이미지가 일치하지 않아 이미지 대신 풀이 텍스트만 제공합니다.";
@@ -106,14 +110,14 @@ public class NotebookPhotoTrialService {
     private synchronized void fail(Job j, String message) {if (alive(j)) {j.state = State.FAILED; j.message = message;}}
     private boolean alive(Job j) {return job == j && clock.instant().isBefore(j.expiresAt);}
     private Job find(Owner owner, String id) {purge(); if (job == null || !job.id.equals(id) || !job.owner.equals(owner)) throw error(HttpStatus.NOT_FOUND, "작업이 없거나 접근할 수 없습니다."); return job;}
-    private JobView view(Job j) {return new JobView(j.id, Kind.SOLUTION, j.state, "live", j.question, List.of(), j.solution, j.image != null && j.verified, j.verified, j.message, j.expiresAt);}
+    private JobView view(Job j) {return new JobView(j.id, Kind.SOLUTION, j.state, "live", j.question, List.of(), j.solution, j.image != null && j.verified, j.verified, j.message, j.expiresAt, j.verification);}
     private synchronized void purge() {if (job != null && !clock.instant().isBefore(job.expiresAt)) clear();}
     private void clear() {if (job != null && job.image != null) Arrays.fill(job.image, (byte)0); job = null; if (task != null) task.cancel(true);}
     @PreDestroy public synchronized void close() {clear(); worker.shutdownNow(); cleaner.shutdownNow();}
     private static ResponseStatusException error(HttpStatus status, String text) {return new ResponseStatusException(status, text);}
     private static class Job {
         final String id; final Owner owner; final Instant expiresAt;
-        State state = State.QUEUED; String question = "", message = "실제 API 시험 처리 중"; Solution solution; byte[] image; boolean verified;
+        State state = State.QUEUED; String question = "", message = "실제 API 시험 처리 중"; Solution solution; byte[] image; boolean verified; NotebookVerification.Report verification;
         Job(String id, Owner owner, Instant expiresAt) {this.id=id; this.owner=owner; this.expiresAt=expiresAt;}
     }
 }

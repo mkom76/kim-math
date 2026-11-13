@@ -35,7 +35,7 @@ class NotebookPhotoTrialControllerTest {
         when(ai.ready()).thenReturn(true);
         var draft=new NotebookPhotoAi.Draft("1+1?",new Solution("더하기",List.of("1+1=2"),"2",""));
         var out=new ByteArrayOutputStream();javax.imageio.ImageIO.write(new BufferedImage(40,20,BufferedImage.TYPE_INT_RGB),"png",out);byte[] png=out.toByteArray();
-        when(ai.solve(any())).thenReturn(draft);when(ai.verifyMath(any(),any())).thenReturn(true);when(ai.render(any())).thenReturn(png);when(ai.verifyImage(any(),any())).thenReturn(true);
+        when(ai.solve(any())).thenReturn(draft);when(ai.verifyMathReport(any(),any())).thenReturn(NotebookVerification.legacy(NotebookVerification.Stage.MATH,true));when(ai.render(any())).thenReturn(png);when(ai.verifyImageReport(any(),any())).thenReturn(NotebookVerification.legacy(NotebookVerification.Stage.IMAGE,true));
         var s=session(1L);
         mvc.perform(post("/api/solution-notebook/photo-jobs").session(s).with(csrf()).contentType("image/png").content(png)).andExpect(status().isBadRequest());
         mvc.perform(post("/api/solution-notebook/photo-jobs").session(s).with(csrf()).header("X-Notebook-Consent","sample-v1").contentType("image/png").content(new byte[4*1024*1024+1])).andExpect(status().isPayloadTooLarge());

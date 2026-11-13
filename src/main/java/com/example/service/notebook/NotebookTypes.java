@@ -17,7 +17,13 @@ public final class NotebookTypes {
     public record Solution(String title, List<String> steps, String answer, String diagram) {}
     public record JobView(String id, Kind kind, State state, String mode, String question,
                           List<String> uncertainties, Solution solution, boolean imageAvailable,
-                          boolean verified, String message, Instant expiresAt) {}
+                          boolean verified, String message, Instant expiresAt, NotebookVerification.Report verification) {
+        public JobView(String id, Kind kind, State state, String mode, String question,
+                       List<String> uncertainties, Solution solution, boolean imageAvailable,
+                       boolean verified, String message, Instant expiresAt) {
+            this(id, kind, state, mode, question, uncertainties, solution, imageAvailable, verified, message, expiresAt, null);
+        }
+    }
     public record Configuration(boolean enabled, String mode, String fixture, String sampleQuestion,
                                 int dailySolutionLimit, int readLimit, int retentionMinutes,
                                 String notice) {}

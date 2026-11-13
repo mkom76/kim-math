@@ -43,6 +43,29 @@ export interface NotebookJob {
   verified: boolean
   message: string
   expiresAt: string
+  verification?: NotebookVerification | null
+}
+export interface NotebookVerification {
+  stage: 'MATH' | 'IMAGE'
+  verdict: 'PASSED' | 'MISMATCH' | 'UNCERTAIN' | 'INVALID_RESPONSE' | 'UNAVAILABLE'
+  issues: {
+    category:
+      | 'SIGN'
+      | 'FRACTION'
+      | 'EXPONENT_ROOT'
+      | 'CONDITION'
+      | 'CALCULATION'
+      | 'ANSWER'
+      | 'OMISSION'
+      | 'EXTRA_CONTENT'
+      | 'DIAGRAM'
+      | 'UNREADABLE'
+      | 'OTHER'
+    location: string
+    expected: string
+    observed: string
+    reason: string
+  }[]
 }
 export interface NotebookLiveConfig {
   enabled: boolean

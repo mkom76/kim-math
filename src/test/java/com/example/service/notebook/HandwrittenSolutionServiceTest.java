@@ -75,6 +75,34 @@ class HandwrittenSolutionServiceTest {
             } finally {s.close();}
         }
     }
+    @Test void detailedFailureRemainsBoundToJobOwnerAndDoesNotReleaseOrRegenerateImage() throws Exception {
+        for (var stage : NotebookVerification.Stage.values()) {
+            var issue = new NotebookVerification.Issue(NotebookVerification.Category.SIGN,"두 번째 줄","-3","3","음수 부호가 없습니다.");
+            var expected = new NotebookVerification.Report(stage,NotebookVerification.Verdict.MISMATCH,List.of(issue));
+            var ai = new NotebookPhotoTrialServiceTest.FakeAi() {
+                @Override public NotebookVerification.Report verifyMathReport(byte[] photo, NotebookPhotoAi.Draft draft) {
+                    verifyMath(photo,draft);
+                    return stage == NotebookVerification.Stage.MATH ? expected : NotebookVerification.legacy(NotebookVerification.Stage.MATH,true);
+                }
+                @Override public NotebookVerification.Report verifyImageReport(byte[] image, NotebookPhotoAi.Draft draft) {
+                    verifyImage(image,draft); return expected;
+                }
+            };
+            var s = service(ai);
+            try {
+                var job = complete(s,s.start(OWNER,photo(),0).id());
+                assertThat(job.verification()).isEqualTo(expected);
+                assertThat(job.state()).isEqualTo(stage == NotebookVerification.Stage.MATH ? State.FAILED : State.REVIEW_REQUIRED);
+                assertThat(job.imageAvailable()).isFalse();
+                assertThat(job.verified()).isFalse();
+                assertThat(Collections.frequency(ai.calls,"render")).isEqualTo(stage == NotebookVerification.Stage.MATH ? 0 : 1);
+                assertThatThrownBy(() -> s.image(OWNER,job.id())).isInstanceOf(ResponseStatusException.class);
+                assertThatThrownBy(() -> s.status(new Owner("STUDENT",2L,1L,1L,"session","null"),job.id())).isInstanceOf(ResponseStatusException.class);
+                s.delete(OWNER,job.id());
+                assertThatThrownBy(() -> s.status(OWNER,job.id())).isInstanceOf(ResponseStatusException.class);
+            } finally {s.close();}
+        }
+    }
     @Test void invalidPhotoMissingKeyAndDisabledFlagMakeNoAiCalls() throws Exception {
         var ai=new NotebookPhotoTrialServiceTest.FakeAi();var s=service(ai);try {
             assertThatThrownBy(()->s.start(OWNER,new byte[]{1,2},0)).isInstanceOf(ResponseStatusException.class);
