@@ -18,11 +18,12 @@ public class HomeworkPdfController {
     @GetMapping("/pdf-types") public Object types(){service.configuration();return catalog.document();}
     @PostMapping(value="/pdf-imports",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
     public View upload(@RequestParam MultipartFile file,@RequestParam Long classId,@RequestParam String subjectId,
-                       @RequestParam String requestKey,@RequestParam boolean consent) throws IOException {
+                       @RequestParam String requestKey,@RequestParam boolean consent,@RequestParam(required=false) String pages) throws IOException {
         if(file.getSize()>HomeworkPdfFiles.MAX_BYTES) throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,"PDF는 8MB 이하로 올려 주세요.");
         byte[] bytes=file.getBytes();
-        try{return service.start(bytes,file.getOriginalFilename(),classId,subjectId,requestKey,consent);}
-        finally{java.util.Arrays.fill(bytes,(byte)0);}
+        byte[] selected=null;
+        try{selected=PdfPageSelection.select(bytes,pages);return service.start(selected,file.getOriginalFilename(),classId,subjectId,requestKey,consent);}
+        finally{java.util.Arrays.fill(bytes,(byte)0);if(selected!=null&&selected!=bytes)java.util.Arrays.fill(selected,(byte)0);}
     }
     @GetMapping("/pdf-imports/{id}") public View get(@PathVariable String id){return service.read(id);}
     @GetMapping("/pdf-imports/{id}/document") public ResponseEntity<byte[]> document(@PathVariable String id){

@@ -6,6 +6,7 @@ import { Plus, Refresh, Search } from '@element-plus/icons-vue'
 import { testAPI, academyAPI, academyClassAPI, type Test, type Academy, type AcademyClass } from '../api/client'
 import { usePagination } from '../composables/usePagination'
 import { useAuthStore } from '@/stores/auth'
+import ExamPdfImportDialog from '@/components/ExamPdfImportDialog.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -15,6 +16,9 @@ const academies = ref<Academy[]>([])
 const allClasses = ref<AcademyClass[]>([])
 const searchQuery = ref('')
 const dialogVisible = ref(false)
+const pdfVisible = ref(false)
+const pdfImportId = ref<string | null>(null)
+const openPdf = (id: string | null = null) => { pdfImportId.value = id; pdfVisible.value = true }
 const editMode = ref(false)
 const creationMode = ref<'blank' | 'copy'>('blank')
 const sourceClassId = ref<number>()
@@ -57,7 +61,7 @@ const tableData = computed(() => {
 const totalItems = computed(() => filteredData.value.length)
 
 watch(() => currentTest.value.academyId, () => {
-  currentTest.value.classId = undefined
+  if (!editMode.value) currentTest.value.classId = undefined
 })
 
 const fetchTests = async () => {
@@ -65,7 +69,7 @@ const fetchTests = async () => {
   try {
     const response = await testAPI.getTests({ size: 10000 })
     tests.value = response.data.content || response.data
-  } catch (error) {
+  } catch {
     ElMessage.error('시험 목록을 불러오는데 실패했습니다.')
   } finally {
     loading.value = false
@@ -76,7 +80,7 @@ const fetchAcademies = async () => {
   try {
     const response = await academyAPI.getAcademies({ size: 10000 })
     academies.value = response.data.content || response.data
-  } catch (error) {
+  } catch {
     ElMessage.error('학원 목록을 불러오는데 실패했습니다.')
   }
 }
@@ -85,7 +89,7 @@ const fetchClasses = async () => {
   try {
     const response = await academyClassAPI.getAcademyClasses({ size: 10000 })
     allClasses.value = response.data.content || response.data
-  } catch (error) {
+  } catch {
     ElMessage.error('반 목록을 불러오는데 실패했습니다.')
   }
 }
@@ -182,7 +186,7 @@ const handleSubmit = async () => {
       // 정답 관리 페이지로 이동
       router.push(`/tests/${newTestId}/answers`)
     }
-  } catch (error) {
+  } catch {
     ElMessage.error('작업을 완료할 수 없습니다.')
   } finally {
     submitting.value = false
@@ -242,9 +246,12 @@ onMounted(() => {
           </h1>
           <p style="margin: 8px 0 0; color: #909399">시험을 생성하고 관리합니다</p>
         </div>
-        <el-button type="primary" @click="openAddDialog" :icon="Plus" size="large">
-          시험 추가
-        </el-button>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px">
+          <el-button v-if="!authStore.isAssistant" type="success" @click="openPdf()" size="large">PDF로 시험 등록</el-button>
+          <el-button type="primary" @click="openAddDialog" :icon="Plus" size="large">
+            시험 추가
+          </el-button>
+        </div>
       </div>
     </el-card>
 
@@ -287,6 +294,7 @@ onMounted(() => {
               </el-icon>
               <span style="font-weight: 500; color: #409eff">{{ row.title }}</span>
             </div>
+            <el-button v-if="row.pdfImportId && !authStore.isAssistant" text size="small" @click="openPdf(row.pdfImportId)">PDF·인식 결과</el-button>
           </template>
         </el-table-column>
 
@@ -352,6 +360,7 @@ onMounted(() => {
               <el-button
                 size="small"
                 type="danger"
+                :disabled="Boolean(row.pdfImportId)"
                 circle
                 @click="handleDelete(row)"
               >
@@ -466,7 +475,7 @@ onMounted(() => {
           <el-select
             v-model="currentTest.classId"
             placeholder="반을 선택하세요"
-            :disabled="!currentTest.academyId"
+            :disabled="!currentTest.academyId || Boolean(currentTest.pdfImportId)"
             style="width: 100%"
           >
             <el-option
@@ -505,6 +514,7 @@ onMounted(() => {
         </span>
       </template>
     </el-dialog>
+    <ExamPdfImportDialog v-if="pdfVisible" v-model:visible="pdfVisible" :classes="allClasses" :academy-id="authStore.activeAcademyId" :import-id="pdfImportId" @saved="fetchTests" />
   </div>
 </template>
 

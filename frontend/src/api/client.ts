@@ -233,6 +233,7 @@ export interface ConsentInfo {
 }
 
 interface Test {
+  pdfImportId?: string;
   id?: number;
   title: string;
   academyId?: number;

@@ -11,6 +11,22 @@ spec.loader.exec_module(ops)
 
 
 class ProductionGuardTests(unittest.TestCase):
+    def test_paired_backup_includes_exam_originals_when_schema_exists(self):
+        homework = 'a' * 36 + '\t' + 'b' * 64
+        exam = 'c' * 36 + '\t' + 'd' * 64
+        with patch.object(ops, 'sql', side_effect=['1', homework + '\n' + exam]) as sql:
+            self.assertEqual(len(ops.registered_originals()), 2)
+            self.assertIn('UNION ALL SELECT storage_key,file_sha256 FROM exam_pdf_imports', sql.call_args.args[0])
+        with patch.object(ops, 'sql', side_effect=['0', homework]) as sql:
+            self.assertEqual(len(ops.registered_originals()), 1)
+            self.assertNotIn('exam_pdf_imports', sql.call_args.args[0])
+
+    def test_duplicate_original_keys_are_rejected_before_archiving(self):
+        row = 'a' * 36 + '\t' + 'b' * 64
+        with patch.object(ops, 'sql', side_effect=['1', row + '\n' + row]):
+            with self.assertRaisesRegex(RuntimeError, 'Invalid registered original metadata'):
+                ops.registered_originals()
+
     def test_wrong_database_fingerprint_stops_operation(self):
         with patch.object(ops, 'sql', return_value='kim_math\t8.0.46\twrong-server'):
             with self.assertRaisesRegex(RuntimeError, 'target does not match'):

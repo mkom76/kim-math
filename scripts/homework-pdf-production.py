@@ -377,15 +377,25 @@ def activate(expected):
         raise
 
 
+def registered_originals():
+    query = "SELECT storage_key,file_sha256 FROM homework_pdf_imports WHERE state='REGISTERED'"
+    # Older deployments have only homework imports. Once present, exam originals
+    # must be checked against the same private volume archive as well.
+    if sql("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='exam_pdf_imports';") == '1':
+        query += " UNION ALL SELECT storage_key,file_sha256 FROM exam_pdf_imports WHERE state='REGISTERED'"
+    rows = [line.split('\t') for line in sql(query + ';').splitlines()]
+    required = dict(rows)
+    if len(required) != len(rows) or any(not re.fullmatch('[a-f0-9-]{36}', key) or not re.fullmatch('[a-f0-9]{64}', digest) for key, digest in required.items()):
+        raise RuntimeError('Invalid registered original metadata')
+    return required
+
+
 def backup_pair(expected):
     verify_runtime(expected)
     directory = backup_directory()
     backup = backup_database(directory)
     # Registered originals are immutable; archive after the DB snapshot so every snapshot reference exists.
-    originals = sql("SELECT storage_key,file_sha256 FROM homework_pdf_imports WHERE state='REGISTERED' ORDER BY id;")
-    required = dict(line.split('\t') for line in originals.splitlines())
-    if any(not re.fullmatch('[a-f0-9-]{36}', key) or not re.fullmatch('[a-f0-9]{64}', digest) for key, digest in required.items()):
-        raise RuntimeError('Invalid registered original metadata')
+    required = registered_originals()
     archive = directory / 'pdf-originals.tar.gz'
     image = inspect('kim-math-backend', '{{.Image}}')
     with open(archive, 'xb') as target, tempfile.TemporaryFile() as errors:

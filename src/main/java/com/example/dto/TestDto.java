@@ -22,6 +22,7 @@ public class TestDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Integer questionCount;
+    private String pdfImportId;
 
     public static TestDto from(Test test) {
         return TestDto.builder()

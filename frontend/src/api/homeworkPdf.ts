@@ -23,10 +23,11 @@ export interface PdfRegistration {
 }
 export const homeworkPdfAPI = {
   config: () => client.get<PdfConfig>('/homeworks/pdf-config'),
-  upload: (file: File, classId: number, subjectId: string, requestKey: string, consent: boolean) => {
+  upload: (file: File, classId: number, subjectId: string, requestKey: string, consent: boolean, pages?: string) => {
     const data = new FormData()
     data.append('file', file); data.append('classId', String(classId)); data.append('subjectId', subjectId)
     data.append('requestKey', requestKey); data.append('consent', String(consent))
+    if (pages?.trim()) data.append('pages', pages.trim())
     return client.post<PdfImport>('/homeworks/pdf-imports', data, { headers: { 'Content-Type': undefined } })
   },
   get: (id: string) => client.get<PdfImport>(`/homeworks/pdf-imports/${encodeURIComponent(id)}`),
