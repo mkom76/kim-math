@@ -19,6 +19,7 @@ on:
           - homework-pdf-migrate
           - homework-pdf-activate
           - homework-pdf-verify
+          - homework-pdf-backup
       expected_server_sha:
         description: Expected current server commit for the read-only preflight
         type: string
@@ -155,6 +156,7 @@ jobs:
         run: |
           [[ "$HOMEWORK_PDF_EXPECTED_SERVER_SHA" =~ ^[a-f0-9]{40}$ ]]
           python3 -m py_compile scripts/homework-pdf-production.py
+          python3 -m unittest discover -s scripts/tests -p 'test_homework_pdf_production.py'
           delimiter="SCRIPT_$(openssl rand -hex 16)"
           {
             echo "script<<$delimiter"
