@@ -67,6 +67,13 @@ class ProductionGuardTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'columns do not match'):
                 ops.verify_feature_schema()
 
+    def test_old_frontend_revision_is_not_reported_as_a_completed_deployment(self):
+        expected = 'a' * 40
+        with patch.object(ops, 'verify_target', return_value={}), patch.object(ops, 'database_guard'), \
+                patch.object(ops, 'verify_feature_schema'), patch.object(ops, 'inspect', side_effect=[expected, 'old-frontend']):
+            with self.assertRaisesRegex(RuntimeError, 'kim-math-frontend image'):
+                ops.verify_runtime(expected)
+
     def test_failed_restore_cleans_only_its_own_schema_and_user(self):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / 'database.sql.gz'

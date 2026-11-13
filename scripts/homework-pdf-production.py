@@ -335,8 +335,9 @@ def verify_runtime(expected):
     env = verify_target(expected)
     database_guard()
     verify_feature_schema()
-    if inspect('kim-math-backend', '{{index .Config.Labels "org.opencontainers.image.revision"}}') != expected:
-        raise RuntimeError('Backend image is not the expected deployed revision')
+    for container in ('kim-math-backend', 'kim-math-frontend'):
+        if inspect(container, '{{index .Config.Labels "org.opencontainers.image.revision"}}') != expected:
+            raise RuntimeError(container + ' image is not the expected deployed revision')
     required = {'HOMEWORK_PDF_ENABLED':'true', 'HOMEWORK_PDF_STORAGE_DIR':'/var/lib/kim-math/homework-pdfs',
                 'HOMEWORK_PDF_MODEL':'gpt-6.1-sol', 'HOMEWORK_PDF_DAILY_LIMIT':'3', 'HOMEWORK_PDF_GLOBAL_DAILY_LIMIT':'20'}
     if any(env.get(key) != value for key, value in required.items()) or not env.get('OPENAI_API_KEY'):
