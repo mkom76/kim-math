@@ -40,6 +40,11 @@ services:
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - HOMEWORK_PDF_ENABLED=${HOMEWORK_PDF_ENABLED:-false}
+      - HOMEWORK_PDF_STORAGE_DIR=/var/lib/kim-math/homework-pdfs
+      - HOMEWORK_PDF_MODEL=${HOMEWORK_PDF_MODEL:-gpt-6.1-sol}
+      - HOMEWORK_PDF_DAILY_LIMIT=${HOMEWORK_PDF_DAILY_LIMIT:-3}
+      - HOMEWORK_PDF_GLOBAL_DAILY_LIMIT=${HOMEWORK_PDF_GLOBAL_DAILY_LIMIT:-20}
       - SOLUTION_NOTEBOOK_ENABLED=${SOLUTION_NOTEBOOK_ENABLED:-false}
       - SOLUTION_NOTEBOOK_REFERENCE_DIR=/run/notebook-references
       - SOLUTION_NOTEBOOK_USAGE_DIR=/var/lib/kim-math/notebook-usage
@@ -54,6 +59,7 @@ services:
       - firebase_adminsdk
     volumes:
       - notebook-usage:/var/lib/kim-math/notebook-usage
+      - homework-pdfs:/var/lib/kim-math/homework-pdfs
       - ${SOLUTION_NOTEBOOK_REFERENCE_HOST_DIR:-./notebook-reference-data}:/run/notebook-references:ro
     networks:
       - kim-math-network
@@ -105,6 +111,8 @@ networks:
     driver: bridge
 
 volumes:
+  homework-pdfs:
+    driver: local
   notebook-usage:
     driver: local
   mysql-data:

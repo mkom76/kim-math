@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh, Search } from '@element-plus/icons-vue'
+import { Plus, Refresh, Search, Upload } from '@element-plus/icons-vue'
 import { homeworkAPI, academyAPI, academyClassAPI, type Homework, type Academy, type AcademyClass } from '../api/client'
 import { usePagination } from '../composables/usePagination'
 import { useAuthStore } from '@/stores/auth'
 import HomeworkProblemsComposer from '@/components/HomeworkProblemsComposer.vue'
 import HomeworkLessonAssignmentDialog from '@/components/HomeworkLessonAssignmentDialog.vue'
+import HomeworkPdfImportDialog from '@/components/HomeworkPdfImportDialog.vue'
+
+const pdfVisible = ref(false)
+const pdfImportId = ref<string | null>(null)
+const openPdf = (id: string | null = null) => {
+  pdfImportId.value = id
+  pdfVisible.value = true
+}
 
 const assignmentVisible = ref(false)
 const assignmentHomework = ref<Homework | null>(null)
@@ -20,6 +28,7 @@ const composerHomeworkId = ref<number | null>(null)
 const composerHomeworkTitle = ref<string>('')
 
 const openComposer = (hw: Homework) => {
+  if (hw.pdfImportId) { openPdf(hw.pdfImportId); return }
   if (!hw.id) return
   composerHomeworkId.value = hw.id
   composerHomeworkTitle.value = hw.title || ''
@@ -198,9 +207,12 @@ onMounted(() => {
           </h1>
           <p style="margin: 8px 0 0; color: #909399">숙제를 생성하고 관리합니다</p>
         </div>
+        <div class="homework-actions">
+        <el-button v-if="!authStore.isAssistant" @click="openPdf()" :icon="Upload" size="large">PDF로 숙제 등록</el-button>
         <el-button type="primary" @click="openAddDialog" :icon="Plus" size="large">
           숙제 추가
         </el-button>
+        </div>
       </div>
     </el-card>
 
@@ -305,11 +317,12 @@ onMounted(() => {
         <el-table-column label="관리" width="270" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="primary" plain @click="openAssignment(row)">수업 배정</el-button>
-            <el-tooltip content="문제 구성" placement="top">
+            <el-tooltip :content="row.pdfImportId ? 'PDF 문항과 유형 보기' : '문제 구성'" placement="top">
               <el-button
                 size="small"
                 type="success"
                 circle
+                :aria-label="row.pdfImportId ? 'PDF 문항과 유형 보기' : '문제 구성'"
                 @click="openComposer(row)"
               >
                 <el-icon><Collection /></el-icon>
@@ -331,6 +344,7 @@ onMounted(() => {
                 type="danger"
                 circle
                 @click="handleDelete(row)"
+                :disabled="Boolean(row.pdfImportId)"
               >
                 <el-icon><Delete /></el-icon>
               </el-button>
@@ -347,6 +361,7 @@ onMounted(() => {
         @saved="fetchHomeworks"
       />
       <HomeworkLessonAssignmentDialog v-model:visible="assignmentVisible" :homework="assignmentHomework" @assigned="fetchHomeworks" />
+      <HomeworkPdfImportDialog v-model:visible="pdfVisible" :classes="allClasses" :academy-id="authStore.activeAcademyId" :import-id="pdfImportId" @saved="fetchHomeworks" />
 
       <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center">
         <span style="color: #909399; font-size: 14px">
@@ -403,7 +418,7 @@ onMounted(() => {
           <el-select
             v-model="currentHomework.classId"
             placeholder="반을 선택하세요"
-            :disabled="!currentHomework.academyId"
+            :disabled="!currentHomework.academyId || Boolean(currentHomework.pdfImportId)"
             style="width: 100%"
           >
             <el-option
@@ -418,6 +433,7 @@ onMounted(() => {
         <el-form-item label="문제 수" required>
           <el-input-number
             v-model="currentHomework.questionCount"
+            :disabled="Boolean(currentHomework.pdfImportId)"
             :min="1"
             :max="200"
             style="width: 100%"
@@ -463,6 +479,9 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.homework-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.homework-actions .el-button + .el-button { margin-left: 0; }
+@media (max-width: 700px) { .teacher-view > .el-card:first-child :deep(.el-card__body > div) { flex-wrap: wrap; gap: 16px; } .homework-actions { justify-content: flex-start; } }
 .el-card {
   border-radius: 8px;
 }

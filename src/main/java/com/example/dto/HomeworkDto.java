@@ -17,6 +17,7 @@ public class HomeworkDto {
     private Long id;
     private String title;
     private Integer questionCount;
+    private String pdfImportId;
     private String memo;
     private LocalDate dueDate;
     private Long academyId;
