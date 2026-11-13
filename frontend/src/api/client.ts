@@ -348,6 +348,7 @@ interface TestSubmissionRoster {
 }
 
 interface Homework {
+  pdfImportId?: string | null;
   id?: number;
   title: string;
   questionCount: number;

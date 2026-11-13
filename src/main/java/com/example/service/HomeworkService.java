@@ -13,6 +13,7 @@ import com.example.exception.ForbiddenException;
 import com.example.repository.AcademyRepository;
 import com.example.repository.HomeworkProblemRepository;
 import com.example.repository.HomeworkRepository;
+import com.example.repository.HomeworkPdfImportRepository;
 import com.example.repository.AcademyClassRepository;
 import com.example.repository.TextbookProblemRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class HomeworkService {
     private final HomeworkRepository homeworkRepository;
+    private final HomeworkPdfImportRepository homeworkPdfImportRepository;
     private final AcademyRepository academyRepository;
     private final AcademyClassRepository academyClassRepository;
     private final AuthorizationService authorizationService;
@@ -38,7 +40,11 @@ public class HomeworkService {
     private final TextbookProblemRepository textbookProblemRepository;
 
     public Page<HomeworkDto> getHomeworks(Pageable pageable) {
-        return homeworkRepository.findAll(pageable).map(HomeworkDto::from);
+        var page = homeworkRepository.findAll(pageable);
+        var ids = page.getContent().stream().map(Homework::getId).toList();
+        var pdfs = ids.isEmpty() ? java.util.Map.<Long,String>of() : homeworkPdfImportRepository.findByHomeworkIdIn(ids).stream()
+                .collect(Collectors.toMap(com.example.entity.HomeworkPdfImport::getHomeworkId, com.example.entity.HomeworkPdfImport::getId));
+        return page.map(homework -> {var dto = HomeworkDto.from(homework); dto.setPdfImportId(pdfs.get(homework.getId())); return dto;});
     }
 
     public HomeworkDto createHomework(HomeworkDto dto) {
@@ -75,6 +81,14 @@ public class HomeworkService {
         Homework homework = homeworkRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Homework not found"));
         authorizationService.assertCanAccessHomework(homework);
+        if (homeworkPdfImportRepository.existsByHomeworkId(id)) {
+            if (!java.util.Objects.equals(homework.getQuestionCount(), dto.getQuestionCount())) {
+                throw new IllegalArgumentException("PDF 숙제의 문항 수는 변경할 수 없습니다. 다른 구성은 새 숙제로 등록해 주세요.");
+            }
+            if (dto.getClassId() != null && !dto.getClassId().equals(homework.getAcademyClass().getId())) {
+                throw new IllegalArgumentException("PDF 숙제의 관리 반은 변경할 수 없습니다. 수업 배정으로 다른 반과 공유해 주세요.");
+            }
+        }
 
         if (dto.getAcademyId() != null && !dto.getAcademyId().equals(homework.getAcademy().getId())) {
             throw new ForbiddenException("숙제를 다른 학원으로 이동할 수 없습니다");
@@ -125,6 +139,9 @@ public class HomeworkService {
         Homework homework = homeworkRepository.findById(homeworkId)
                 .orElseThrow(() -> new RuntimeException("Homework not found"));
         authorizationService.assertCanAccessHomework(homework);
+        if (homeworkPdfImportRepository.existsByHomeworkId(homeworkId)) {
+            throw new IllegalArgumentException("PDF 숙제의 문항 순서는 고정됩니다. 다른 구성은 새 숙제로 등록해 주세요.");
+        }
 
         TenantContext.Context ctx = TenantContext.current();
         Long teacherId = ctx != null ? ctx.teacherId() : null;
@@ -170,6 +187,9 @@ public class HomeworkService {
                 .orElseThrow(() -> new RuntimeException("Homework not found"));
         authorizationService.assertCanAccessHomework(homework);
         authorizationService.assertCanModifyClass(homework.getAcademyClass());
+        if (homeworkPdfImportRepository.existsByHomeworkId(id)) {
+            throw new IllegalArgumentException("PDF 숙제는 원본과 검사 기록 보존을 위해 삭제할 수 없습니다.");
+        }
         if (!homework.getLessons().isEmpty()) {
             throw new IllegalArgumentException("수업에 배정된 숙제는 모든 수업에서 연결을 해제한 뒤 삭제해주세요");
         }

@@ -1,0 +1,4066 @@
+{
+  "version": "2026-11-13-350b8e8590bba9d3",
+  "subjects": [
+    {
+      "id": "MATH-UP",
+      "name": "수학(상)",
+      "children": [
+        {
+          "id": "MATH-UP-01",
+          "name": "다항식",
+          "children": [
+            {
+              "id": "MATH-UP-01-01",
+              "name": "다항식의 연산",
+              "children": [
+                {
+                  "id": "type-74da340a-3f2d-5e53-a983-6a476c9953bb",
+                  "name": "다항식의 덧셈과 뺄셈",
+                  "code": "MATH-UP-01-01-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-cef8c96e-8993-5490-8221-aba5e516839a",
+                  "name": "기본 곱셈공식의 이용",
+                  "code": "MATH-UP-01-01-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-d73e599b-150a-5d10-841e-01b2b0c874f1",
+                  "name": "곱셈을 이용하여 식의 값 구하기",
+                  "code": "MATH-UP-01-01-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-39ef5ee1-ade2-59c1-bb09-74689bc1e4e5",
+                  "name": "곱셈공식을 이용하여 식의 값 구하기",
+                  "code": "MATH-UP-01-01-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6163cac1-f418-55be-8fdb-eb36fb0dfc0c",
+                  "name": "전개식에서 계수 구하기",
+                  "code": "MATH-UP-01-01-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-a1cc9027-8061-5229-920c-0156c628d281",
+                  "name": "곱셈공식의 변형(제곱, 세제곱의 합)",
+                  "code": "MATH-UP-01-01-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-38625e66-3bbd-5c1c-9bc4-e8c730577e84",
+                  "name": "곱셈공식의 변형(역수 관계)",
+                  "code": "MATH-UP-01-01-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-80a2dda6-18a7-55a1-898a-870088f9ddc4",
+                  "name": "곱셈공식의 변형(네제곱 이상)",
+                  "code": "MATH-UP-01-01-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f6230b15-d04c-52fa-817f-0be546fc0f8f",
+                  "name": "곱셈공식의 변형(세 문자 제곱)",
+                  "code": "MATH-UP-01-01-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-94f121a0-6c23-544a-be76-766239b7b2d9",
+                  "name": "x^(2)+y^(2)+z^(2)-xy-yz-zx 꼴의 계산",
+                  "code": "MATH-UP-01-01-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6994d966-1c14-51f3-ae14-d8f68b290eea",
+                  "name": "세 문자 세제곱의 합",
+                  "code": "MATH-UP-01-01-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3a532e7e-302c-5232-a302-9da6f94090ca",
+                  "name": "(a+b)(b+c)(c+a)=(a+b+c)(ab+bc+ca)-abc",
+                  "code": "MATH-UP-01-01-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0fd54224-a69f-5d31-9b84-5b9c2f04bb42",
+                  "name": "ab(a+b)+bc(b+c)+ca(c+a) =(a+b+c)(ab+bc+ca)-3abc",
+                  "code": "MATH-UP-01-01-T013",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-cd6795e5-7158-5f48-9d25-0e0581420ccf",
+                  "name": "곱셈공식을 이용한 수의 계산",
+                  "code": "MATH-UP-01-01-T014",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c00ec189-7d4e-52c2-9dfc-72c4d230cfe3",
+                  "name": "곱셈공식의 도형에의 응용",
+                  "code": "MATH-UP-01-01-T015",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-9dadd955-6cc6-5489-b524-7b6a96beb141",
+                  "name": "다항식의 나눗셈",
+                  "code": "MATH-UP-01-01-T016",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-2811b208-fd6a-52df-ba5e-fbe0737d9732",
+                  "name": "몫과 나머지의 변형",
+                  "code": "MATH-UP-01-01-T017",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-fd6c2f14-2e31-5121-8dea-369aa45f03f6",
+                  "name": "다항식의 나눗셈의 활용",
+                  "code": "MATH-UP-01-01-T018",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "MATH-UP-01-02",
+              "name": "항등식과 나머지정리",
+              "children": [
+                {
+                  "id": "type-8cb09a20-16db-5b82-a3e4-04846e0a8dbe",
+                  "name": "미정계수법",
+                  "code": "MATH-UP-01-02-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c0d3b0c6-09a4-5b8d-b73c-987c1a44a152",
+                  "name": "항등식의 성질",
+                  "code": "MATH-UP-01-02-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-48887b95-8100-51ba-8945-13170e8b4291",
+                  "name": "분수 꼴의 항등식",
+                  "code": "MATH-UP-01-02-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-63a4290b-699c-52ad-af29-c3678f562bc2",
+                  "name": "다항식의 나눗셈과 항등식",
+                  "code": "MATH-UP-01-02-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-8e35b404-0359-5189-a673-622042c40785",
+                  "name": "다항식 f(x) 가 포함된 항등식",
+                  "code": "MATH-UP-01-02-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f45a0146-f5d7-53d9-897e-d9b803952c68",
+                  "name": "계수의 합",
+                  "code": "MATH-UP-01-02-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-9158c75d-cf36-5f25-9e43-8f166f4aca9d",
+                  "name": "나머지정리(일차식)",
+                  "code": "MATH-UP-01-02-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c76c27a1-e9fa-5c5f-879f-c8dda4a03e12",
+                  "name": "f(ax+b) 또는 xf(x) 꼴의 나머지정리",
+                  "code": "MATH-UP-01-02-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f1491b4a-96d9-57b5-a0b7-1b87117e3cb4",
+                  "name": "두 개 이상의 다항식에 대한 나머지정리",
+                  "code": "MATH-UP-01-02-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e5351bde-3ea1-5e35-910e-04761fb319e7",
+                  "name": "수의 나눗셈에서 나머지 구하기",
+                  "code": "MATH-UP-01-02-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0b51aa66-a8e4-5165-9181-d7924e5ce270",
+                  "name": "나머지정리(이차식)",
+                  "code": "MATH-UP-01-02-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-fbac1b3c-900d-58aa-aace-a89b936e8c1f",
+                  "name": "나머지정리(완전제곱식/미분)",
+                  "code": "MATH-UP-01-02-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-882ab302-6216-566a-9d2d-4b9b03d59409",
+                  "name": "나머지정리(삼차식)",
+                  "code": "MATH-UP-01-02-T013",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ccdf2e10-0063-518d-921d-17f5f3544153",
+                  "name": "나머지정리(허근)",
+                  "code": "MATH-UP-01-02-T014",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6cccf483-2412-5870-be12-51ba1a6d2fdc",
+                  "name": "몫을 다시 나눌 때",
+                  "code": "MATH-UP-01-02-T015",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-843fefe9-947f-5dd8-b198-6660de31aabd",
+                  "name": "인수정리(기본)",
+                  "code": "MATH-UP-01-02-T016",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-871c8be5-dbac-5c1c-bf87-f9d9038d6ea0",
+                  "name": "인수정리의 활용",
+                  "code": "MATH-UP-01-02-T017",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-7ce13566-138f-5a57-a3e1-3da6871f0a49",
+                  "name": "인수정리(이차식)",
+                  "code": "MATH-UP-01-02-T018",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3f24a033-f6eb-5c2c-83ae-156744ac8b32",
+                  "name": "조립제법(미분) : 완전제곱식으로 나누어 떨어질 때",
+                  "code": "MATH-UP-01-02-T019",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-eda54501-7076-525c-9711-5ca2a5b5fe8b",
+                  "name": "공통인수",
+                  "code": "MATH-UP-01-02-T020",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0487a886-75f4-5d10-9230-faffe23e4b1e",
+                  "name": "기본 조립제법",
+                  "code": "MATH-UP-01-02-T021",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-dc9b9fd6-f77d-5484-b6da-ffe7e7604542",
+                  "name": "연조립제법",
+                  "code": "MATH-UP-01-02-T022",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3f904014-ad5a-58e4-a7cd-a75f9955eef6",
+                  "name": "조립제법( ax+b 로 나눌 때)",
+                  "code": "MATH-UP-01-02-T023",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-1306f65c-50ab-5d92-91d9-68f991730821",
+                  "name": "항등식 추론",
+                  "code": "MATH-UP-01-02-T024",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "MATH-UP-01-03",
+              "name": "인수분해",
+              "children": [
+                {
+                  "id": "type-8ff15742-4bc9-5bbf-a531-ca22fee0b45d",
+                  "name": "인수분해(기본)",
+                  "code": "MATH-UP-01-03-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-8ad3ffd7-f86e-51dc-98d5-c00b4f89757d",
+                  "name": "치환을 이용한 인수분해",
+                  "code": "MATH-UP-01-03-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-227d0069-4af8-5fda-8810-81390c9801a3",
+                  "name": "완전제곱꼴로 인수분해 되기 위한 조건",
+                  "code": "MATH-UP-01-03-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-bec5ee57-da63-5793-acc2-67073a1bebe8",
+                  "name": "대칭식의 인수분해",
+                  "code": "MATH-UP-01-03-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-4d4bfc06-76ba-54a7-bff9-56a8bf3ded9f",
+                  "name": "복이차식의 인수분해",
+                  "code": "MATH-UP-01-03-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-1402d26d-c0c4-5091-85b6-f28defbab896",
+                  "name": "여러 문자가 포함된 인수분해",
+                  "code": "MATH-UP-01-03-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f2402485-2e36-5b81-b4f7-65d6298ea036",
+                  "name": "순환식의 인수분해",
+                  "code": "MATH-UP-01-03-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-2d110d77-9c0a-5781-9622-afcce8f39bd5",
+                  "name": "삼각형의 꼴 판단",
+                  "code": "MATH-UP-01-03-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b44d2df2-0437-5cd1-8485-5347b522a1f1",
+                  "name": "두 일차식의 곱으로 인수분해(판별식 2번)",
+                  "code": "MATH-UP-01-03-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-619a45e9-9f8c-5f3c-b460-e0a9cbf1a2bb",
+                  "name": "인수정리를 이용한 식의 인수분해",
+                  "code": "MATH-UP-01-03-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f52134a4-a699-5c77-9dd0-ed13f1276a39",
+                  "name": "조건이 주어진 경우의 인수분해",
+                  "code": "MATH-UP-01-03-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-68c06926-0071-5f4f-9ed4-3b943becf44f",
+                  "name": "일차식의 곱의 꼴로 인수분해 되는 다항식의 개수",
+                  "code": "MATH-UP-01-03-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-689596a7-fd48-52ed-ab07-51027e87d24f",
+                  "name": "인수분해를 이용한 수의 계산",
+                  "code": "MATH-UP-01-03-T013",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c6ee2ba1-eb64-5b13-9959-a25193290cf3",
+                  "name": "공통인수를 이용한 인수분해",
+                  "code": "MATH-UP-01-03-T014",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e4eb8ec6-4efb-55d3-b9c0-6cf074b3371c",
+                  "name": "도형과 인수분해",
+                  "code": "MATH-UP-01-03-T015",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-171a89c8-d44d-5dd1-89a5-8f06b23ab6b3",
+                  "name": "자연수조건 문제",
+                  "code": "MATH-UP-01-03-T016",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-1f55a7de-d3e5-5827-b8c7-f3118dcf8446",
+                  "name": "합 또는 차가 주어질 때 다항식의 추론(모의기출)",
+                  "code": "MATH-UP-01-03-T017",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "MATH-UP-02",
+          "name": "방정식과 부등식",
+          "children": [
+            {
+              "id": "MATH-UP-02-01",
+              "name": "복소수",
+              "children": [
+                {
+                  "id": "type-4d4205bc-1cdd-5eb5-a8eb-6a6c7308f08c",
+                  "name": "복소수의 정의",
+                  "code": "MATH-UP-02-01-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3856078e-f86b-5506-9a9f-9ef40762550d",
+                  "name": "복소수의 사칙연산",
+                  "code": "MATH-UP-02-01-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b0c4c17d-eb3b-59d4-be86-4282a1cb7a9a",
+                  "name": "복소수의 제곱이 실수가 되기 위한 조건",
+                  "code": "MATH-UP-02-01-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-475d4f8d-26a7-5c2b-bb00-f40f41899eef",
+                  "name": "복소수의 상등",
+                  "code": "MATH-UP-02-01-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-43a72774-de71-5e50-b5e1-4d4b68c1a680",
+                  "name": "복소수와 나머지정리",
+                  "code": "MATH-UP-02-01-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-1e6d6654-5136-59ad-96d8-5ea18aeae214",
+                  "name": "켤레복소수와 연산",
+                  "code": "MATH-UP-02-01-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-efc4d646-1236-50d7-ba17-97fa4d186e40",
+                  "name": "켤레복소수와 곱셈공식",
+                  "code": "MATH-UP-02-01-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-4167227b-2845-5f86-a4f2-90824d2b65a1",
+                  "name": "켤레복소수의 성질",
+                  "code": "MATH-UP-02-01-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-2c32ca4a-16cf-55db-aabc-557f84239415",
+                  "name": "켤레복소수의 성질을 이용한 연산",
+                  "code": "MATH-UP-02-01-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-08be8123-ed65-5cf4-a576-ca7d04df3566",
+                  "name": "조건이 주어진 정오판정",
+                  "code": "MATH-UP-02-01-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-45f449e7-0875-5598-b227-a07fadce253c",
+                  "name": "조건을 만족하는 복소수 구하기",
+                  "code": "MATH-UP-02-01-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-cd1d5452-0bca-52bd-b62b-1a5019c76257",
+                  "name": "복소수를 이용한 식의 값 구하기",
+                  "code": "MATH-UP-02-01-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-61df16d2-1d66-5a9f-bb95-4eae9b1676cb",
+                  "name": "허수단위 i 의 거듭제곱",
+                  "code": "MATH-UP-02-01-T013",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-511398bb-4270-5485-b8c0-fabe652dbae2",
+                  "name": "복소수의 거듭제곱",
+                  "code": "MATH-UP-02-01-T014",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0ab7e55b-b7bb-55fa-9f3f-1541340c0d57",
+                  "name": "(b-ai)/(a+bi) 꼴의 계산",
+                  "code": "MATH-UP-02-01-T015",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-a4b51ebb-4f28-5072-bca5-ae57a81ba10f",
+                  "name": "음수 제곱근의 계산",
+                  "code": "MATH-UP-02-01-T016",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "MATH-UP-02-02",
+              "name": "이차방정식",
+              "children": [
+                {
+                  "id": "type-bc145e27-4834-5b8f-9f6a-05a2298c127d",
+                  "name": "이차방정식의 풀이",
+                  "code": "MATH-UP-02-02-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-90118c24-52df-5f39-a08d-2202a5610c3a",
+                  "name": "절댓값 기호를 포함한 이차방정식",
+                  "code": "MATH-UP-02-02-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b64ad4a7-59a3-597c-8f4a-63ce92298679",
+                  "name": "가우스 기호를 포함한 이차방정식",
+                  "code": "MATH-UP-02-02-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-cbd12130-dd28-5218-a704-13d89acc0731",
+                  "name": "이차방정식의 판별식",
+                  "code": "MATH-UP-02-02-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-48bbba8e-275e-545a-9b22-c5cb39f26f3a",
+                  "name": "계수가 문자인 이차방정식의 근의 판별",
+                  "code": "MATH-UP-02-02-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-844a8670-c3b1-50aa-8bad-e00a74534bfb",
+                  "name": "판별식과 항등식",
+                  "code": "MATH-UP-02-02-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-29d983d1-56c6-52b4-8f0a-239757fb88d6",
+                  "name": "이차방정식이 중근을 가질 조건",
+                  "code": "MATH-UP-02-02-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ba5aa136-c77c-5375-9210-81d6dff61341",
+                  "name": "두 문자에 대한 일차식으로 인수분해 되기 위한 조건",
+                  "code": "MATH-UP-02-02-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-5832a358-4185-5150-b639-0fae116450ea",
+                  "name": "판별식을 통한 삼각형의 꼴 판단",
+                  "code": "MATH-UP-02-02-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-8b362747-ae50-582d-a6dd-d942450e7092",
+                  "name": "근의 조건에 따른 미정계수 구하기",
+                  "code": "MATH-UP-02-02-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-abb446d7-f87f-50a8-ae35-20fae9b4d13e",
+                  "name": "근과 계수의 관계",
+                  "code": "MATH-UP-02-02-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ba1772c4-634d-5f4d-82b0-c31e63c108d0",
+                  "name": "근과 계수의 관계와 음수의 제곱근 성질",
+                  "code": "MATH-UP-02-02-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-1019c22f-35a9-5fdf-9ff6-78b5591e26db",
+                  "name": "이차방정식을 이용한 식의 값 구하기",
+                  "code": "MATH-UP-02-02-T013",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-9a71b716-4cfa-55b1-8467-5b9362f47464",
+                  "name": "근의 조건과 근과 계수의 관계",
+                  "code": "MATH-UP-02-02-T014",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-17f44c65-f713-54d7-a42b-8289394572f4",
+                  "name": "정수근, 자연수근",
+                  "code": "MATH-UP-02-02-T015",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-802fccd1-7c18-516a-b8cf-bfcd2ad2cc4b",
+                  "name": "실근의 부호",
+                  "code": "MATH-UP-02-02-T016",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c662cfbd-233c-5b5d-8db4-70c409779795",
+                  "name": "잘못 보고 푼 이차방정식",
+                  "code": "MATH-UP-02-02-T017",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-98d2de27-1d44-5704-a533-3219eea431c6",
+                  "name": "복소수 범위에서 인수분해",
+                  "code": "MATH-UP-02-02-T018",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-56aa9baf-0ac0-5f5f-a250-4da06ccc3f1d",
+                  "name": "근과 계수의 관계를 이용한 이차식의 작성",
+                  "code": "MATH-UP-02-02-T019",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6f69d818-02ac-5f5d-8140-108c871463f5",
+                  "name": "도형에서의 이차식작성",
+                  "code": "MATH-UP-02-02-T020",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-17a93ce0-5e50-5239-9492-9cf43ac088ca",
+                  "name": "인수정리를 이용한 이차식의 작성",
+                  "code": "MATH-UP-02-02-T021",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f7daf7c0-a462-52c7-8290-be315d04ae63",
+                  "name": "f(ax+b)=0 꼴에서의 근과 계수의 관계",
+                  "code": "MATH-UP-02-02-T022",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-765075a2-34d2-5cc1-9ce8-cff6847eeaa4",
+                  "name": "유리계수, 실계수의 켤레근",
+                  "code": "MATH-UP-02-02-T023",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "MATH-UP-02-03",
+              "name": "이차함수",
+              "children": [
+                {
+                  "id": "type-2bed969c-e15a-5acd-81fa-e24246baea74",
+                  "name": "이차함수 그래프의 개형과 계수의 부호",
+                  "code": "MATH-UP-02-03-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-4a44c6ca-f68e-55f7-8e3e-9e14c4f42214",
+                  "name": "이차함수와 이차방정식( x 축)",
+                  "code": "MATH-UP-02-03-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-98c3f043-bd6a-5f94-8f60-ba3827129004",
+                  "name": "이차함수와 x 축의 위치관계",
+                  "code": "MATH-UP-02-03-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-57b7119b-726f-581b-bbdd-f26fcd7a94c2",
+                  "name": "이차함수와 직선의 위치관계",
+                  "code": "MATH-UP-02-03-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0b68d687-871e-51e2-bb16-f0d2b20c6b04",
+                  "name": "이차함수에 접하는 직선의 방정식",
+                  "code": "MATH-UP-02-03-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-5c8e0ad1-36ac-5f67-a7ac-37739a1883d7",
+                  "name": "복잡한 위치관계",
+                  "code": "MATH-UP-02-03-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-7b6058a3-3f99-5011-b10c-da6b212f93a3",
+                  "name": "판별식과 항등식",
+                  "code": "MATH-UP-02-03-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-41e5cbd8-8963-504a-ba32-bbccaa3e1830",
+                  "name": "이차함수와 이차방정식(직선)",
+                  "code": "MATH-UP-02-03-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e67682f3-071b-5689-b140-8ea1af7d6710",
+                  "name": "이차함수와 이차방정식(두 곡선)",
+                  "code": "MATH-UP-02-03-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-7fd81c39-638e-5e63-925a-81b9bdc1fd5c",
+                  "name": "절댓값과 가우스 함수",
+                  "code": "MATH-UP-02-03-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-2280821c-f7a8-5170-88a3-50f4c4db6593",
+                  "name": "근의 분리",
+                  "code": "MATH-UP-02-03-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-73d1f4a5-c4ee-5f57-baf9-3c1b42f1da5d",
+                  "name": "이차함수의 최대, 최소",
+                  "code": "MATH-UP-02-03-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-4480cadd-a863-5129-a6aa-74ec9695a569",
+                  "name": "치환을 이용한 최대, 최소",
+                  "code": "MATH-UP-02-03-T013",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-15588590-f5e7-58e0-a886-2da2c1714212",
+                  "name": "축, 범위가 미정인 이차함수의 최대, 최소",
+                  "code": "MATH-UP-02-03-T014",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f4cef334-b741-5455-b10b-c0f013091b9d",
+                  "name": "조건을 만족하는 이차식의 최대, 최소",
+                  "code": "MATH-UP-02-03-T015",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-9204e1e2-5abe-5195-a701-155965f44e02",
+                  "name": "완전제곱식을 활용한 이차식의 최대, 최소",
+                  "code": "MATH-UP-02-03-T016",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e2fc333a-758f-5139-8c22-636db4bd46bd",
+                  "name": "도형에서의 이차함수의 최대, 최소",
+                  "code": "MATH-UP-02-03-T017",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e624619f-bcfc-5fdc-977d-2f296a156c17",
+                  "name": "이차함수 최대, 최소 실생활에서의 활용",
+                  "code": "MATH-UP-02-03-T018",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-39cf00b0-f0ac-5a8e-a8cd-d46714245269",
+                  "name": "이차함수 추론",
+                  "code": "MATH-UP-02-03-T019",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "MATH-UP-02-04",
+              "name": "고차방정식",
+              "children": [
+                {
+                  "id": "type-d887f50c-d18c-5668-8454-959d35e61773",
+                  "name": "삼차, 사차방정식 계산",
+                  "code": "MATH-UP-02-04-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-82202385-0b2c-59fb-8b2e-86a9e8e7ff09",
+                  "name": "복이차방정식",
+                  "code": "MATH-UP-02-04-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-362601f8-39d5-55b7-a446-3b03b01344ff",
+                  "name": "상반방정식",
+                  "code": "MATH-UP-02-04-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-39ffb150-45d7-5188-9131-8d90deb29671",
+                  "name": "고차방정식의 근과 계수의 관계",
+                  "code": "MATH-UP-02-04-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-70ca017a-cf3d-5f54-af3e-ee7c25fe6cb6",
+                  "name": "켤레근 성질",
+                  "code": "MATH-UP-02-04-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0d3bf89c-a773-5cef-ac1f-158ffd2e7efe",
+                  "name": "고차방정식과 인수정리",
+                  "code": "MATH-UP-02-04-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-445c9f02-666f-5f19-9595-a80d3127394a",
+                  "name": "삼차방정식의 근의 판별",
+                  "code": "MATH-UP-02-04-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-abaaa440-f85e-529a-ba2a-25ab316a9fa6",
+                  "name": "사차방정식의 근의 판별",
+                  "code": "MATH-UP-02-04-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-55475fa1-da2e-5e48-83df-7db52479dde5",
+                  "name": "x³=1 의 한 허근",
+                  "code": "MATH-UP-02-04-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-4bf63771-4884-5261-b983-7aea212281b6",
+                  "name": "x³=-1 의 한 허근, 그 외",
+                  "code": "MATH-UP-02-04-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-d5b65511-a46c-551d-8920-02eff41ee4e2",
+                  "name": "실생활 활용",
+                  "code": "MATH-UP-02-04-T011",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "MATH-UP-02-05",
+              "name": "연립방정식",
+              "children": [
+                {
+                  "id": "type-3a3a2a57-59e9-5ff6-aa29-7a7c9a972882",
+                  "name": "일차식+이차식",
+                  "code": "MATH-UP-02-05-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6ef03bb2-b033-54ba-93e2-060a3f351c9e",
+                  "name": "이차식+이차식",
+                  "code": "MATH-UP-02-05-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e62e59ab-92aa-550a-bf19-0511c0d10554",
+                  "name": "상수항 소거",
+                  "code": "MATH-UP-02-05-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-eb7a2da6-f2f5-5035-8d31-27e880b29c7f",
+                  "name": "이차항 소거",
+                  "code": "MATH-UP-02-05-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-d6defe27-8665-5e7e-ab04-956f6dfa9822",
+                  "name": "대칭형",
+                  "code": "MATH-UP-02-05-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c2cb6165-75b0-58ac-9af2-fcd113b98031",
+                  "name": "연립방정식의 해의 조건",
+                  "code": "MATH-UP-02-05-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-cf45586a-61fd-5047-81e4-2a8122c1f8ec",
+                  "name": "활용문제",
+                  "code": "MATH-UP-02-05-T007",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "MATH-UP-02-06",
+              "name": "여러 가지 부등식",
+              "children": [
+                {
+                  "id": "type-ad00fb16-603f-55a6-8e00-0f426e2d4f9a",
+                  "name": "부등식 기본 성질/연립일차부등식",
+                  "code": "MATH-UP-02-06-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-bc40d9dd-ff3f-5a95-9a82-bc9775595468",
+                  "name": "절댓값, 가우스 포함한 부등식",
+                  "code": "MATH-UP-02-06-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-4db1278d-d3cf-59b8-88d8-1859745399c1",
+                  "name": "이차부등식의 해가 주어진 경우",
+                  "code": "MATH-UP-02-06-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-1c330b63-957e-53cb-9033-09ae00511de7",
+                  "name": "이차부등식과 이차함수 그래프",
+                  "code": "MATH-UP-02-06-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f1fc743b-2f19-5812-a9fa-7880998ed4e3",
+                  "name": "항상 성립하는 이차부등식",
+                  "code": "MATH-UP-02-06-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-666618d6-0ee6-58db-ba97-4d64d3927f1b",
+                  "name": "제한 범위에서 항상 성립하는 이차부등식",
+                  "code": "MATH-UP-02-06-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-14f2da5f-5f0e-535c-9eab-07a62b290875",
+                  "name": "해가 없는 이차부등식",
+                  "code": "MATH-UP-02-06-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-eb78cb80-6daf-550d-ab13-812303a2468d",
+                  "name": "한 개의 실근을 갖는 이차부등식",
+                  "code": "MATH-UP-02-06-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0e6bdec8-9f39-5df4-8f02-4b41ae23deed",
+                  "name": "이차부등식이 해를 갖기 위한 조건",
+                  "code": "MATH-UP-02-06-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3e42ddf2-e0d2-57a9-9218-a0a0cc7aee08",
+                  "name": "이차부등식 근의 개수",
+                  "code": "MATH-UP-02-06-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-98d5c074-3a7e-5b3b-8767-3f6d32e5a410",
+                  "name": "연립이차부등식의 해",
+                  "code": "MATH-UP-02-06-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-7f75cae8-4c26-54df-a315-b98991412acf",
+                  "name": "실생활의 활용",
+                  "code": "MATH-UP-02-06-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-4ddb0536-5519-59ad-8ed6-4acccabd3f9f",
+                  "name": "이차부등식의 해",
+                  "code": "MATH-UP-02-06-T013",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-2528eae8-b6aa-5268-9106-621156ee68b1",
+                  "name": "연립이차부등식의 미정계수 결정",
+                  "code": "MATH-UP-02-06-T014",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "MATH-UP-03",
+          "name": "도형의 방정식",
+          "children": [
+            {
+              "id": "MATH-UP-03-01",
+              "name": "평면좌표",
+              "children": [
+                {
+                  "id": "type-a5be9c77-f2ce-572e-9ac4-2b2065247836",
+                  "name": "두 점 사이의 거리",
+                  "code": "MATH-UP-03-01-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-460e6613-664f-5227-964c-d6ca3f329042",
+                  "name": "두 점 사이의 거리의 활용",
+                  "code": "MATH-UP-03-01-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b687f453-5a12-5e98-900d-f9c421dc84de",
+                  "name": "삼각형의 모양 결정",
+                  "code": "MATH-UP-03-01-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b33b2e6b-6667-563a-bff9-c6338303f3c0",
+                  "name": "내분과 외분(계산)",
+                  "code": "MATH-UP-03-01-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-fd5829db-f9ec-5745-a1a6-817b3270c1fc",
+                  "name": "내분과 외분의 활용(넓이, 실생활, 도형)",
+                  "code": "MATH-UP-03-01-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b9dc81ec-9c71-54a3-86c4-11d0fa2f6238",
+                  "name": "각의 이등분선",
+                  "code": "MATH-UP-03-01-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b3e2a679-b71c-5aac-9547-2cb11f98cb81",
+                  "name": "무게중심의 활용",
+                  "code": "MATH-UP-03-01-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-cc3c8f3d-75b2-57cc-a483-ebde04ffbb1c",
+                  "name": "중점과 파푸스정리",
+                  "code": "MATH-UP-03-01-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6846d4d3-fef1-58e2-9046-476598213e1d",
+                  "name": "좌표를 활용한 증명",
+                  "code": "MATH-UP-03-01-T009",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "MATH-UP-03-02",
+              "name": "직선의 방정식",
+              "children": [
+                {
+                  "id": "type-de1e6733-ad12-5555-8a33-35e502890ee3",
+                  "name": "직선의 방정식 작성",
+                  "code": "MATH-UP-03-02-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-36d22e75-3d6b-5474-ae9d-01a6c456866b",
+                  "name": "한 직선 위의 세 점",
+                  "code": "MATH-UP-03-02-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-48607349-9295-5c59-b915-84d1e3588505",
+                  "name": "직선과 도형",
+                  "code": "MATH-UP-03-02-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-4fe91f5d-0feb-5e64-9309-88ff7a0dbbf4",
+                  "name": "두 직선의 위치관계",
+                  "code": "MATH-UP-03-02-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-2713d523-5122-55d2-bb03-92dddf28431f",
+                  "name": "세 직선의 위치관계",
+                  "code": "MATH-UP-03-02-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-dd716866-2e82-5b98-8198-ee7f9b54cbe1",
+                  "name": "수직인 조건의 활용(1)",
+                  "code": "MATH-UP-03-02-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-91e6b8cd-7f99-5554-b272-0d4a6dd006be",
+                  "name": "수직인 조건의 활용(2)(종이접기)",
+                  "code": "MATH-UP-03-02-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-36d7ff63-4440-549d-9233-6b6140b96801",
+                  "name": "정점을 지나는 직선의 방정식",
+                  "code": "MATH-UP-03-02-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-81999101-db98-51c3-8b56-dd5dabafb544",
+                  "name": "점과 직선 사이의 거리",
+                  "code": "MATH-UP-03-02-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-754d3dab-2bf2-565d-94ef-e952b62783ce",
+                  "name": "삼각형의 넓이",
+                  "code": "MATH-UP-03-02-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-9faafd5e-4495-5abe-a158-ce649bc7c8a8",
+                  "name": "각의 이등분선",
+                  "code": "MATH-UP-03-02-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3944e879-12f8-55a1-8363-d97595c3be16",
+                  "name": "자취의 방정식",
+                  "code": "MATH-UP-03-02-T012",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "MATH-UP-03-03",
+              "name": "원의 방정식",
+              "children": [
+                {
+                  "id": "type-98cb4c0f-d5d9-56c8-99b3-81aac409432c",
+                  "name": "원의 중심과 반지름",
+                  "code": "MATH-UP-03-03-T001",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-a243b3a7-3e0c-5bdd-b94c-09cc5e5d5be7",
+                  "name": "지름의 양 끝점이 주어진 원",
+                  "code": "MATH-UP-03-03-T002",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e8dda189-3083-5602-a6c0-4cd9283a0e93",
+                  "name": "세 점을 지나는 원과 외접원",
+                  "code": "MATH-UP-03-03-T003",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-77863fce-ff5b-5729-b391-83107453e7a8",
+                  "name": "방정식이 원을 나타낼 조건",
+                  "code": "MATH-UP-03-03-T004",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6005d1e7-2951-548e-8d47-b7c4568a63fe",
+                  "name": "좌표축에 접하는 원",
+                  "code": "MATH-UP-03-03-T005",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-11207efc-5814-59a9-af0b-37a993fcb292",
+                  "name": "원과 직선의 위치관계",
+                  "code": "MATH-UP-03-03-T006",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0e8ba7c2-a01a-5562-bc81-268f31728f5b",
+                  "name": "원의 접선의 방정식",
+                  "code": "MATH-UP-03-03-T007",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-fddfdc7d-42fa-5cc2-8eb9-741e4ef103ea",
+                  "name": "원과 도형의 넓이",
+                  "code": "MATH-UP-03-03-T008",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-7166b40a-9c9c-5c56-b830-2853534e7827",
+                  "name": "원의 방정식과 최댓값·최솟값",
+                  "code": "MATH-UP-03-03-T009",
+                  "proposed": true,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "MATH-UP-03-04",
+              "name": "도형의 이동",
+              "children": [
+                {
+                  "id": "type-b00293d8-cbe7-5f7c-90d3-26dac2e739cb",
+                  "name": "점의 평행이동",
+                  "code": "MATH-UP-03-04-T001",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-a126edf6-6a3d-5e56-90a4-78e5b4112f30",
+                  "name": "직선과 원의 평행이동",
+                  "code": "MATH-UP-03-04-T002",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-96652f6a-70fa-5afb-91f9-3d7ca04d4132",
+                  "name": "좌표축과 원점에 대한 대칭이동",
+                  "code": "MATH-UP-03-04-T003",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-10f41be6-db7a-5064-99ec-c92dd38137f9",
+                  "name": "직선 y=x에 대한 대칭이동",
+                  "code": "MATH-UP-03-04-T004",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-54fc3cbb-15ea-58a9-8dce-1a520bec50a6",
+                  "name": "일반적인 직선과 점에 대한 대칭이동",
+                  "code": "MATH-UP-03-04-T005",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-a53cbf12-50dc-528c-821b-ea86cf03f780",
+                  "name": "평행이동과 대칭이동의 합성",
+                  "code": "MATH-UP-03-04-T006",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e0d46c06-2b1f-5869-9bf0-df681a4b852a",
+                  "name": "도형의 방정식과 이동의 해석",
+                  "code": "MATH-UP-03-04-T007",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-fd23b60c-8aa6-5db8-b30c-f6d09b1b8330",
+                  "name": "대칭이동을 이용한 거리의 합의 최솟값",
+                  "code": "MATH-UP-03-04-T008",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-50bbe605-1d08-51c8-b6bb-478a8b9ac041",
+                  "name": "도형의 이동과 최댓값",
+                  "code": "MATH-UP-03-04-T009",
+                  "proposed": true,
+                  "corrected": false
+                },
+                {
+                  "id": "type-9b598e90-283a-539a-b1a4-6a1ac8537abe",
+                  "name": "반복되는 이동과 규칙",
+                  "code": "MATH-UP-03-04-T010",
+                  "proposed": true,
+                  "corrected": false
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MATH-LOW",
+      "name": "수학(하)",
+      "children": [
+        {
+          "id": "MATH-LOW-01",
+          "name": "집합과 명제",
+          "children": [
+            {
+              "id": "MATH-LOW-01-01",
+              "name": "집합",
+              "children": [
+                {
+                  "id": "type-d7a69484-3d01-5826-a9a7-90ef3ed16281",
+                  "name": "집합의 뜻과 표현",
+                  "code": "MATH-LOW-01-01-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-4636e21d-2d57-5130-b8f1-3cad95992be1",
+                  "name": "집합과 원소의 관계&집합과 집합의 관계",
+                  "code": "MATH-LOW-01-01-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-04cb1af4-1e35-54e9-ad99-60cc4ed0bb53",
+                  "name": "집합의 원소의 개수",
+                  "code": "MATH-LOW-01-01-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-814e20c6-8f5f-57a9-93f0-e3c602cf468d",
+                  "name": "집합의 원소의 합",
+                  "code": "MATH-LOW-01-01-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-05552930-47dc-5eb6-88e8-782560f7d8ec",
+                  "name": "조건을 만족하는 부분집합",
+                  "code": "MATH-LOW-01-01-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-bac5a098-1359-50d5-bee8-83d69f6a596a",
+                  "name": "서로 같은 집합과 진부분집합",
+                  "code": "MATH-LOW-01-01-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ef58cafe-a784-5c85-8cc5-541f7257791d",
+                  "name": "부분집합의 개수",
+                  "code": "MATH-LOW-01-01-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ddb4cb7c-62d3-5511-ab75-72a5f8cb3e2d",
+                  "name": "특정한 원소를 포함하는(포함하지 않는) 부분집합",
+                  "code": "MATH-LOW-01-01-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-1172d585-e1d1-58a7-8aa3-47d67acb2b80",
+                  "name": "집합의 연산",
+                  "code": "MATH-LOW-01-01-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-629862ed-480d-55ce-b6bd-32dc9f155e62",
+                  "name": "집합의 연산과 방정식, 부등식의 해",
+                  "code": "MATH-LOW-01-01-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3ea4b9b1-fef4-5b01-bc21-56efc1d3edd9",
+                  "name": "약수, 배수집합",
+                  "code": "MATH-LOW-01-01-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-bcf19394-07c7-500b-8fba-3a8e9b518fda",
+                  "name": "항상 옳은 것은/항상 같은 표현",
+                  "code": "MATH-LOW-01-01-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-69252504-d6bf-5ac2-b4cc-835d9264e619",
+                  "name": "대칭차집합",
+                  "code": "MATH-LOW-01-01-T013",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b5529153-87f8-5713-9692-01678da6d81b",
+                  "name": "집합의 연산과 원소의 합",
+                  "code": "MATH-LOW-01-01-T014",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-44866f7d-7839-52ab-8e22-220f2096902a",
+                  "name": "최대/최소인 원소",
+                  "code": "MATH-LOW-01-01-T015",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-d81fc063-dd28-5e98-98d1-9bdabc82ec9b",
+                  "name": "집합의 연산과 부분집합의 개수",
+                  "code": "MATH-LOW-01-01-T016",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-91cd3517-5768-5464-a234-c194fcf3dfad",
+                  "name": "합집합의 원소의 개수(두 집합)",
+                  "code": "MATH-LOW-01-01-T017",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ea5e2815-4a7f-589c-92ef-36567c413109",
+                  "name": "합집합의 원소의 개수(세 집합)",
+                  "code": "MATH-LOW-01-01-T018",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-2ac01588-a451-5c7f-b495-6c8fcba8ab2a",
+                  "name": "원소의 개수의 최댓값, 최솟값",
+                  "code": "MATH-LOW-01-01-T019",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6c73f639-4550-58ec-a1b4-623b3c9845cc",
+                  "name": "집합의 뜻과 표현, 원소의 개수",
+                  "code": "MATH-LOW-01-01-T020",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "MATH-LOW-01-02",
+              "name": "명제와 절대부등식",
+              "children": [
+                {
+                  "id": "type-1ea4299b-e71f-52fd-bdd1-5acf311bbea6",
+                  "name": "명제와 조건(역, 대우)",
+                  "code": "MATH-LOW-01-02-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-a88a3b9d-a771-5091-bb8c-a7a232fc00ca",
+                  "name": "조건의 부정과 진리집합",
+                  "code": "MATH-LOW-01-02-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-9317660a-c542-51c2-b85d-6ac606670166",
+                  "name": "모든, 어떤을 포함한 명제",
+                  "code": "MATH-LOW-01-02-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-9134ff4e-b070-5c55-9b6c-45e1f0c29474",
+                  "name": "p 이면 q 이다 꼴의 명제",
+                  "code": "MATH-LOW-01-02-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c431b8a1-05ad-5973-8789-5e4475621238",
+                  "name": "필요조건과 충분조건",
+                  "code": "MATH-LOW-01-02-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-16d50c47-f0db-5605-8c97-99b451ccae76",
+                  "name": "정의, 증명, 정리",
+                  "code": "MATH-LOW-01-02-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-7f250aed-47b6-5e2b-9edf-23bff51ac034",
+                  "name": "절대부등식",
+                  "code": "MATH-LOW-01-02-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3919a9b3-8c71-51f4-a918-a987d43be88c",
+                  "name": "산술평균과 기하평균",
+                  "code": "MATH-LOW-01-02-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ba2ed0e5-7187-561f-95ff-69fd8e4be4a1",
+                  "name": "코시-슈바르츠부등식",
+                  "code": "MATH-LOW-01-02-T009",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "MATH-LOW-02",
+          "name": "함수",
+          "children": [
+            {
+              "id": "MATH-LOW-02-01",
+              "name": "함수와 합성함수",
+              "children": [
+                {
+                  "id": "type-ac01b6cf-aca7-5cf7-9649-1f24f72cc637",
+                  "name": "함수의 뜻",
+                  "code": "MATH-LOW-02-01-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c85f04c9-3420-5220-899c-f3a4134eddfb",
+                  "name": "서로 같은 함수",
+                  "code": "MATH-LOW-02-01-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e838c908-17d4-5da3-95e4-a8e49944fbac",
+                  "name": "조건으로 정의된 함수",
+                  "code": "MATH-LOW-02-01-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3a31ebca-4cbc-5c34-a5c2-d4e2a6a52bbd",
+                  "name": "여러 가지 함수",
+                  "code": "MATH-LOW-02-01-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-447ab58e-545d-59fc-a90d-01a46a997637",
+                  "name": "일대일함수(대응)이 되기 위한 조건",
+                  "code": "MATH-LOW-02-01-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-13210d34-2f35-5158-b5e0-756470f60d78",
+                  "name": "함수의 그래프",
+                  "code": "MATH-LOW-02-01-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-8c5816aa-68cb-5178-98ee-ef76a5dc4953",
+                  "name": "함수의 개수",
+                  "code": "MATH-LOW-02-01-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-667be8fb-eef4-5cf2-95d9-d685d87f8c21",
+                  "name": "합성함수가 정의되기 위한 조건",
+                  "code": "MATH-LOW-02-01-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-321f3c6f-5a6b-5326-a679-26f592cbd365",
+                  "name": "합성함수 구하기(값, 식)",
+                  "code": "MATH-LOW-02-01-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-67cf7124-849d-579c-a28c-490da0a6aa58",
+                  "name": "합성함수의 그래프",
+                  "code": "MATH-LOW-02-01-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-18a1d4c6-7c7b-5deb-9e35-d9f34ada0d32",
+                  "name": "합성함수의 방정식",
+                  "code": "MATH-LOW-02-01-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6b6a6135-7400-5de4-a5a1-94288c0d4197",
+                  "name": "규칙이 있는 합성함수",
+                  "code": "MATH-LOW-02-01-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-9b3d5b85-96b8-53fa-940e-f3ea6247f92e",
+                  "name": "그래프를 이용한 함숫값의 추론",
+                  "code": "MATH-LOW-02-01-T013",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "MATH-LOW-02-02",
+              "name": "역함수",
+              "children": [
+                {
+                  "id": "type-fe5d5174-b6a7-57b5-93f8-e3b780c523c6",
+                  "name": "역함수가 존재하기 위한 조건",
+                  "code": "MATH-LOW-02-02-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-967fce1e-3b61-5b2e-a7d3-5d3c120ef11c",
+                  "name": "역함수 구하기(단순계산)",
+                  "code": "MATH-LOW-02-02-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ed9c23d5-502e-5a69-b273-da1621b20692",
+                  "name": "역함수의 함숫값 구하기(그래프이용)",
+                  "code": "MATH-LOW-02-02-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-727267fa-0837-5795-a99d-b391bce03bf9",
+                  "name": "합성함수와 역함수",
+                  "code": "MATH-LOW-02-02-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-74d1affe-5d05-570e-ba57-19afec88b8dc",
+                  "name": "역함수와 원함수의 그래프의 교점",
+                  "code": "MATH-LOW-02-02-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-2e4f673d-b672-5c5d-b858-6612e3403ff1",
+                  "name": "방정식 f=f^(-1) 의 실근",
+                  "code": "MATH-LOW-02-02-T006",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "MATH-LOW-02-03",
+              "name": "유리함수",
+              "children": [
+                {
+                  "id": "type-82a00133-3c86-5051-adc0-788343de94c7",
+                  "name": "유리식의 계산",
+                  "code": "MATH-LOW-02-03-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-38873346-43e5-5d62-9450-9e2a355b14d9",
+                  "name": "유리함수의 그래프(평행이동, 일반적인 성질)",
+                  "code": "MATH-LOW-02-03-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ee7fc668-b101-5522-a9fe-df2d04adc7fc",
+                  "name": "유리함수의 그래프와 최대, 최소",
+                  "code": "MATH-LOW-02-03-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0564e652-7f8f-5e72-89dd-11869ff7c3ce",
+                  "name": "유리함수의 그래프의 활용(격자점, 도형_산술기하x)",
+                  "code": "MATH-LOW-02-03-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0b19d24a-e497-56d8-984b-bf5feb628605",
+                  "name": "유리함수와 도형의 넓이, 길이(산술기하)",
+                  "code": "MATH-LOW-02-03-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-42daa212-48c2-583e-b8d6-33d0c1c94bbe",
+                  "name": "유리함수의 대칭성과 역함수",
+                  "code": "MATH-LOW-02-03-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-63d66711-bb45-5237-a502-d45e914c57be",
+                  "name": "유리함수와 직선의 위치관계",
+                  "code": "MATH-LOW-02-03-T007",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "MATH-LOW-02-04",
+              "name": "무리함수",
+              "children": [
+                {
+                  "id": "type-e492cbc3-e895-5c33-a47d-0acaa5842f5a",
+                  "name": "무리식의 계산",
+                  "code": "MATH-LOW-02-04-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e00d6779-15d9-566f-9ccc-6e99b7684689",
+                  "name": "무리함수의 그래프(평행이동, 일반적인 성질)",
+                  "code": "MATH-LOW-02-04-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-d92b64aa-69f0-5012-ac95-884f469acd81",
+                  "name": "무리함수의 최대, 최소",
+                  "code": "MATH-LOW-02-04-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-050605b3-0044-5316-9748-f05749e5b551",
+                  "name": "무리함수의 그래프의 활용(격자점, 도형)",
+                  "code": "MATH-LOW-02-04-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-374939ed-6bfc-5563-8472-8a38b9ec3448",
+                  "name": "무리함수의 역함수",
+                  "code": "MATH-LOW-02-04-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-33d6c134-4067-5ed3-a97f-10d7de3260de",
+                  "name": "무리함수와 직선의 위치관계",
+                  "code": "MATH-LOW-02-04-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-19c3adaa-515b-5a6a-91f1-64bf07d1d56e",
+                  "name": "무리함수와 함수의 교점",
+                  "code": "MATH-LOW-02-04-T007",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "MATH-LOW-03",
+          "name": "경우의 수",
+          "children": [
+            {
+              "id": "MATH-LOW-03-01",
+              "name": "경우의 수",
+              "children": [
+                {
+                  "id": "type-92d3beb7-a424-5b8c-bef7-a3ca862392c8",
+                  "name": "경우의 수(일반)",
+                  "code": "MATH-LOW-03-01-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b1fc0cf5-10e6-576c-ad4f-d99511474852",
+                  "name": "색칠하는 경우의 수",
+                  "code": "MATH-LOW-03-01-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ccce4cb3-2994-5489-afd7-296843840961",
+                  "name": "완전순열",
+                  "code": "MATH-LOW-03-01-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ef731d13-baea-5789-aa44-eb5d965fd49c",
+                  "name": "순열의 수 및 증명",
+                  "code": "MATH-LOW-03-01-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-44dac081-78de-5f35-ad6a-30d247992a19",
+                  "name": "여러 가지 순열의 계산",
+                  "code": "MATH-LOW-03-01-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-99e011e8-15db-5a2b-88df-9e5d66ff0e1d",
+                  "name": "이웃하거나 이웃하지 않는 순열(조합포함)",
+                  "code": "MATH-LOW-03-01-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-99003e8f-d0f1-5628-a1fb-fc3cecd9b96c",
+                  "name": "사전식 배열, 나열의 수",
+                  "code": "MATH-LOW-03-01-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e686d65b-613b-5819-aa67-0a7dd7c62cce",
+                  "name": "조합의 수 및 증명",
+                  "code": "MATH-LOW-03-01-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-503d5b90-166d-56b1-a4ee-52de7ea02b73",
+                  "name": "여러 가지 조합의 계산",
+                  "code": "MATH-LOW-03-01-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-bdf75f7d-c78c-57e2-83e9-0226c2eb4001",
+                  "name": "도형과 조합",
+                  "code": "MATH-LOW-03-01-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-fe00c479-fef8-5a88-8961-5345bfd01d92",
+                  "name": "분할과 분배",
+                  "code": "MATH-LOW-03-01-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6636d68f-b7c8-50f2-b1a2-ee57d02b5b2b",
+                  "name": "함수의 개수",
+                  "code": "MATH-LOW-03-01-T012",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ALG",
+      "name": "대수",
+      "children": [
+        {
+          "id": "ALG-01",
+          "name": "지수함수와 로그함수",
+          "children": [
+            {
+              "id": "ALG-01-01",
+              "name": "지수",
+              "children": [
+                {
+                  "id": "type-74259c9f-373e-5a03-8e92-98d2fad5c3d2",
+                  "name": "거듭제곱과 실수인 거듭제곱근(5지선다)",
+                  "code": "ALG-01-01-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c695ee1d-b82f-51be-a613-a67d032d119c",
+                  "name": "거듭제곱과 실수인 거듭제곱근(합답형)",
+                  "code": "ALG-01-01-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-a796e756-c633-5e65-bdac-a7bb5a9eefa9",
+                  "name": "거듭제곱과 실수인 거듭제곱근(개수함수)",
+                  "code": "ALG-01-01-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-d0f4d7c4-b0c5-5539-bfa0-5fdfdf6b6f04",
+                  "name": "거듭제곱과 실수인 거듭제곱근(집합)",
+                  "code": "ALG-01-01-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-7540c2fe-f18b-5b1c-9adb-24b383f3fe6f",
+                  "name": "거듭제곱근의 성질",
+                  "code": "ALG-01-01-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-16e204c8-800d-598d-8fb5-46f7b5c5921e",
+                  "name": "거듭제곱근의 계산",
+                  "code": "ALG-01-01-T006",
+                  "proposed": false,
+                  "corrected": true
+                },
+                {
+                  "id": "type-d8c2b147-90df-589a-a0fb-ce6173e50266",
+                  "name": "거듭제곱근의 대소관계",
+                  "code": "ALG-01-01-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e7e0044b-1da4-598c-bb5c-09fd01377449",
+                  "name": "지수의 확장(개념)",
+                  "code": "ALG-01-01-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-099f6c58-97ba-5051-ae3b-846210b7f475",
+                  "name": "지수의 확장(계산)",
+                  "code": "ALG-01-01-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b5bc3ae9-be6a-54f1-b2e4-5e0728081e17",
+                  "name": "지수의 확장(증명)",
+                  "code": "ALG-01-01-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f386ab00-c76a-5124-bac9-967e0fc5fb7a",
+                  "name": "지수법칙과 곱셈공식",
+                  "code": "ALG-01-01-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-d1fc781a-ea7f-55ef-9747-bb22e78b0b3a",
+                  "name": "거듭제곱하여 자연수가 되는 수",
+                  "code": "ALG-01-01-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3b72e86d-8082-5112-b71d-2574fad28931",
+                  "name": "지수법칙을 이용한 식의 변형",
+                  "code": "ALG-01-01-T013",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-1d05d655-f863-5a9d-a591-e8bcfc302ed2",
+                  "name": "음의 지수를 포함한 식",
+                  "code": "ALG-01-01-T014",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-af04f2bb-4cd2-5261-8564-a7ce6a0f1eb1",
+                  "name": "지수의 실생활 응용",
+                  "code": "ALG-01-01-T015",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ead8ae48-40e4-5433-aa41-4228f730c039",
+                  "name": "분모, 분자에 a^x 포함한 식",
+                  "code": "ALG-01-01-T016",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "ALG-01-02",
+              "name": "로그",
+              "children": [
+                {
+                  "id": "type-018aa13d-3fc8-5f88-8408-1e61189e2e26",
+                  "name": "로그의 성질",
+                  "code": "ALG-01-02-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-a16bafa2-194f-5619-bea7-7ec502275ff2",
+                  "name": "로그가 정의되기 위한 조건",
+                  "code": "ALG-01-02-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b67faa4a-37cc-5add-8a60-f6dda6ee63ea",
+                  "name": "로그의 연산",
+                  "code": "ALG-01-02-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e3ddb026-4923-5430-a059-367c9caa9ec4",
+                  "name": "로그의 성질을 이용한 값의 표현",
+                  "code": "ALG-01-02-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-7aa6bda8-bf1d-5329-958d-dce5fb68e997",
+                  "name": "조건을 이용하여 식의 값 구하기",
+                  "code": "ALG-01-02-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0538b20a-4ee4-5157-a8ba-b364fd790e67",
+                  "name": "로그와 이차방정식",
+                  "code": "ALG-01-02-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-12603009-39c9-5341-be19-69c9f07004fe",
+                  "name": "로그의 대소 관계",
+                  "code": "ALG-01-02-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-4e7d45db-169b-59e6-b920-76ab6e83040d",
+                  "name": "이차함수를 이용한 로그의 해석",
+                  "code": "ALG-01-02-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-24d23ba4-3a93-5564-b6b4-c4e683223083",
+                  "name": "자연수의 거듭제곱과 로그",
+                  "code": "ALG-01-02-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6ca04e65-d728-56fd-a6e3-aa770492cdd1",
+                  "name": "상용로그의 계산",
+                  "code": "ALG-01-02-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-94f6ccd7-129a-5bb8-b81e-62beecf913a2",
+                  "name": "로그의 정수부분과 소수부분",
+                  "code": "ALG-01-02-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-33ebd53f-8ed1-50fe-a48a-031be6f67143",
+                  "name": "로그의 실생활 응용",
+                  "code": "ALG-01-02-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-10b8fc71-2e57-53f4-bc3d-8eefdc86e392",
+                  "name": "로그의 정수부분과 소수부분의 활용",
+                  "code": "ALG-01-02-T013",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "ALG-01-03",
+              "name": "지수함수와 로그함수",
+              "children": [
+                {
+                  "id": "type-fc9fa1ca-1c5e-5b17-99f3-48a3a3ef5176",
+                  "name": "지수함수와 그 그래프의 성질",
+                  "code": "ALG-01-03-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f5e8a0ba-d8e8-5a64-be06-03b4a2a7de60",
+                  "name": "밑이 다른 지수함수 그래프의 비교",
+                  "code": "ALG-01-03-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-173fb3d3-fe61-5dc8-841a-bebd571e6c23",
+                  "name": "지수함수와 기울기",
+                  "code": "ALG-01-03-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f6050134-9ab4-5160-8fb4-ba93b8bd9c0c",
+                  "name": "지수함수의 그래프의 평행이동과 대칭이동",
+                  "code": "ALG-01-03-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-2c531c38-ed05-582c-acfa-36d40a9e9ece",
+                  "name": "지수함수가 지나는 사분면",
+                  "code": "ALG-01-03-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-21e12545-81e5-52c8-add3-8917615fffcf",
+                  "name": "지수함수의 그래프와 넓이",
+                  "code": "ALG-01-03-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b3d48f98-640e-5c6e-8047-cfe6544a591e",
+                  "name": "지수함수의 최대·최소 : a^(f(x)) 꼴",
+                  "code": "ALG-01-03-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-a4097be0-72d2-5b7e-8b65-7733ee67bdff",
+                  "name": "지수함수의 최대·최소 : a^(x) 꼴의 반복",
+                  "code": "ALG-01-03-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-d77f570a-648c-52f6-9d57-87b59dd59daf",
+                  "name": "로그함수와 그 그래프의 성질",
+                  "code": "ALG-01-03-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c92869e7-3ee3-5fc9-afdc-b5988b6c6f24",
+                  "name": "밑이 다른 로그함수 그래프의 비교",
+                  "code": "ALG-01-03-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-50402f77-e6e3-5836-9035-62848ccfc3f0",
+                  "name": "로그함수와 기울기",
+                  "code": "ALG-01-03-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-67351877-40ff-5b6d-82c9-16ca6f97ea57",
+                  "name": "y=x 를 이용한 식의 값 구하기",
+                  "code": "ALG-01-03-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-14936783-2b03-5983-acbd-48631ff0be6c",
+                  "name": "로그함수의 그래프 위의 점",
+                  "code": "ALG-01-03-T013",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-fafbe7bd-df9a-59e6-a3c2-bb578f1ba22e",
+                  "name": "로그함수의 그래프의 평행이동과 대칭이동",
+                  "code": "ALG-01-03-T014",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-888a9bac-520e-5337-966f-48c76be3593a",
+                  "name": "로그함수 그래프의 점근선",
+                  "code": "ALG-01-03-T015",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ef9d1d5c-8ed2-5841-a29f-6ed8f72bfecd",
+                  "name": "로그함수와 넓이",
+                  "code": "ALG-01-03-T016",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-d9b5a143-baa4-5f35-9d4a-53548902a87c",
+                  "name": "지수함수와 로그함수의 관계",
+                  "code": "ALG-01-03-T017",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-bf603f8d-c8a9-52ad-ab9b-42b2133af520",
+                  "name": "로그함수의 최대·최소",
+                  "code": "ALG-01-03-T018",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-4deca1f2-cd10-5c8b-af53-bd790d48cff8",
+                  "name": "지수함수와 로그함수 그래프의 점근선",
+                  "code": "ALG-01-03-T019",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-971e8c51-d41b-5771-8edf-260a19c95661",
+                  "name": "지수, 로그함수와 격자점",
+                  "code": "ALG-01-03-T020",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "ALG-01-04",
+              "name": "지수함수와 로그함수의 활용",
+              "children": [
+                {
+                  "id": "type-5847a90c-8fe9-5e68-bdb9-d8d918dd104c",
+                  "name": "밑을 같게 할 수 있는 지수방정식",
+                  "code": "ALG-01-04-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-7ec9c880-ba74-599d-9a52-9d84d437f9a6",
+                  "name": "a^(x) 의 꼴이 반복되는 지수방정식",
+                  "code": "ALG-01-04-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-dbd57224-a624-5238-bace-945d237875a4",
+                  "name": "연립방정식 형태의 지수방정식",
+                  "code": "ALG-01-04-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e2439c62-099d-5b34-b36f-79d0b82ae3ac",
+                  "name": "밑에 미지수가 있는 지수방정식",
+                  "code": "ALG-01-04-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-88d01201-efd3-5661-ade7-d25e440284b3",
+                  "name": "지수방정식의 근의 조건",
+                  "code": "ALG-01-04-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0c404b13-46cb-547b-a120-3cfff5a678c6",
+                  "name": "지수부등식",
+                  "code": "ALG-01-04-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-013a5b04-61c3-59e6-91d1-6b54c9344cd5",
+                  "name": "a^(x) 의 꼴이 반복되는 지수부등식",
+                  "code": "ALG-01-04-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-8efdc7ef-3141-5c8b-b49b-f361a1a020db",
+                  "name": "밑에 미지수가 있는 지수부등식",
+                  "code": "ALG-01-04-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f5275f31-08eb-54a7-a768-84a6a50d0e58",
+                  "name": "지수부등식이 항상 성립할 조건",
+                  "code": "ALG-01-04-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f0c61f5f-8afd-5d70-8e95-ee4030e3985c",
+                  "name": "지수방정식과 지수부등식의 실생활에의 활용",
+                  "code": "ALG-01-04-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-70979a5f-e1db-573c-a469-fae9fd506ac6",
+                  "name": "밑 또는 진수를 같게 하는 로그방정식",
+                  "code": "ALG-01-04-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-87349cc0-a48f-5512-98bd-5e0918350fd6",
+                  "name": "치환을 이용한 로그방정식",
+                  "code": "ALG-01-04-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-48ec1690-c715-5b30-b3dd-19e95980e3a1",
+                  "name": "근과 계수의 관계를 이용한 로그방정식",
+                  "code": "ALG-01-04-T013",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-421cf059-1d54-5d06-bb88-e1cb6246c171",
+                  "name": "로그를 취하는 로그방정식",
+                  "code": "ALG-01-04-T014",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3e104428-ea3c-50c6-b867-4047af01eb61",
+                  "name": "밑을 같게 할 수 있는 로그부등식",
+                  "code": "ALG-01-04-T015",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-fda01a86-e1ff-5ce4-85a5-b640a29a2421",
+                  "name": "지수에 로그를 포함한 로그부등식",
+                  "code": "ALG-01-04-T016",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f5f699b3-97a2-56ca-87f5-67117af794f5",
+                  "name": "치환을 이용한 로그부등식",
+                  "code": "ALG-01-04-T017",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c4ffb9c9-5f58-5d1c-92f4-5846bb2379d2",
+                  "name": "로그방정식과 로그부등식의 실생활 활용",
+                  "code": "ALG-01-04-T018",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ALG-02",
+          "name": "삼각함수",
+          "children": [
+            {
+              "id": "ALG-02-01",
+              "name": "삼각함수의 뜻과 성질",
+              "children": [
+                {
+                  "id": "type-27983905-c06c-5ed5-9987-ca12bc133cf7",
+                  "name": "육십분법과 호도법",
+                  "code": "ALG-02-01-T001",
+                  "proposed": false,
+                  "corrected": true
+                },
+                {
+                  "id": "type-79e5b94e-7763-526f-aa52-6e150b9cc81f",
+                  "name": "동경의 사분면상의 위치",
+                  "code": "ALG-02-01-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-bee56ed7-c686-5d2c-badb-1aa31ffce3f2",
+                  "name": "두 동경의 위치관계",
+                  "code": "ALG-02-01-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-5b5da3a8-db22-5dac-9bac-1bc04ce2c4a4",
+                  "name": "부채꼴의 호의 길이와 넓이",
+                  "code": "ALG-02-01-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3749aeb1-791a-5729-b7ef-7c250544e54a",
+                  "name": "부채꼴의 둘레의 길이와 넓이의 최대, 최소",
+                  "code": "ALG-02-01-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-abc90cbe-5949-5cd4-a0cb-9e81fea8f6ac",
+                  "name": "삼각함수",
+                  "code": "ALG-02-01-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-8f3f2ec1-1951-5553-87ac-dc46a8134d12",
+                  "name": "삼각함수의 부호",
+                  "code": "ALG-02-01-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-53197f97-647c-58b1-84ca-16b95c9f4068",
+                  "name": "삼각함수 사이의 관계 – 식 간단히 하기",
+                  "code": "ALG-02-01-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-35c4d524-4a64-5322-9c87-3b3cd47e2a72",
+                  "name": "삼각함수 사이의 관계 - 곱셈공식 이용",
+                  "code": "ALG-02-01-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0e26e1ce-f07d-5642-bbda-1d4d12267fd2",
+                  "name": "삼각함수와 이차방정식",
+                  "code": "ALG-02-01-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-8f3cfa60-c4ac-5634-9066-1ade63050f00",
+                  "name": "삼각함수를 이용한 도형의 길이 표현",
+                  "code": "ALG-02-01-T011",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "ALG-02-02",
+              "name": "삼각함수의 그래프",
+              "children": [
+                {
+                  "id": "type-46e5312f-1085-5a6a-b997-9e4c96cccb52",
+                  "name": "삼각함수 그래프의 대칭성",
+                  "code": "ALG-02-02-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-31df6c7e-f27a-5224-becb-cdffab008323",
+                  "name": "삼각함수의 그래프의 평행이동과 대칭이동",
+                  "code": "ALG-02-02-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e92f2e6b-4851-542f-bce5-fff18b69c383",
+                  "name": "삼각함수의 주기",
+                  "code": "ALG-02-02-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-8d86f6b4-81fe-5264-a660-60d81c5a0e8d",
+                  "name": "삼각함수의 미정계수의 결정 : 조건이 주어진 경우",
+                  "code": "ALG-02-02-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-8f5460ae-aa45-53fe-9249-1897a6a90cff",
+                  "name": "삼각함수의 미정계수의 결정 : 그래프가 주어진 경우",
+                  "code": "ALG-02-02-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-d2c3a5fe-1f67-5226-8f09-c26e83313bc6",
+                  "name": "절댓값 기호를 포함한 삼각함수의 그래프",
+                  "code": "ALG-02-02-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c35d725e-30d4-53fc-95d3-5a56c0d6121d",
+                  "name": "합성함수 꼴의 삼각함수",
+                  "code": "ALG-02-02-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-12a0ee64-aa9f-5691-a504-a079f092b105",
+                  "name": "삼각함수의 실생활 적용",
+                  "code": "ALG-02-02-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-41c79993-bddb-54d1-aaa6-b445c696bc00",
+                  "name": "삼각함수의 각 변환",
+                  "code": "ALG-02-02-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-a2d90272-98a3-592e-b3fb-5c24dcd8f741",
+                  "name": "삼각함수의 각 변환 : 삼각함수 값의 합과 곱",
+                  "code": "ALG-02-02-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-aeeffa08-fb1f-5ec9-aa44-d94d16e6c1d3",
+                  "name": "삼각함수를 포함한 함수의 최대·최소 : 합성함수꼴",
+                  "code": "ALG-02-02-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-eba82af4-d32b-5918-acc5-7c26dd135c5c",
+                  "name": "삼각방정식 : 일차식의 꼴",
+                  "code": "ALG-02-02-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-338b4d79-3837-5b8d-a203-4efc44dd0b46",
+                  "name": "삼각방정식 : 이차식의 꼴",
+                  "code": "ALG-02-02-T013",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-04e51e52-9af4-59f2-ba34-cfc36d1cbbdd",
+                  "name": "삼각방정식 : 그래프 이용",
+                  "code": "ALG-02-02-T014",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c298b5db-ecb5-558b-83f1-d27a46adbeca",
+                  "name": "삼각부등식",
+                  "code": "ALG-02-02-T015",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-abb00d71-e963-5a83-a4aa-34aa9eb7e6ab",
+                  "name": "삼각부등식의 근의 조건",
+                  "code": "ALG-02-02-T016",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "ALG-02-03",
+              "name": "삼각함수의 활용",
+              "children": [
+                {
+                  "id": "type-79a9440b-a173-512e-bc96-7848a69573d8",
+                  "name": "사인법칙(기본)",
+                  "code": "ALG-02-03-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-73b55b4f-9e9f-5f7e-92b6-2c47fc2dc409",
+                  "name": "사인법칙과 삼각형",
+                  "code": "ALG-02-03-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ec65391c-6d74-50b9-9e78-c59b9d9adadf",
+                  "name": "사인법칙과 원",
+                  "code": "ALG-02-03-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-bab74153-c457-5e95-8ca2-b0f7de750255",
+                  "name": "코사인법칙(기본)",
+                  "code": "ALG-02-03-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-7dc238fd-a608-5e6d-8bf2-c47238818baa",
+                  "name": "코사인법칙 응용",
+                  "code": "ALG-02-03-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-400505e6-94d7-516e-bc1b-1256ace2460f",
+                  "name": "길이의 최대, 최솟값",
+                  "code": "ALG-02-03-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-1ec1b6c4-65de-515e-a901-97eb8fd7cc59",
+                  "name": "사인법칙과 코사인법칙",
+                  "code": "ALG-02-03-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-a1d8cc2c-91f6-5207-a386-5f1f8bc44311",
+                  "name": "삼각형의 꼴 판단",
+                  "code": "ALG-02-03-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-2c0a14e4-cf41-5949-b520-a134a8290da7",
+                  "name": "삼각형의 넓이(기본)",
+                  "code": "ALG-02-03-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-1269d724-8964-5f42-b7eb-6834de9dd5f1",
+                  "name": "삼각형의 넓이(응용)",
+                  "code": "ALG-02-03-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-fd18bb88-ff4d-59ea-a1f2-f50349f8496d",
+                  "name": "삼각형의 넓이와 원",
+                  "code": "ALG-02-03-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-1aae011c-3d24-5000-b2bc-8bba39845e9f",
+                  "name": "사각형의 넓이",
+                  "code": "ALG-02-03-T012",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ALG-03",
+          "name": "수열",
+          "children": [
+            {
+              "id": "ALG-03-01",
+              "name": "등차수열",
+              "children": [
+                {
+                  "id": "type-6fc1362a-7ff6-5a59-aa7f-4ea7630a523c",
+                  "name": "등차수열의 일반항",
+                  "code": "ALG-03-01-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f9b79c94-7fa1-5706-b3ba-bab0d432a7db",
+                  "name": "두 수 사이에 숫자를 넣어 만든 등차수열",
+                  "code": "ALG-03-01-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-d02de2ba-4f39-5d6e-8f2a-c040cc44edf4",
+                  "name": "등차중항",
+                  "code": "ALG-03-01-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-eb582afc-69b7-5067-acfc-206eb9c899ed",
+                  "name": "등차수열의 합",
+                  "code": "ALG-03-01-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ae635870-d827-5b74-8652-6843ee62398d",
+                  "name": "부분의 합이 주어진 등차수열의 합",
+                  "code": "ALG-03-01-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-378e85ea-ee44-5d22-8e54-e62a53c1fec5",
+                  "name": "등차수열의 합의 최대, 최소",
+                  "code": "ALG-03-01-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f32c14d5-303a-536e-8bbe-eee927ffebe4",
+                  "name": "등차수열의 합과 일반항 사이의 관계",
+                  "code": "ALG-03-01-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3f6454a1-296f-575d-bd47-cffada255c3a",
+                  "name": "절댓값기호를 포함한 등차수열의 합",
+                  "code": "ALG-03-01-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-213cccf4-a424-5ca9-a5f2-6a3ac3e32ea9",
+                  "name": "절댓값기호를 포함한 등차수열의 합(이차함수)",
+                  "code": "ALG-03-01-T009",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "ALG-03-02",
+              "name": "등비수열",
+              "children": [
+                {
+                  "id": "type-da4ffa24-7489-5d8d-9019-a767960254db",
+                  "name": "등비수열의 일반항",
+                  "code": "ALG-03-02-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-d369bab8-6370-516f-9d06-f8927997c7e2",
+                  "name": "두 수 사이에 숫자를 넣어 만든 등비수열",
+                  "code": "ALG-03-02-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-08576bff-b455-58cc-b99b-de9f88d9e1ef",
+                  "name": "등비중항",
+                  "code": "ALG-03-02-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-58a40424-37f2-57e2-b8c2-6561002931f5",
+                  "name": "등비수열의 활용",
+                  "code": "ALG-03-02-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-817d3383-0775-52ef-829e-517c1763b970",
+                  "name": "등비수열의 합",
+                  "code": "ALG-03-02-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-8166d06a-e99f-5e83-b269-9bb00a691dcf",
+                  "name": "부분의 합이 주어진 등비수열의 합",
+                  "code": "ALG-03-02-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-d37247f0-72fd-567c-8c2c-19693143e7d1",
+                  "name": "등비수열 합의 활용(일반)",
+                  "code": "ALG-03-02-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3d230b31-f378-5009-b9c1-4aa242d0a955",
+                  "name": "등비수열 합의 활용(약수의 합)",
+                  "code": "ALG-03-02-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b91f73d9-c613-561d-bd6b-7a0765e60947",
+                  "name": "등비수열 합의 활용(원리합계)",
+                  "code": "ALG-03-02-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-14fa07d1-6470-5958-81e1-16c7f5d3f3ee",
+                  "name": "등비수열 합의 활용(도형)",
+                  "code": "ALG-03-02-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3c106e96-0096-5d19-ab6d-65373485ba80",
+                  "name": "등비수열의 합과 일반항 사이의 관계",
+                  "code": "ALG-03-02-T011",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "ALG-03-03",
+              "name": "수열의 합",
+              "children": [
+                {
+                  "id": "type-decb1bd6-e45d-5001-87bc-017a633112b3",
+                  "name": "Σ의 뜻과 성질",
+                  "code": "ALG-03-03-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-43d94303-a443-5f56-995e-a103b597bc28",
+                  "name": "Σ 와 등차, 등비수열",
+                  "code": "ALG-03-03-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-14ce4de0-3b0f-58aa-adfe-faab8b109a68",
+                  "name": "자연수의 거듭제곱의 합",
+                  "code": "ALG-03-03-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c35a7e4e-50d4-5449-a812-e5ccad622172",
+                  "name": "부분분수의 합",
+                  "code": "ALG-03-03-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-536847b0-b077-5295-8e31-d81d7d23087f",
+                  "name": "로그가 포함된 수열의 합",
+                  "code": "ALG-03-03-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-7985b0a7-7789-5d0e-a9a7-5f5da53d6037",
+                  "name": "근호가 포함된 수열의 합",
+                  "code": "ALG-03-03-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-bcbc6158-ce8b-5ee2-be30-9238dbb8d612",
+                  "name": "Σ 가 여러 개 등장하는 식",
+                  "code": "ALG-03-03-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-48c9a7a7-3f11-5c62-8b7c-fcbaaecb5559",
+                  "name": "Σ 로 주어진 수열의 합과 일반항",
+                  "code": "ALG-03-03-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-04613844-40c3-5595-acae-8251a273b1b2",
+                  "name": "수열의 규칙 찾기",
+                  "code": "ALG-03-03-T009",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "ALG-03-04",
+              "name": "수학적 귀납법",
+              "children": [
+                {
+                  "id": "type-02751543-bac7-5dd6-9b1c-e4ba1c447394",
+                  "name": "등차, 등비수열의 귀납적 정의",
+                  "code": "ALG-03-04-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-932fe757-d776-5488-aa54-6c9fc6a3afc7",
+                  "name": "귀납적으로 정의된 수열(기본 대입)",
+                  "code": "ALG-03-04-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-7d35cdc5-303c-577b-b1f2-5900c3f2662b",
+                  "name": "귀납적으로 정의된 수열( a_(n+1)=a_n+f(n) )",
+                  "code": "ALG-03-04-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-459cedaf-d09c-5d91-87b1-aefbe236b822",
+                  "name": "귀납적으로 정의된 수열( a_(n+1)=a_n×f(n) )",
+                  "code": "ALG-03-04-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-4f3781d2-1e48-5846-9070-0bf1ca4eacbd",
+                  "name": "귀납적으로 정의된 수열( a_(n+1)=pa_n+q )",
+                  "code": "ALG-03-04-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-5bff29be-1eaf-5939-8cca-9809ba7929f6",
+                  "name": "귀납적으로 정의된 수열( a_(n+2)+pa_(n+1)+qa_n=0 )",
+                  "code": "ALG-03-04-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e0723e1f-cf28-52a5-8e88-97caab36127c",
+                  "name": "귀납적으로 정의된 수열(케이스가 나뉘는 경우)",
+                  "code": "ALG-03-04-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-bd2f8725-5914-5455-b3f5-b71e9ab6a786",
+                  "name": "귀납적으로 정의된 수열(홀짝/배수조건)",
+                  "code": "ALG-03-04-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-654f5db5-145e-500d-bae9-f36082c5a599",
+                  "name": "a_n+a_(n+1)=f(n)",
+                  "code": "ALG-03-04-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6c2d25ff-da88-5db1-8b4e-d4be3c08d702",
+                  "name": "발견적 추론(규칙찾기)",
+                  "code": "ALG-03-04-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-d68a8fb3-5a5a-5158-b525-1c1458d0ee02",
+                  "name": "a_n 과 S_n 의 관계가 주어졌을 때",
+                  "code": "ALG-03-04-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ced7c9bd-dda0-5c32-8e38-65736eccce10",
+                  "name": "수열의 귀납적 정의와 도형",
+                  "code": "ALG-03-04-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-405c79c1-865b-5a71-91bc-b22b6351f498",
+                  "name": "수학적 귀납법(등식)",
+                  "code": "ALG-03-04-T013",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0b711edd-77a4-5346-9388-4aa07c27a251",
+                  "name": "수학적 귀납법(배수)",
+                  "code": "ALG-03-04-T014",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b3c53e5b-7b22-5bb3-8287-66bfa501f445",
+                  "name": "수학적 귀납법(부등식)",
+                  "code": "ALG-03-04-T015",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-233b31d4-f849-566e-bdc4-a13bf1557906",
+                  "name": "귀납적으로 정의된 수열(a_(n+1)=r a_n/(p a_n+q))",
+                  "code": "ALG-03-04-T016",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-42ed4f5b-cc0d-5597-969a-173790fe754d",
+                  "name": "수열의 귀납적 정의와 실생활",
+                  "code": "ALG-03-04-T017",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "aliases": [
+        "수학1",
+        "수학Ⅰ",
+        "수학 I"
+      ]
+    },
+    {
+      "id": "CALC1",
+      "name": "미적분1",
+      "children": [
+        {
+          "id": "CALC1-01",
+          "name": "함수의 극한과 연속",
+          "children": [
+            {
+              "id": "CALC1-01-01",
+              "name": "함수의 극한",
+              "children": [
+                {
+                  "id": "type-024effbe-06c7-5669-b293-96b18774fd23",
+                  "name": "그래프에서 함수의 극한",
+                  "code": "CALC1-01-01-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-21da0f73-e12a-543e-8d77-7c1a67f6fadf",
+                  "name": "함수의 극한에 대한 연산성질",
+                  "code": "CALC1-01-01-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-be7aae70-d34b-5de2-8aba-544d3377af2b",
+                  "name": "합성함수의 극한",
+                  "code": "CALC1-01-01-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-4634b2cc-2440-53fe-8ea5-acb7ae43402d",
+                  "name": "0/0 꼴 극한값의 계산",
+                  "code": "CALC1-01-01-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-bea14b37-b33e-53bf-b907-0747d8d04db4",
+                  "name": "∞/∞ 꼴의 극한값의 계산",
+                  "code": "CALC1-01-01-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-d7f96500-47c6-52da-bb84-101262f818d3",
+                  "name": "∞-∞ 꼴의 극한값 계산",
+                  "code": "CALC1-01-01-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-732ac1ea-6949-5945-992f-aa5f743ba5c3",
+                  "name": "가우스기호나 절댓값기호를 포함한 극한값",
+                  "code": "CALC1-01-01-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-9bf1ff68-b277-562a-8c26-8300106bfd28",
+                  "name": "극한값을 이용한 미정계수의 결정",
+                  "code": "CALC1-01-01-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-46205c8a-8cf5-5a10-964d-58a5165be2da",
+                  "name": "극한값을 이용한 다항함수의 결정",
+                  "code": "CALC1-01-01-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-821bc317-dc7a-51a5-9e95-b8b4455cf03d",
+                  "name": "함수의 극한의 대소 관계",
+                  "code": "CALC1-01-01-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0ac095ce-3858-52f5-bd75-a3bdfed90db3",
+                  "name": "함수의 극한에 대한 연산성질(정오판정)",
+                  "code": "CALC1-01-01-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ec215090-2bd6-5530-b7c0-77424f76372d",
+                  "name": "함수의 극한의 활용(교점)",
+                  "code": "CALC1-01-01-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-2e016fbc-5ece-5063-b3f4-b09340a4a501",
+                  "name": "함수의 극한의 활용(도형)",
+                  "code": "CALC1-01-01-T013",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "CALC1-01-02",
+              "name": "함수의 연속",
+              "children": [
+                {
+                  "id": "type-df016a0b-e737-52ce-b5bd-b6433992d45e",
+                  "name": "x=a 에서 함수의 연속",
+                  "code": "CALC1-01-02-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-99c6fff0-b838-5973-914a-2cf917ea331b",
+                  "name": "함수의 그래프에서 극한값과 연속",
+                  "code": "CALC1-01-02-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-87064aee-3137-59a3-93e0-23403d804ed2",
+                  "name": "함수의 연속과 미정계수의 결정",
+                  "code": "CALC1-01-02-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-8bf462d0-1741-59d9-bc5e-8a10bf8202bc",
+                  "name": "(x-a)f(x) 꼴의 함수의 연속",
+                  "code": "CALC1-01-02-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f5401404-2886-5c35-b404-5813a4f654f7",
+                  "name": "f(x)g(x) 가 x=a 에서 연속일 조건",
+                  "code": "CALC1-01-02-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-04c55d72-e923-56c6-ae31-978175519165",
+                  "name": "f(x)/g(x) 의 연속",
+                  "code": "CALC1-01-02-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-cfc350b5-abb9-5521-ad20-430225b8392a",
+                  "name": "f(x)f(x-a) 가 x=a 에서 연속",
+                  "code": "CALC1-01-02-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-5f40cebb-074c-5b15-a3af-8b86e87d64d4",
+                  "name": "y=f(x)+f(-x) 꼴의 연속",
+                  "code": "CALC1-01-02-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6dd84ad3-991f-5f09-9d3b-434231bf81a6",
+                  "name": "가우스 함수의 연속",
+                  "code": "CALC1-01-02-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-4fa48bf4-98e4-59ac-a989-9653b6decf04",
+                  "name": "합성함수의 연속",
+                  "code": "CALC1-01-02-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-52623541-c612-542c-b650-a543de5bf263",
+                  "name": "함수의 주기성과 연속성",
+                  "code": "CALC1-01-02-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f3b9dd62-4715-5c5a-805f-c15a0af1ceda",
+                  "name": "두 그래프의 교점에서 연속의 활용",
+                  "code": "CALC1-01-02-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-74efbb69-f025-50c4-b583-bd219ed15be5",
+                  "name": "연속함수의 정오판정",
+                  "code": "CALC1-01-02-T013",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-769a6267-92f8-57dc-b238-c7d0fdd2d2f3",
+                  "name": "최대 최소의 정리",
+                  "code": "CALC1-01-02-T014",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-8eab1749-4913-5baa-884c-5f6362402e45",
+                  "name": "사잇값 정리",
+                  "code": "CALC1-01-02-T015",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "CALC1-02",
+          "name": "미분",
+          "children": [
+            {
+              "id": "CALC1-02-01",
+              "name": "미분계수와 도함수",
+              "children": [
+                {
+                  "id": "type-1573cf16-bbf9-5673-a139-baf0c16cdce8",
+                  "name": "평균변화율",
+                  "code": "CALC1-02-01-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-cd8f4fbd-3c64-5fe4-ba48-c6fae68511fb",
+                  "name": "미분계수",
+                  "code": "CALC1-02-01-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3ff9b6f2-87e9-5ac5-bc18-100c0906282a",
+                  "name": "평균변화율과 미분계수",
+                  "code": "CALC1-02-01-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0d275b09-126e-5611-8410-ce6705d973a9",
+                  "name": "미분계수와 평균변화율의 그래프 관계",
+                  "code": "CALC1-02-01-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-28c73ca2-61b5-54c2-a265-54a3bc8fd067",
+                  "name": "미분계수를 이용한 극한값 계산",
+                  "code": "CALC1-02-01-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f73cc77c-5bc4-50b2-8825-3dbb0039139e",
+                  "name": "함수방정식이 주어질 때 미분계수 구하기",
+                  "code": "CALC1-02-01-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-91cd3767-cb56-549f-ad05-afca158cf41e",
+                  "name": "미분가능성과 연속성",
+                  "code": "CALC1-02-01-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-84866af4-eb87-522b-8ad8-58cbd4804547",
+                  "name": "미분가능할 조건에서 미정계수 결정",
+                  "code": "CALC1-02-01-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c37940a8-016a-57b1-bf0c-793989b1bd7d",
+                  "name": "미분법의 공식",
+                  "code": "CALC1-02-01-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-58326f0c-0f62-565a-a91d-d452caea92e8",
+                  "name": "미분법 공식을 이용한 미정계수 결정",
+                  "code": "CALC1-02-01-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-8e42409b-f8ea-536e-93f2-9b4fa653ff6e",
+                  "name": "극한값을 이용한 미분법",
+                  "code": "CALC1-02-01-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-82de684c-4399-5387-a0c3-5252046e4966",
+                  "name": "도함수와 미분계수를 이용한 극한값 계산",
+                  "code": "CALC1-02-01-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-cd388d0a-2696-5371-9f00-6abcf7190fc0",
+                  "name": "치환을 이용한 도함수와 미분계수",
+                  "code": "CALC1-02-01-T013",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-64cd6813-f047-5606-a447-6193b613d1d8",
+                  "name": "미분계수를 이용한 미정계수의 결정",
+                  "code": "CALC1-02-01-T014",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-2fa380d4-7392-5df8-87e7-f9129df8a6b0",
+                  "name": "도함수와 항등식",
+                  "code": "CALC1-02-01-T015",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6f3195ae-f6c3-5824-8a29-b6972b58158d",
+                  "name": "미분법과 다항식의 나눗셈",
+                  "code": "CALC1-02-01-T016",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "CALC1-02-02",
+              "name": "접선의 방정식",
+              "children": [
+                {
+                  "id": "type-14a9ac53-38d7-5889-a882-0c4dcad3b274",
+                  "name": "접선의 기울기를 이용한 미분계수 구하기",
+                  "code": "CALC1-02-02-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6074809d-7525-5309-8b8a-37bbfd556640",
+                  "name": "접선의 기울기를 이용한 미정계수의 결정",
+                  "code": "CALC1-02-02-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-71284eb8-e007-5d76-96e3-65adf0d38114",
+                  "name": "접점의 좌표가 주어진 접선의 방정식",
+                  "code": "CALC1-02-02-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ce8406cc-63e1-51eb-b086-3d972bf6d681",
+                  "name": "접선에 수직인 직선의 방정식",
+                  "code": "CALC1-02-02-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e6130f67-1380-5529-9a49-f2c0ecc89d6c",
+                  "name": "접선의 방정식과 도형의 넓이",
+                  "code": "CALC1-02-02-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3a496855-e75b-5588-a420-6c52d2987294",
+                  "name": "곡선과 접선의 교점",
+                  "code": "CALC1-02-02-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-96f5beb8-c8e1-5fa5-926f-4a6703160ecc",
+                  "name": "함수가 함수 사이에 있기 위한 조건",
+                  "code": "CALC1-02-02-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-fe77605f-80b9-5cb2-9506-2c6df487341e",
+                  "name": "곡선 밖의 점에서 그은 접선의 방정식",
+                  "code": "CALC1-02-02-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-fd88d8c7-ea3b-54c8-9557-0224d4d631ba",
+                  "name": "공통접선",
+                  "code": "CALC1-02-02-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-41355d2b-31e8-5f71-999f-ac983766f587",
+                  "name": "롤의 정리",
+                  "code": "CALC1-02-02-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-03bd24df-66bb-5de3-9221-6b8bbf72c9a1",
+                  "name": "평균값의 정리",
+                  "code": "CALC1-02-02-T011",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "CALC1-02-03",
+              "name": "함수의 증가·감소와 극대·극소",
+              "children": [
+                {
+                  "id": "type-21ef8ce5-d803-54ae-ae83-d97c975e91c3",
+                  "name": "함수의 증가와 감소",
+                  "code": "CALC1-02-03-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c56ce674-eaee-503d-8926-35c637d439f9",
+                  "name": "다항함수의 극대와 극소",
+                  "code": "CALC1-02-03-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ffc7cca4-a1b9-588f-9296-8a21fcbe8308",
+                  "name": "x 축에 접하는 함수의 그래프",
+                  "code": "CALC1-02-03-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-80109400-5d79-51bc-b9eb-5296d7439777",
+                  "name": "다항함수가 극값을 가질 조건",
+                  "code": "CALC1-02-03-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-49851217-a792-5f1a-8149-4b6f2bcbc0b4",
+                  "name": "절댓값을 포함한 함수의 극대 극소",
+                  "code": "CALC1-02-03-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-f433c9c1-77a7-544c-a2ea-209ed25fc8c1",
+                  "name": "다항함수의 극대 극소의 활용",
+                  "code": "CALC1-02-03-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-01d62b16-3a67-5a41-9133-79be39f0c79c",
+                  "name": "대칭성을 갖는 다항함수의 극대 극소",
+                  "code": "CALC1-02-03-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b90b06cd-87d8-5d67-abe5-43ac89352923",
+                  "name": "방정식 |f(x)|=a 의 서로 다른 실근의 개수",
+                  "code": "CALC1-02-03-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e7890171-3579-5886-8cac-cb3ca9d2129e",
+                  "name": "다항함수의 최대 최소",
+                  "code": "CALC1-02-03-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-065524fd-dd54-5575-a098-c77f87de8347",
+                  "name": "최대 최소의 활용",
+                  "code": "CALC1-02-03-T010",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "CALC1-02-04",
+              "name": "방정식과 부등식의 활용",
+              "children": [
+                {
+                  "id": "type-d27cf82f-3638-5bcc-8513-ae744aec17d6",
+                  "name": "비율 관계를 이용한 다항함수의 활용",
+                  "code": "CALC1-02-04-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-9adc1a30-0a8f-5ea9-a017-65dda37152a5",
+                  "name": "다항함수의 실근의 개수",
+                  "code": "CALC1-02-04-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-acd12b6e-d722-51db-aec8-38aa01a52fd1",
+                  "name": "실근의 개수 g(k)",
+                  "code": "CALC1-02-04-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-aff30dcd-3e0f-536d-989f-a2444f7f33ca",
+                  "name": "방정식 f(x)=k 의 실근의 부호",
+                  "code": "CALC1-02-04-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-dc9e6675-a6eb-56d7-afde-a2d6ddfe14d3",
+                  "name": "방정식 |f(x)|=a 의 서로 다른 실근의 개수",
+                  "code": "CALC1-02-04-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-1b7ad190-ed32-5565-9253-5e685f5d7aec",
+                  "name": "두 곡선의 교점의 개수",
+                  "code": "CALC1-02-04-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-7c21caf8-8cb9-5461-b0d0-30b4aa25b7e9",
+                  "name": "곡선 밖의 점에서의 접선의 개수",
+                  "code": "CALC1-02-04-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6ca5f2cd-4bb4-55ba-917f-3dbd5244edd9",
+                  "name": "어떤 구간에서 부등식이 성립할 조건",
+                  "code": "CALC1-02-04-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-809617c0-c4c6-560b-a5a2-9c6f07b518d2",
+                  "name": "모든 실수에서 부등식이 성립할 조건",
+                  "code": "CALC1-02-04-T009",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "CALC1-02-05",
+              "name": "속도와 가속도",
+              "children": [
+                {
+                  "id": "type-1d026eff-4854-54f0-a1ca-d6830b7f2724",
+                  "name": "위치와 속도",
+                  "code": "CALC1-02-05-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-fecefda5-6605-5eb3-b62e-af43bc5b7529",
+                  "name": "속도와 가속도",
+                  "code": "CALC1-02-05-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-af90708a-dbcc-57c0-b440-dbf3c3ebf78c",
+                  "name": "두 점의 속도의 변화",
+                  "code": "CALC1-02-05-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-26cedcb9-444a-5091-b833-7f5a1bb41485",
+                  "name": "속도 v(t) 그래프의 해석",
+                  "code": "CALC1-02-05-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-2e0559d5-1005-524e-859e-ae6c148bcbc8",
+                  "name": "시각에 대한 변화율",
+                  "code": "CALC1-02-05-T005",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "CALC1-03",
+          "name": "적분",
+          "children": [
+            {
+              "id": "CALC1-03-01",
+              "name": "부정적분과 정적분",
+              "children": [
+                {
+                  "id": "type-2f6ddbc4-51f4-53a5-a204-aa10df98f11c",
+                  "name": "부정적분의 계산",
+                  "code": "CALC1-03-01-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-277dc878-c217-5e9d-b369-f89bcddd8717",
+                  "name": "두 함수에 대한 부정적분",
+                  "code": "CALC1-03-01-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-02117cab-f046-5bd0-a525-f3b71c7fe572",
+                  "name": "부정적분과 항등식",
+                  "code": "CALC1-03-01-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0bd634b3-e9fa-503e-8ecd-c43b1b514d19",
+                  "name": "극값이 주어진 경우의 부정적분",
+                  "code": "CALC1-03-01-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-ea142d13-3747-557e-b59f-6b38402758b3",
+                  "name": "도함수의 그래프가 주어진 경우의 부정적분",
+                  "code": "CALC1-03-01-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c83198ac-759e-5c2e-92ff-577b85b30de3",
+                  "name": "정적분의 기본 정리",
+                  "code": "CALC1-03-01-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-64e14c4f-eda9-543f-8e07-488a079dbdea",
+                  "name": "정적분의 계산",
+                  "code": "CALC1-03-01-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-870e84a6-a0dd-5bb2-ba58-bff7683a1d5e",
+                  "name": "구간에 따라 다르게 정의된 함수의 정적분 계산",
+                  "code": "CALC1-03-01-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b26742c6-5303-57bb-85a0-36c48886267f",
+                  "name": "절댓값 기호를 포함한 정적분의 계산",
+                  "code": "CALC1-03-01-T009",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "CALC1-03-02",
+              "name": "정적분으로 정의된 함수",
+              "children": [
+                {
+                  "id": "type-1599459f-3523-534d-988f-8caf05ffef45",
+                  "name": "적분구간이 상수인 정적분을 포함한 등식에서 함수 f(x) 의 결정",
+                  "code": "CALC1-03-02-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-bc4070a0-9fce-56eb-be3c-fbaccf27aece",
+                  "name": "적분구간이 변수인 정적분을 포함한 등식에서 함수 f(x) 의 결정",
+                  "code": "CALC1-03-02-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-acaa6d16-646f-5f2d-be2a-445d19396772",
+                  "name": "정적분으로 정의된 함수의 극대 · 극소",
+                  "code": "CALC1-03-02-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-d7e6fa87-88dd-547e-8930-0b3653622398",
+                  "name": "정적분으로 정의된 함수를 통한 함수의 형태 추론",
+                  "code": "CALC1-03-02-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-9076adfd-a36b-5474-930e-dc35f36b491d",
+                  "name": "정적분으로 정의된 함수의 최대·최소",
+                  "code": "CALC1-03-02-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-a0ecf1db-5d51-5cde-a867-810a2077737e",
+                  "name": "정적분으로 정의된 함수의 극한",
+                  "code": "CALC1-03-02-T006",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "CALC1-03-03",
+              "name": "정적분의 활용",
+              "children": [
+                {
+                  "id": "type-f3663f9f-e7bc-5601-a9d1-30a0bfad24c6",
+                  "name": "피적분함수가 주어진 경우 우함수와 기함수의 정적분",
+                  "code": "CALC1-03-03-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-44e3c732-61c2-57e1-aed7-e3fbc28e4ba3",
+                  "name": "피적분함수가 주어지지 않았을 때, 우함수와 기함수의 정적분",
+                  "code": "CALC1-03-03-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b7f044de-e725-5669-b227-ece247495776",
+                  "name": "주기함수의 정적분",
+                  "code": "CALC1-03-03-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-fc7dc86e-0872-5f9d-8d41-47d4a4a18eac",
+                  "name": "함수의 대칭성을 이용한 정적분 계산",
+                  "code": "CALC1-03-03-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-3d542029-fc61-5d15-afba-32640a8db26f",
+                  "name": "평행이동 또는 대칭이동한 함수의 정적분 계산",
+                  "code": "CALC1-03-03-T005",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c6e67915-d890-509e-b995-0d521496edee",
+                  "name": "곡선과 x 축으로 둘러싸인 도형의 넓이",
+                  "code": "CALC1-03-03-T006",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-e6826442-22a8-5d7a-9c9a-2215660cdac9",
+                  "name": "넓이의 비가 주어진 도형의 넓이",
+                  "code": "CALC1-03-03-T007",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-7f513559-f0fe-58dc-9173-b8be2d77868a",
+                  "name": "x 축으로 둘러싸인 도형의 넓이의 활용",
+                  "code": "CALC1-03-03-T008",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-68de47ec-362b-590e-b05e-9cf8b7eeb5cf",
+                  "name": "두 곡선으로 둘러싸인 도형의 넓이",
+                  "code": "CALC1-03-03-T009",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-0aa3c9a2-820f-5700-b363-550245a448e3",
+                  "name": "두 곡선 사이의 넓이의 활용",
+                  "code": "CALC1-03-03-T010",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-94a95d99-171d-5e62-afac-978867229c69",
+                  "name": "두 도형의 넓이가 서로 같은 경우",
+                  "code": "CALC1-03-03-T011",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-b9a87411-dc94-5e87-9c80-abda6fbc0124",
+                  "name": "두 도형의 넓이를 이등분하는 경우",
+                  "code": "CALC1-03-03-T012",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-c82474c9-7761-51b0-85e4-33927e6c6a1d",
+                  "name": "넓이의 최대와 최소",
+                  "code": "CALC1-03-03-T013",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-a37657c4-5118-590b-9239-16a7845ae26c",
+                  "name": "곡선과 접선으로 둘러싸인 도형의 넓이",
+                  "code": "CALC1-03-03-T014",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-63cb1374-4401-5002-9f60-d06bbc4d6fa7",
+                  "name": "정적분과 역함수로 둘러싸인 부분의 넓이",
+                  "code": "CALC1-03-03-T015",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            },
+            {
+              "id": "CALC1-03-04",
+              "name": "속도와 거리",
+              "children": [
+                {
+                  "id": "type-4a27a074-a660-5fb6-a8b2-e29a50e6f62b",
+                  "name": "물체의 위치와 위치의 변화량",
+                  "code": "CALC1-03-04-T001",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-85fa7949-90e1-5bf5-8e29-b6dcfbad6487",
+                  "name": "속도와 움직인 거리",
+                  "code": "CALC1-03-04-T002",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-fee59734-aa31-5258-b239-c320c5d45281",
+                  "name": "두 물체의 위치와 움직인 거리",
+                  "code": "CALC1-03-04-T003",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-5ad50d2c-b9de-5232-8ce2-e3df2270de6c",
+                  "name": "운동방향이 바뀔 때 위치와 움직인 거리",
+                  "code": "CALC1-03-04-T004",
+                  "proposed": false,
+                  "corrected": false
+                },
+                {
+                  "id": "type-6efb21cf-f665-511a-b603-b32410d4c8a3",
+                  "name": "속도 그래프의 진위 판단",
+                  "code": "CALC1-03-04-T005",
+                  "proposed": false,
+                  "corrected": false
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "aliases": [
+        "수학2",
+        "수학Ⅱ",
+        "수학 II"
+      ]
+    }
+  ]
+}

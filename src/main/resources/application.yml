@@ -62,6 +62,12 @@ youtube:
 # 켜려면 PUSH_ENABLED=true + FCM_CREDENTIALS_PATH(서비스계정 JSON 경로) 지정.
 # 경로를 비워두면 GOOGLE_APPLICATION_CREDENTIALS(ADC)로 폴백.
 app:
+  homework-pdf:
+    enabled: ${HOMEWORK_PDF_ENABLED:false}
+    storage-dir: ${HOMEWORK_PDF_STORAGE_DIR:}
+    model: ${HOMEWORK_PDF_MODEL:gpt-6.1-sol}
+    daily-limit: ${HOMEWORK_PDF_DAILY_LIMIT:3}
+    global-daily-limit: ${HOMEWORK_PDF_GLOBAL_DAILY_LIMIT:20}
   solution-notebook:
     references-dir: ${SOLUTION_NOTEBOOK_REFERENCE_DIR:}
     live:
