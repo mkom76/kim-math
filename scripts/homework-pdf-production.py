@@ -24,6 +24,9 @@ DATABASE = 'kim_math'
 TARGET_FINGERPRINT = 'fb69afbd343e0186c389b2aaaf7c1c8123fdedfb253c0cf4f1701d0d32dccdec'
 MIGRATION_HASH = '866c147c002d714ba1f9f726580a8600d9f03ce995c7c8c6fa24966e3564f528'
 PDF_VOLUME = 'kim-math_homework-pdfs'
+EXAM_TABLES = ('exam_pdf_imports', 'exam_pdf_questions')
+EXAM_MIGRATION = 'migrations/2026-11-13-02-add-exam-pdf-imports.sql'
+EXAM_MIGRATION_HASH = 'b14d9c8c2682d21d0ebce5bce94e3acfa5a89ce9bb241410d4c2668a93ef984d'
 
 
 def run(args, data=None, timeout=60):
@@ -85,8 +88,10 @@ def feature_tables():
                "AND TABLE_NAME IN ('homework_pdf_imports','homework_pdf_questions') ORDER BY TABLE_NAME;").splitlines()
 
 
-def schema_signature():
-    clauses = " TABLE_SCHEMA=DATABASE() AND TABLE_NAME NOT IN ('homework_pdf_imports','homework_pdf_questions') "
+def schema_signature(excluded=FEATURE_TABLES):
+    if excluded not in (FEATURE_TABLES, EXAM_TABLES):
+        raise RuntimeError('Unexpected schema signature scope')
+    clauses = " TABLE_SCHEMA=DATABASE() AND TABLE_NAME NOT IN ('" + "','".join(excluded) + "') "
     columns = sql("SELECT TABLE_NAME,COLUMN_NAME,ORDINAL_POSITION,COLUMN_TYPE,IS_NULLABLE,COALESCE(COLUMN_DEFAULT,'<NULL>'),EXTRA "
                   "FROM information_schema.COLUMNS WHERE" + clauses + "ORDER BY TABLE_NAME,ORDINAL_POSITION;")
     indexes = sql("SELECT TABLE_NAME,INDEX_NAME,NON_UNIQUE,SEQ_IN_INDEX,COLUMN_NAME,INDEX_TYPE "
@@ -153,7 +158,7 @@ def restricted_command(username, database):
             '--default-character-set=utf8mb4 --user="$1" --database="$2"', 'sh', username, database]
 
 
-def restore_check(backup, migration=None):
+def restore_check(backup, migration=None, feature_verifier=None):
     nonce = secrets.token_hex(12)
     database, username = scratch_names(nonce)
     password = secrets.token_hex(24)
@@ -190,7 +195,7 @@ def restore_check(backup, migration=None):
             raise RuntimeError('Restored table integrity check failed')
         if migration is not None:
             run(restricted_command(username, database), data=password.encode() + b'\n' + migration, timeout=120)
-        verify_feature_schema(database)
+        (feature_verifier or verify_feature_schema)(database)
         emit('backup_restore_verification', 'passed')
         if migration is not None:
             emit('migration_rehearsal', 'passed')
@@ -429,6 +434,82 @@ def backup_pair(expected):
     emit('backup_directory', directory)
     emit('registered_originals_verified', len(required))
     emit('homework_pdf_paired_backup', 'passed')
+    return manifest
+
+
+def exam_feature_tables():
+    return sql("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() "
+               "AND TABLE_NAME IN ('exam_pdf_imports','exam_pdf_questions') ORDER BY TABLE_NAME;").splitlines()
+
+
+def exam_migration_source(source):
+    data = source_file(source, EXAM_MIGRATION).replace(b'\r\n', b'\n')
+    if hashlib.sha256(data).hexdigest() != EXAM_MIGRATION_HASH:
+        raise RuntimeError('Exam migration checksum mismatch')
+    return data
+
+
+def verify_exam_feature_schema(database=None):
+    rows = sql("SELECT TABLE_NAME,COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() "
+               "AND TABLE_NAME IN ('exam_pdf_imports','exam_pdf_questions') GROUP BY TABLE_NAME ORDER BY TABLE_NAME;", database=database)
+    if rows.splitlines() != ['exam_pdf_imports\t23', 'exam_pdf_questions\t17']:
+        raise RuntimeError('Exam PDF table columns do not match the reviewed migration')
+    counts = sql("SELECT CONSTRAINT_TYPE,COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA=DATABASE() "
+                 "AND TABLE_NAME IN ('exam_pdf_imports','exam_pdf_questions') GROUP BY CONSTRAINT_TYPE ORDER BY CONSTRAINT_TYPE;", database=database)
+    if dict(line.split('\t') for line in counts.splitlines()) != {'CHECK':'4', 'FOREIGN KEY':'6', 'PRIMARY KEY':'2', 'UNIQUE':'4'}:
+        raise RuntimeError('Exam PDF table constraints do not match the reviewed migration')
+
+
+def migrate_exam(expected, source):
+    verify_runtime(expected)
+    if exam_feature_tables():
+        raise RuntimeError('Exam tables already exist; do not rerun a one-time migration')
+    if sql('SELECT @@read_only,@@super_read_only;') != '0\t0':
+        raise RuntimeError('Production database is read-only')
+    if sql("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' AND ENGINE<>'InnoDB';") != '0':
+        raise RuntimeError('Snapshot requires InnoDB application tables')
+    objects = sum(int(sql('SELECT COUNT(*) FROM information_schema.' + table + ' WHERE ' + field + '=DATABASE();'))
+                  for table, field in [('VIEWS','TABLE_SCHEMA'), ('TRIGGERS','TRIGGER_SCHEMA'), ('ROUTINES','ROUTINE_SCHEMA'), ('EVENTS','EVENT_SCHEMA')])
+    if objects or sql('SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE() AND REFERENCED_TABLE_SCHEMA IS NOT NULL AND REFERENCED_TABLE_SCHEMA<>DATABASE();') != '0':
+        raise RuntimeError('Backup restore needs separate review for stored programs, views or cross-schema references')
+    if shutil.disk_usage(ROOT).free < 1024 ** 3:
+        raise RuntimeError('Insufficient free space for a verified backup')
+    migration = exam_migration_source(source)
+    signature = schema_signature(EXAM_TABLES)
+    paired = backup_pair(expected)
+    directory = Path(paired['databaseBackup']).parent
+    backup = Path(paired['databaseBackup'])
+    restore_check(backup, migration, verify_exam_feature_schema)
+    manifest = {'source':source, 'serverBefore':expected, 'database':DATABASE, 'targetFingerprint':TARGET_FINGERPRINT,
+                'migrationSha256':EXAM_MIGRATION_HASH, 'databaseBackup':str(backup),
+                'originalsBackup':paired['originalsBackup'], 'backupRestoreVerified':True,
+                'migrationRehearsalPassed':True, 'state':'exam-backup-verified'}
+    atomic_file(directory / 'exam-migration.json', json.dumps(manifest, indent=2).encode())
+    # No settings, existing tables or original files are changed by this operation.
+    verify_runtime(expected)
+    if exam_feature_tables():
+        raise RuntimeError('Exam tables appeared during preparation; stop without rerunning SQL')
+    sql('SET SESSION lock_wait_timeout=15;\n' + migration.decode())
+    verify_exam_feature_schema()
+    if schema_signature(EXAM_TABLES) != signature:
+        raise RuntimeError('Existing application schema changed during exam migration')
+    verify_target(expected)
+    manifest.update(state='exam-migration-verified', existingSchemaUnchanged=True)
+    atomic_file(directory / 'exam-migration.json', json.dumps(manifest, indent=2).encode())
+    atomic_file(BACKUPS / 'last-exam-success.json', json.dumps(manifest, indent=2).encode())
+    emit('backup_directory', directory)
+    emit('exam_migration_sha256', EXAM_MIGRATION_HASH)
+    emit('existing_schema_unchanged', True)
+    emit('exam_pdf_migration', 'passed')
+
+
+def verify_exam_runtime(expected):
+    verify_runtime(expected)
+    verify_exam_feature_schema()
+    record = json.loads((BACKUPS / 'last-exam-success.json').read_text())
+    if record.get('state') != 'exam-migration-verified' or record.get('migrationSha256') != EXAM_MIGRATION_HASH or record.get('targetFingerprint') != TARGET_FINGERPRINT:
+        raise RuntimeError('Verified exam migration and paired backup record is unavailable')
+    emit('exam_pdf_verification', 'passed')
 
 
 def emit(name, value):
@@ -513,6 +594,10 @@ def main():
         verify_runtime(expected)
     elif operation == 'homework-pdf-backup':
         backup_pair(expected)
+    elif operation == 'homework-pdf-exam-migrate':
+        migrate_exam(expected, source)
+    elif operation == 'homework-pdf-exam-verify':
+        verify_exam_runtime(expected)
     else:
         raise RuntimeError('Operation not prepared; no changes performed')
 

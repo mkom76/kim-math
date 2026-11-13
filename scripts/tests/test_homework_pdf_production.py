@@ -11,6 +11,46 @@ spec.loader.exec_module(ops)
 
 
 class ProductionGuardTests(unittest.TestCase):
+    def test_exam_migration_is_pinned_to_the_reviewed_sql(self):
+        source = Path(__file__).parents[2] / ops.EXAM_MIGRATION
+        with patch.object(ops, 'source_file', return_value=source.read_bytes()):
+            self.assertIn(b'CREATE TABLE exam_pdf_imports', ops.exam_migration_source('a' * 40))
+        with patch.object(ops, 'source_file', return_value=b'DROP TABLE tests;'):
+            with self.assertRaisesRegex(RuntimeError, 'checksum mismatch'):
+                ops.exam_migration_source('a' * 40)
+
+    def test_existing_exam_tables_stop_before_backup_or_ddl(self):
+        with patch.object(ops, 'verify_runtime'), patch.object(ops, 'exam_feature_tables', return_value=['exam_pdf_imports']), \
+                patch.object(ops, 'backup_pair') as backup, patch.object(ops, 'sql') as sql:
+            with self.assertRaisesRegex(RuntimeError, 'do not rerun'):
+                ops.migrate_exam('a' * 40, 'b' * 40)
+            backup.assert_not_called()
+            sql.assert_not_called()
+
+    def test_failed_exam_rehearsal_never_executes_production_ddl(self):
+        with patch.object(ops, 'verify_runtime'), patch.object(ops, 'exam_feature_tables', return_value=[]), \
+                patch.object(ops, 'sql', side_effect=['0\t0', '0', '0', '0', '0', '0', '0']) as sql, \
+                patch.object(ops.shutil, 'disk_usage') as disk, patch.object(ops, 'exam_migration_source', return_value=b'CREATE TABLE exam_pdf_imports(id INT);'), \
+                patch.object(ops, 'schema_signature'), patch.object(ops, 'backup_pair', return_value={'databaseBackup':'/backup/database.sql.gz','originalsBackup':'/backup/pdf.tar.gz'}), \
+                patch.object(ops, 'restore_check', side_effect=RuntimeError('rehearsal failed')), patch.object(ops, 'atomic_file') as write:
+            disk.return_value.free = 2 * 1024 ** 3
+            with self.assertRaisesRegex(RuntimeError, 'rehearsal failed'):
+                ops.migrate_exam('a' * 40, 'b' * 40)
+            self.assertTrue(all(call.args[0].startswith('SELECT ') for call in sql.call_args_list))
+            write.assert_not_called()
+
+    def test_exam_schema_verification_rejects_partial_tables_and_missing_constraints(self):
+        with patch.object(ops, 'sql', return_value='exam_pdf_imports\t23'):
+            with self.assertRaisesRegex(RuntimeError, 'columns do not match'):
+                ops.verify_exam_feature_schema()
+        columns = 'exam_pdf_imports\t23\nexam_pdf_questions\t17'
+        constraints = 'CHECK\t4\nFOREIGN KEY\t6\nPRIMARY KEY\t2\nUNIQUE\t4'
+        with patch.object(ops, 'sql', side_effect=[columns, constraints]):
+            ops.verify_exam_feature_schema()
+        with patch.object(ops, 'sql', side_effect=[columns, 'PRIMARY KEY\t2']):
+            with self.assertRaisesRegex(RuntimeError, 'constraints do not match'):
+                ops.verify_exam_feature_schema()
+
     def test_paired_backup_includes_exam_originals_when_schema_exists(self):
         homework = 'a' * 36 + '\t' + 'b' * 64
         exam = 'c' * 36 + '\t' + 'd' * 64
