@@ -106,7 +106,7 @@ public class OpenAiNotebookPhotoAi implements NotebookPhotoAi {
         if (!ready()) throw failure("실제 AI 연결 설정이 필요합니다.");
         String mime = stage.equals("verify_image") ? "image/png" : "image/jpeg";
         var content = List.of(Map.of("type", "text", "text", prompt), Map.of("type", "image_url", "image_url", Map.of("url", "data:" + mime + ";base64," + Base64.getEncoder().encodeToString(photo), "detail", "high")));
-        Map<String, Object> body = Map.of("model", "gpt-6-luna", "store", false, "max_completion_tokens", stage.equals("solve") ? 6000 : 1800,
+        Map<String, Object> body = Map.of("model", "gpt-6.1-sol", "store", false, "max_completion_tokens", stage.equals("solve") ? 6000 : 1800,
                 "reasoning_effort", "low", "response_format", Map.of("type", "json_object"),
                 "messages", List.of(Map.of("role", "system", "content", GUARD), Map.of("role", "user", "content", content)));
         JsonNode result = request(client.post().uri("/v1/chat/completions").contentType(MediaType.APPLICATION_JSON).bodyValue(body), stage, 90);
