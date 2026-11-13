@@ -61,8 +61,11 @@ export function formatHomeworkQuestionType(id: string | null | undefined): strin
 
 function normalizeSearch(value: string): string {
   return value.toLowerCase()
-    .replace(/수학\s*(?:2|ⅱ|ii)(?![a-z0-9])/g, '미적분1')
-    .replace(/수학\s*(?:1|ⅰ|i)(?![a-z0-9])/g, '대수')
+    .replace(/수학\s*\(\s*상\s*\)/g, '공통수학1')
+    .replace(/수학\s*\(\s*하\s*\)/g, '공통수학2')
+    .replace(/공통\s*수학\s*([12])/g, '공통수학$1')
+    .replace(/(^|[^가-힣a-z0-9])수학\s*(?:2|ⅱ|ii)(?![a-z0-9])/g, '$1미적분1')
+    .replace(/(^|[^가-힣a-z0-9])수학\s*(?:1|ⅰ|i)(?![a-z0-9])/g, '$1대수')
 }
 
 export function matchesHomeworkTypeSearch(pathLabels: readonly string[], keyword: string): boolean {

@@ -15,7 +15,7 @@ describe('PDF 숙제 문항의 유형 기준', () => {
     expect(new Set(homeworkQuestionTypes.map(type => type.code)).size).toBe(529)
     expect(homeworkQuestionTypes.every(type => type.path.length === 4)).toBe(true)
     expect(homeworkTypeCatalogVersion).toMatch(/^2026-11-13-[a-f0-9]{16}$/)
-    expect(homeworkTypeOptions.map(option => option.label)).toEqual(['수학(상)', '수학(하)', '대수', '미적분1'])
+    expect(homeworkTypeOptions.map(option => option.label)).toEqual(['공통수학1', '공통수학2', '대수', '미적분1'])
   })
 
   it('과목·단원 ID, 원문 THM 번호와 임의의 AI 유형을 세부유형으로 허용하지 않는다', () => {
@@ -44,5 +44,16 @@ describe('PDF 숙제 문항의 유형 기준', () => {
     expect(matchesHomeworkTypeSearch(['대수', '지수함수와 로그함수', '지수', '거듭제곱근의 계산'], '수학1 거듭제곱근')).toBe(true)
     expect(matchesHomeworkTypeSearch(['미적분1', '미분', '접선의 방정식'], '수학 II 접선')).toBe(true)
     expect(matchesHomeworkTypeSearch(['대수', '지수'], '수학2 지수')).toBe(false)
+  })
+
+  it('공통수학의 새 이름과 옛 이름으로 같은 유형을 찾는다', () => {
+    expect(matchesHomeworkTypeSearch(['공통수학1', '다항식', '곱셈공식'], '수학(상) 곱셈공식')).toBe(true)
+    expect(matchesHomeworkTypeSearch(['공통수학2', '함수', '유리함수'], '수학 (하) 유리함수')).toBe(true)
+    expect(matchesHomeworkTypeSearch(['공통수학1', '다항식'], '공통 수학 1 다항식')).toBe(true)
+    expect(matchesHomeworkTypeSearch(['공통수학2', '유리함수'], '공통수학2 유리함수')).toBe(true)
+    expect(matchesHomeworkTypeSearch(['공통수학1', '다항식'], '수학1')).toBe(false)
+    expect(matchesHomeworkTypeSearch(['공통수학2', '유리함수'], '수학2')).toBe(false)
+    expect(matchesHomeworkTypeSearch(['대수', '지수'], '공통수학1')).toBe(false)
+    expect(matchesHomeworkTypeSearch(['미적분1', '극한'], '공통수학2')).toBe(false)
   })
 })

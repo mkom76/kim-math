@@ -1,9 +1,9 @@
 {
-  "version": "2026-11-13-350b8e8590bba9d3",
+  "version": "2026-11-13-76015ec0cad5e71a",
   "subjects": [
     {
       "id": "MATH-UP",
-      "name": "수학(상)",
+      "name": "공통수학1",
       "children": [
         {
           "id": "MATH-UP-01",
@@ -1424,11 +1424,14 @@
             }
           ]
         }
+      ],
+      "aliases": [
+        "수학(상)"
       ]
     },
     {
       "id": "MATH-LOW",
-      "name": "수학(하)",
+      "name": "공통수학2",
       "children": [
         {
           "id": "MATH-LOW-01",
@@ -2008,6 +2011,9 @@
             }
           ]
         }
+      ],
+      "aliases": [
+        "수학(하)"
       ]
     },
     {
