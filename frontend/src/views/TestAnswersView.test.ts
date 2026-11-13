@@ -5,7 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { testAPI } from '@/api/client'
 import TestAnswersView from './TestAnswersView.vue'
 
-vi.mock('@/api/client', () => ({ testAPI: { getTestQuestions: vi.fn(), saveTestAnswers: vi.fn() } }))
+vi.mock('@/api/client', () => ({ testAPI: { getTest: vi.fn(), getTestQuestions: vi.fn(), saveTestAnswers: vi.fn() } }))
 vi.mock('vue-router', () => ({
   useRoute: () => ({ params: { id: '10' } }),
   useRouter: () => ({ push: vi.fn() }),
@@ -58,6 +58,7 @@ async function mountAnswers() {
 describe('TestAnswersView question identity', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    vi.mocked(testAPI.getTest).mockResolvedValue({ data: { id: 10, title: '가상 시험' } } as never)
     vi.mocked(ElMessageBox.confirm).mockResolvedValue('confirm' as never)
     vi.mocked(testAPI.getTestQuestions)
       .mockResolvedValueOnce({ data: structuredClone(initialQuestions) } as never)
@@ -79,6 +80,15 @@ describe('TestAnswersView question identity', () => {
         ? [{ id: 22, number: 1, answer: '2' }, { id: 33, number: 2, answer: '3' }]
         : [{ id: 11, number: 1, answer: '1' }, { id: 33, number: 2, answer: '3' }],
     )
+    wrapper.unmount()
+  })
+  it('PDF 시험은 문항 추가와 삭제를 숨기고 수정 전 저장을 막는다', async () => {
+    vi.mocked(testAPI.getTest).mockResolvedValue({ data: { id: 10, title: 'PDF 시험', pdfImportId: 'pdf-job' } } as never)
+    const wrapper = await mountAnswers()
+    expect(wrapper.findAll('button[data-delete="true"]')).toHaveLength(0)
+    expect(wrapper.findAll('button').some(button => button.text() === '문제 추가')).toBe(false)
+    expect(wrapper.findAll('button').find(button => button.text() === '전체 저장')!.attributes('disabled')).toBeDefined()
+    expect(testAPI.saveTestAnswers).not.toHaveBeenCalled()
     wrapper.unmount()
   })
 

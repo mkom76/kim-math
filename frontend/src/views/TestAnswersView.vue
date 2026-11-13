@@ -14,10 +14,13 @@ const loading = ref(false)
 const questions = ref<Question[]>([])
 const expectedQuestionIds = ref<number[]>([])
 const hasChanges = ref(false)
+const pdfTest = ref(false)
 
 const fetchQuestions = async () => {
   loading.value = true
   try {
+    const test = await testAPI.getTest(Number(testId))
+    pdfTest.value = Boolean(test.data.pdfImportId)
     const response = await testAPI.getTestQuestions(Number(testId))
     questions.value = response.data.data || response.data
     expectedQuestionIds.value = questions.value.map(question => question.id)
@@ -26,7 +29,7 @@ const fetchQuestions = async () => {
     questions.value.sort((a, b) => (a.number || 0) - (b.number || 0))
     reorderQuestions()
     hasChanges.value = false
-  } catch (error) {
+  } catch {
     ElMessage.error('문제 목록을 불러오는데 실패했습니다.')
   } finally {
     loading.value = false
@@ -120,8 +123,8 @@ const handleSaveAll = async () => {
     ElMessage.success('모든 정답이 저장되었습니다.')
     hasChanges.value = false
     await fetchQuestions()
-  } catch (error: any) {
-    ElMessage.error(error.response?.data?.message || '저장에 실패했습니다.')
+  } catch (error: unknown) {
+    ElMessage.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || '저장에 실패했습니다.')
   } finally {
     loading.value = false
   }
@@ -231,11 +234,11 @@ onMounted(() => {
           </h1>
         </div>
         <div style="display: flex; gap: 12px">
-          <el-button type="primary" @click="handleAddQuestion">
+          <el-button v-if="!pdfTest" type="primary" @click="handleAddQuestion">
             <el-icon><Plus /></el-icon>
             문제 추가
           </el-button>
-          <el-button type="primary" plain @click="openPicker">
+          <el-button v-if="!pdfTest" type="primary" plain @click="openPicker">
             <el-icon><Collection /></el-icon>
             교재에서 가져오기
           </el-button>
@@ -248,6 +251,7 @@ onMounted(() => {
     </el-card>
 
     <!-- Questions List -->
+    <el-alert v-if="pdfTest" title="PDF 시험의 문항·번호·유형은 고정됩니다. 정답·답안 방식·배점을 수정하면 기존 제출 답안이 재채점됩니다." type="info" :closable="false" style="margin-bottom: 16px" />
     <el-card shadow="never" style="margin-bottom: 24px">
       <template #header>
         <div style="display: flex; align-items: center; gap: 8px">
@@ -367,6 +371,7 @@ onMounted(() => {
           <template #default="{ row }">
             <el-input
               v-model="row.topic"
+              :disabled="pdfTest"
               placeholder="예: 함수 › 일차함수"
               maxlength="512"
               clearable
@@ -394,7 +399,7 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column label="작업" width="80" align="center">
+        <el-table-column v-if="!pdfTest" label="작업" width="80" align="center">
           <template #default="{ row, $index }">
             <el-button
               size="small"

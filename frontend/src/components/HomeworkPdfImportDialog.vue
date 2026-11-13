@@ -19,6 +19,8 @@ const title = ref('')
 const memo = ref('')
 const dueDate = ref<string | null>(null)
 const consent = ref(false)
+const pageMode = ref('all')
+const pageRange = ref('')
 const contentsReviewed = ref(false)
 const draft = ref<DraftQuestion[]>([])
 const busy = ref(false)
@@ -50,6 +52,7 @@ function reset() {
   busy.value = false; loading.value = false; consent.value = false; contentsReviewed.value = false
   title.value = ''; memo.value = ''; dueDate.value = null; classId.value = undefined; activePage.value = 1
   requestKey.value = crypto.randomUUID()
+  pageMode.value = 'all'; pageRange.value = ''
 }
 function applyJob(result: PdfImport) {
   job.value = result
@@ -71,6 +74,7 @@ async function poll(id: string, token: number) {
     if (job.value?.id === id && job.value.state !== 'PROCESSING') return
     applyJob(response.data)
     error.value = ''
+    if (response.data.state === 'REVIEW') await loadPdf(id, token)
     if (response.data.state === 'PROCESSING') pollTimer = setTimeout(() => { void poll(id, token) }, 1500)
   } catch (cause) {
     if (token === generation) error.value = message(cause, '분석 상태를 불러오지 못했습니다. 상태 확인을 다시 눌러 주세요.')
@@ -110,10 +114,12 @@ async function analyze() {
   busy.value = true; error.value = ''
   const token = generation
   try {
-    const response = await homeworkPdfAPI.upload(file.value, classId.value, subjectId.value, requestKey.value, consent.value)
+    if (pageMode.value === 'selected' && !pageRange.value.trim()) { error.value = '등록할 페이지 범위를 입력해 주세요.'; return }
+    const response = await homeworkPdfAPI.upload(file.value, classId.value, subjectId.value, requestKey.value, consent.value, pageMode.value === 'selected' ? pageRange.value : undefined)
     if (token !== generation) return
     applyJob(response.data)
     if (response.data.state === 'PROCESSING') void poll(response.data.id, token)
+    else if (response.data.state === 'REVIEW') await loadPdf(response.data.id, token)
   } catch (cause) { if (token === generation) error.value = message(cause, 'PDF 분석을 시작하지 못했습니다.') }
   finally { if (token === generation) busy.value = false }
 }
@@ -156,6 +162,7 @@ watch(() => [props.visible, props.importId, props.academyId] as const, () => {
   else reset()
 }, { immediate: true })
 watch(draft, () => { contentsReviewed.value = false }, { deep: true })
+watch([pageMode, pageRange, classId, subjectId], () => { requestKey.value = crypto.randomUUID() })
 onBeforeUnmount(() => { generation++; clearTimeout(pollTimer); if (pdfUrl.value) URL.revokeObjectURL(pdfUrl.value) })
 </script>
 
@@ -177,6 +184,11 @@ onBeforeUnmount(() => { generation++; clearTimeout(pollTimer); if (pdfUrl.value)
             <p class="pdf-hint">8MB·20쪽·60문항 이내. 스캔본과 수식·도형이 포함된 PDF도 분석합니다.</p>
           </el-form-item>
           <p class="pdf-notice">{{ config?.notice }}</p>
+          <el-form-item label="등록할 페이지">
+            <el-radio-group v-model="pageMode" :disabled="busy"><el-radio value="all">전체 페이지</el-radio><el-radio value="selected">일부 페이지</el-radio></el-radio-group>
+            <el-input v-if="pageMode === 'selected'" v-model="pageRange" placeholder="예: 1-3,5,8" maxlength="200" :disabled="busy" aria-label="등록할 PDF 페이지 범위" />
+            <p class="pdf-hint">PDF의 실제 페이지 번호 기준입니다. 선택한 페이지만 보관·분석하며 등록본의 페이지 번호는 1부터 다시 매깁니다. 일부 페이지 등록 시 주석·입력 양식의 내용은 PDF 본문으로 저장한 파일을 사용해 주세요.</p>
+          </el-form-item>
           <el-checkbox v-model="consent" :disabled="busy">PDF 분석 전송 안내를 확인했습니다.</el-checkbox>
           <div class="pdf-actions"><el-button type="primary" :loading="busy" :disabled="!config?.ready || !file || !classId || !consent || mismatch" @click="analyze">문항 분석 및 유형 자동 분류</el-button></div>
         </el-form>
@@ -214,5 +226,6 @@ onBeforeUnmount(() => { generation++; clearTimeout(pollTimer); if (pdfUrl.value)
 </template>
 
 <style scoped>
+.pdf-import :deep(.el-form-item__content) > .pdf-hint{width:100%}.pdf-import input[type=file]{max-width:100%}.pdf-import :deep(.el-radio-group){width:100%}
 .pdf-import{display:grid;gap:16px}.pdf-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.pdf-fields .el-select,.pdf-fields .el-date-editor{width:100%}.pdf-hint,.pdf-notice{color:var(--el-text-color-secondary);font-size:13px;line-height:1.6;margin:8px 0}.pdf-actions{margin-top:16px}.pdf-processing{display:grid;gap:12px}.pdf-source{display:grid;gap:8px}.pdf-source span{margin-left:8px;overflow-wrap:anywhere}.pdf-source iframe{width:100%;height:400px;border:1px solid var(--el-border-color);border-radius:6px}.pdf-summary,.pdf-question-heading{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.pdf-question{padding:16px 0;border-top:1px solid var(--el-border-color-light)}.pdf-question-heading{margin-bottom:12px}.pdf-question .homework-type-picker{width:100%}@media(max-width:600px){.pdf-fields{grid-template-columns:1fr;gap:4px}.pdf-source iframe{height:260px}.pdf-actions .el-button{width:100%;white-space:normal;height:auto;min-height:40px}.pdf-import :deep(.el-checkbox){white-space:normal;height:auto;align-items:flex-start;line-height:1.6}.pdf-import :deep(.el-checkbox__label){white-space:normal}}
 </style>

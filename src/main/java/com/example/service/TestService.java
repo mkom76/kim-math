@@ -35,16 +35,27 @@ public class TestService {
     private final AuthorizationService authorizationService;
     private final TextbookProblemRepository textbookProblemRepository;
     private final StudentClassEnrollmentService studentClassEnrollmentService;
+    private final ExamPdfImportRepository examPdfImportRepository;
 
     public Page<TestDto> getTests(Pageable pageable) {
-        return testRepository.findAll(pageable).map(TestDto::from);
+        var page = testRepository.findAll(pageable);
+        var pdfs = examPdfImportRepository.findByTestIdIn(page.getContent().stream().map(Test::getId).toList())
+                .stream().collect(Collectors.toMap(ExamPdfImport::getTestId, ExamPdfImport::getId));
+        return page.map(test -> {
+            var dto = TestDto.from(test);
+            dto.setPdfImportId(pdfs.get(test.getId()));
+            return dto;
+        });
     }
     
     public TestDto getTest(Long id) {
         Test test = testRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
         authorizationService.assertCanAccessTest(test);
-        return TestDto.from(test);
+        var dto = TestDto.from(test);
+        examPdfImportRepository.findByTestIdIn(List.of(id)).stream().findFirst()
+                .ifPresent(pdf -> dto.setPdfImportId(pdf.getId()));
+        return dto;
     }
 
     public TestDto createTest(TestDto dto) {
@@ -101,6 +112,7 @@ public class TestService {
                 .lesson(null)
                 .build());
 
+        boolean pdfSource = examPdfImportRepository.existsByTestId(sourceTestId);
         List<TestQuestion> copiedQuestions = testQuestionRepository
                 .findByTestIdOrderByNumber(sourceTestId)
                 .stream()
@@ -114,7 +126,14 @@ public class TestService {
                             .questionType(sourceQuestion.getQuestionType())
                             .textbookProblem(sourceQuestion.getTextbookProblem())
                             .build();
-                    applyTopic(copiedQuestion, effectiveTopic(sourceQuestion));
+                    if (pdfSource) {
+                        copiedQuestion.setTopic(sourceQuestion.getTopic());
+                        copiedQuestion.setTopicL1(sourceQuestion.getTopicL1());
+                        copiedQuestion.setTopicL2(sourceQuestion.getTopicL2());
+                        copiedQuestion.setTopicL3(sourceQuestion.getTopicL3());
+                        copiedQuestion.setTopicL4(sourceQuestion.getTopicL4());
+                        copiedQuestion.setTopicL5(sourceQuestion.getTopicL5());
+                    } else applyTopic(copiedQuestion, effectiveTopic(sourceQuestion));
                     return copiedQuestion;
                 })
                 .collect(Collectors.toList());
@@ -128,6 +147,12 @@ public class TestService {
         Test test = testRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
         authorizationService.assertCanAccessTest(test);
+
+        if (examPdfImportRepository.existsByTestId(id)
+                && ((dto.getClassId() != null && !dto.getClassId().equals(test.getAcademyClass().getId()))
+                || (dto.getAcademyId() != null && !dto.getAcademyId().equals(test.getAcademy().getId())))) {
+            throw new IllegalArgumentException("PDF 시험의 학원과 반은 변경할 수 없습니다.");
+        }
 
         test.setTitle(dto.getTitle());
 
@@ -153,6 +178,7 @@ public class TestService {
         Test test = testRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
         authorizationService.assertCanAccessTest(test);
+        assertNotPdfStructure(id);
         testRepository.delete(test);
     }
 
@@ -177,6 +203,7 @@ public class TestService {
         if (dto.getAnswers() == null) {
             throw new IllegalArgumentException("문항 목록이 필요합니다");
         }
+        boolean pdfTest = examPdfImportRepository.existsByTestId(dto.getTestId());
         Set<Long> retainedQuestionIds = new HashSet<>();
         Set<Integer> questionNumbers = new HashSet<>();
         for (TestAnswersDto.QuestionAnswer answer : dto.getAnswers()) {
@@ -188,6 +215,14 @@ public class TestService {
                     || !retainedQuestionIds.add(answer.id()))) {
                 throw new IllegalArgumentException("문항 정보를 확인할 수 없습니다. 새로고침 후 다시 시도해주세요");
             }
+        }
+
+        if (pdfTest && (!retainedQuestionIds.equals(existingQuestionsById.keySet())
+                || dto.getAnswers().size() != existingQuestions.size()
+                || dto.getAnswers().stream().anyMatch(answer -> answer.id() == null
+                    || !answer.number().equals(existingQuestionsById.get(answer.id()).getNumber())
+                    || !java.util.Objects.equals(answer.topic(), existingQuestionsById.get(answer.id()).getTopic())))) {
+            throw new IllegalArgumentException("PDF 시험의 문항·번호·유형은 고정됩니다. 정답과 배점만 수정해 주세요.");
         }
 
         // 번호가 바뀌어도 남아 있는 문항은 ID로 식별한다.
@@ -215,7 +250,7 @@ public class TestService {
             question.setMultipleAnswers(multipleAnswers);
             question.setPoints(points);
             question.setQuestionType(questionType);
-            applyTopic(question, answer.topic());
+            if (!pdfTest) applyTopic(question, answer.topic());
             questionsToSave.add(question);
         }
 
@@ -449,6 +484,7 @@ public class TestService {
         Test test = testRepository.findByIdForQuestionWrite(testId)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
         authorizationService.assertCanAccessTest(test);
+        assertNotPdfStructure(testId);
 
         TenantContext.Context ctx = TenantContext.current();
         Long teacherId = ctx != null ? ctx.teacherId() : null;
@@ -486,6 +522,7 @@ public class TestService {
         Test test = testRepository.findByIdForQuestionWrite(testId)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
         authorizationService.assertCanAccessTest(test);
+        assertNotPdfStructure(testId);
 
         QuestionType questionType = dto.getQuestionType() != null ? dto.getQuestionType() : QuestionType.SUBJECTIVE;
         boolean multipleAnswers = questionType == QuestionType.OBJECTIVE
@@ -511,6 +548,12 @@ public class TestService {
                 .stream()
                 .map(TestDto::from)
                 .collect(Collectors.toList());
+    }
+
+    private void assertNotPdfStructure(Long testId) {
+        if (examPdfImportRepository.existsByTestId(testId)) {
+            throw new IllegalArgumentException("PDF 시험의 문항과 원본 연결은 보존됩니다. 새 시험으로 등록해 주세요.");
+        }
     }
 
     private static String effectiveTopic(TestQuestion question) {

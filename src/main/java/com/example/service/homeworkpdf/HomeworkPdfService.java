@@ -33,6 +33,7 @@ public class HomeworkPdfService {
     private final HomeworkTypeCatalog catalog;
     private final ObjectMapper mapper;
     private final TransactionTemplate tx;
+    private final PdfImportQuota quota;
     private final boolean enabled, mock;
     private final int dailyLimit, globalDailyLimit;
     private final ExecutorService worker = new ThreadPoolExecutor(1,1,0,TimeUnit.SECONDS,new ArrayBlockingQueue<>(1),
@@ -42,9 +43,9 @@ public class HomeworkPdfService {
     public HomeworkPdfService(HomeworkPdfImportRepository imports, HomeworkPdfQuestionRepository questions,
             HomeworkRepository homeworks, HomeworkProblemRepository problems, AcademyClassRepository classes,
             AuthorizationService auth, HomeworkPdfFiles files, HomeworkPdfAi ai, HomeworkTypeCatalog catalog,
-            ObjectMapper mapper, PlatformTransactionManager manager, Environment env) {
+            ObjectMapper mapper, PlatformTransactionManager manager, Environment env, PdfImportQuota quota) {
         this.imports=imports;this.questions=questions;this.homeworks=homeworks;this.problems=problems;this.classes=classes;
-        this.auth=auth;this.files=files;this.ai=ai;this.catalog=catalog;this.mapper=mapper;tx=new TransactionTemplate(manager);
+        this.auth=auth;this.files=files;this.ai=ai;this.catalog=catalog;this.mapper=mapper;tx=new TransactionTemplate(manager);this.quota=quota;
         enabled=env.getProperty("app.homework-pdf.enabled",Boolean.class,false);
         mock=env.getProperty("app.homework-pdf.mock",Boolean.class,false)
                 && env.acceptsProfiles(Profiles.of("local","test")) && !env.acceptsProfiles(Profiles.of("prod"));
@@ -60,6 +61,7 @@ public class HomeworkPdfService {
                 "PDF 전체의 문제 내용과 페이지 이미지가 OpenAI로 전송됩니다. 이름·연락처가 포함된 파일은 제거 후 올려 주세요. 등록 전에 문항 누락과 유형을 확인해 주세요.");
     }
     public synchronized View start(byte[] pdf,String fileName,Long classId,String subjectId,String requestKey,boolean consent) {
+        return quota.start(()->{
         var ctx=teacher();
         if(!configuration().ready()) throw error(HttpStatus.SERVICE_UNAVAILABLE,"PDF 등록 기능의 연결 설정을 준비 중입니다.");
         if(!consent) throw bad("PDF 분석 전송 안내를 확인해 주세요.");
@@ -79,10 +81,7 @@ public class HomeworkPdfService {
         });
         if(existing!=null) return existing;
         LocalDateTime now=now();
-        if(imports.countByTeacherIdAndCreatedAtAfter(ctx.teacherId(),now.toLocalDate().atStartOfDay())>=dailyLimit
-                || imports.countByCreatedAtAfter(now.toLocalDate().atStartOfDay())>=globalDailyLimit)
-            throw error(HttpStatus.TOO_MANY_REQUESTS,"오늘의 PDF 분석 한도를 사용했습니다.");
-        if(imports.countByState("PROCESSING")>=2) throw error(HttpStatus.TOO_MANY_REQUESTS,"다른 PDF를 분석 중입니다. 잠시 후 시작해 주세요.");
+        quota.check(ctx.teacherId(),dailyLimit,globalDailyLimit,now);
         String id=UUID.randomUUID().toString();
         try{files.write(id,pdf);}catch(IOException e){throw error(HttpStatus.SERVICE_UNAVAILABLE,"PDF 원본을 보관하지 못했습니다.");}
         try {
@@ -95,6 +94,7 @@ public class HomeworkPdfService {
         } catch(RuntimeException e) {try{files.delete(id);}catch(IOException ignored){} throw e;}
         try{worker.submit(()->analyze(id));}catch(RejectedExecutionException e){failed(id,"BUSY");}
         return read(id);
+        });
     }
     private void analyze(String id) {
         byte[] pdf=null;
