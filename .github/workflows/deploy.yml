@@ -11,7 +11,6 @@ on:
         default: deploy
         options:
           - deploy
-          - omr-diagnostics
           - notebook-preflight
           - notebook-prepare
           - notebook-activate
@@ -33,54 +32,6 @@ env:
   IMAGE_PREFIX: ${{ github.repository_owner }}/kim-math
 
 jobs:
-  omr-diagnostics:
-    if: github.event_name == 'workflow_dispatch' && inputs.operation == 'omr-diagnostics' && github.actor == github.repository_owner
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    steps:
-      - name: Read redacted OMR error metadata only
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 2m
-          script: |
-            python3 - <<'PY'
-            import collections, json, re, subprocess
-            def run(args):
-                return subprocess.run(args, capture_output=True, text=True, timeout=45)
-            revision = run(['git','-C','/home/suhui/kim-math','rev-parse','HEAD'])
-            print('server_revision=' + revision.stdout.strip() if revision.returncode == 0 else 'server_revision_unavailable')
-            for container in ['kim-math-backend','kim-math-frontend']:
-                result = run(['docker','inspect','--format','{{index .Config.Labels "org.opencontainers.image.revision"}}',container])
-                print(container + '_image_revision=' + result.stdout.strip() if result.returncode == 0 else container + '_inspect_unavailable')
-            result = run(['docker','logs','--since','6h','--tail','10000','kim-math-backend'])
-            print('backend_log_read_exit=' + str(result.returncode))
-            counts = collections.Counter()
-            for line in (result.stdout + '\n' + result.stderr).splitlines():
-                # Only class names, application stack frames and whitelisted diagnostics.
-                for value in re.findall(r'\b(?:[a-zA-Z_$][\w$]*\.)+[A-Za-z_$][\w$]*(?:Exception|Error)\b', line):
-                    counts['exception:' + value] += 1
-                match = re.search(r'at (com\.example\.[A-Za-z0-9_.$]+\([A-Za-z0-9_.]+:\d+\))',line)
-                if match: counts['frame:' + match.group(1)] += 1
-                match = re.search(r"Request method '(GET|POST|PUT|DELETE|PATCH)' is not supported",line)
-                if match: counts['unsupported_method:' + match.group(1)] += 1
-                match = re.search(r'SQLState: ([A-Z0-9]+)',line)
-                if match: counts['sqlstate:' + match.group(1)] += 1
-                match = re.search(r"Unknown column '([A-Za-z0-9_.]+)'",line)
-                if match: counts['unknown_column:' + match.group(1)] += 1
-            print(json.dumps(counts, sort_keys=True))
-            result = run(['docker','logs','--since','6h','--tail','20000','kim-math-nginx'])
-            statuses = collections.Counter()
-            for line in (result.stdout + '\n' + result.stderr).splitlines():
-                match = re.search(r'"(GET|POST|PUT) /api/tests/\d+/omr/(scan|submissions/\d+(?:/review)?) HTTP/[^\"]+" (\d{3})',line)
-                if match: statuses[match.group(1) + ' ' + re.sub(r'\d+','[id]',match.group(2)) + ' ' + match.group(3)] += 1
-            print('omr_http_statuses=' + json.dumps(statuses,sort_keys=True))
-            PY
-
   build-and-push:
     if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
     runs-on: ubuntu-latest

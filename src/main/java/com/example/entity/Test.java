@@ -24,6 +24,20 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Test {
+    // Hibernate may hash an entity while managing a one-to-one association.
+    // Never traverse the lesson/test or class/test graph for identity.
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) return true;
+        if (!(other instanceof Test that)) return false;
+        return getId() != null && getId().equals(that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return Test.class.hashCode();
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

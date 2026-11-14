@@ -6,7 +6,7 @@ import TestDetailView from './TestDetailView.vue'
 
 vi.mock('@/api/client', () => ({
   testAPI: { getTest: vi.fn(), getTestStats: vi.fn(), getSubmissionRoster: vi.fn(), getTestQuestions: vi.fn() },
-  submissionAPI: { getSubmissionWithDetails: vi.fn(), saveAnswersForStudent: vi.fn() },
+  submissionAPI: { getSubmissionWithDetails: vi.fn(), saveAnswersForStudent: vi.fn(), gradeEssay: vi.fn() },
 }))
 vi.mock('vue-router', () => ({
   useRoute: () => ({ params: { id: '10' } }),
@@ -42,7 +42,7 @@ async function mountDetail() {
         ElCard: slotStub, ElRow: slotStub, ElCol: slotStub, ElTable: slotStub,
         ElTableColumn: {
           props: ['label'], setup: () => ({ rows }),
-          template: '<div v-if="label === \'관리\'"><slot v-for="row in rows" :row="row" /></div>',
+          template: '<div v-if="label === \'관리\' || label === \'서술형 점수\'"><slot v-for="row in rows" :row="row" /></div>',
         },
         ElButton: {
           props: ['disabled', 'loading'],
@@ -74,6 +74,30 @@ describe('TestDetailView incorrect answer copying', () => {
     vi.mocked(testAPI.getTest).mockResolvedValue({ data: { title: '시험' } } as never)
     vi.mocked(testAPI.getTestStats).mockResolvedValue({ data: {} } as never)
     vi.mocked(testAPI.getSubmissionRoster).mockResolvedValue({ data: rows } as never)
+    vi.mocked(testAPI.getTestQuestions).mockResolvedValue({ data: [] } as never)
+  })
+
+  it('keeps manual essay scores available with empty statistics and loads existing scores', async () => {
+    vi.mocked(testAPI.getTestQuestions).mockResolvedValue({ data: [
+      { id: 101, number: 1, questionType: 'OBJECTIVE' },
+      { id: 102, number: 2, questionType: 'ESSAY' },
+    ] } as never)
+    vi.mocked(submissionAPI.getSubmissionWithDetails).mockResolvedValue({ data: { details: [
+      { id: 81, questionNumber: 1, questionType: 'OBJECTIVE', earnedPoints: 50 },
+      { id: 82, questionNumber: 2, questionType: 'ESSAY', earnedPoints: 12, maxPoints: 20, teacherComment: '기존 코멘트' },
+    ] } } as never)
+    vi.mocked(submissionAPI.gradeEssay).mockResolvedValue({ data: {} } as never)
+    const { wrapper } = await mountDetail()
+    const button = wrapper.findAll('button').find(button => button.text() === '점수 입력·수정')
+    expect(button).toBeDefined()
+    await button!.trigger('click'); await flushPromises()
+    expect(wrapper.find('[role="dialog"]').text()).toContain('2번 문제')
+    expect(wrapper.find('[role="dialog"]').text()).not.toContain('1번 문제')
+    const save = wrapper.findAll('button').find(button => button.text() === '채점 완료')
+    await save!.trigger('click'); await flushPromises()
+    expect(submissionAPI.gradeEssay).toHaveBeenCalledExactlyOnceWith(82, 12, '기존 코멘트')
+    expect(submissionAPI.saveAnswersForStudent).not.toHaveBeenCalled()
+    wrapper.unmount()
   })
 
   it('blocks all copy buttons until both the request and clipboard write finish, including immediate repeat clicks', async () => {

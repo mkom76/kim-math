@@ -45,7 +45,10 @@ function previousAnswer(number: number) {
 }
 
 function message(cause: unknown, fallback: string) {
-  return (cause as { response?: { data?: { message?: string } } })?.response?.data?.message || fallback
+  const response = (cause as { response?: { status?: number; data?: { message?: string } } })?.response
+  const detail = response?.data?.message?.trim()
+  if (detail && detail.toLowerCase() !== 'no message available') return detail
+  return response?.status ? `${fallback} (오류 코드: ${response.status})` : fallback
 }
 function chooseFile(event: Event) {
   file.value = (event.target as HTMLInputElement).files?.[0] || null
@@ -135,6 +138,7 @@ async function reset() {
     :close-on-click-modal="false" :close-on-press-escape="false" :show-close="!busy" :before-close="close">
     <p class="guide">기존 2026 OMR 공통 양식 · 혼합형 시험의 1~30번 객관식만 인식 · PDF 8MB / 30쪽 이하 · 300dpi 스캔 권장</p>
     <p class="guide">기존 제출 학생도 객관식만 갱신할 수 있습니다. 주관식·서술형 답안·점수·교사 코멘트는 보존합니다. 스캔 파일은 영구 저장하지 않으며, 창을 닫으면 검토 내용이 사라집니다.</p>
+    <p class="guide">서술형 점수는 객관식 저장 후 이 창을 닫고, 응시 현황의 ‘서술형 점수’에서 직접 입력·수정해 주세요.</p>
     <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon class="notice" />
     <section v-if="!scan" class="upload-panel" v-loading="busy" element-loading-text="페이지별 답안을 인식하고 있습니다…">
       <label for="omr-file">스캔 PDF 선택</label>
