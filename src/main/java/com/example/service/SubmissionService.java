@@ -108,6 +108,30 @@ public class SubmissionService {
         return saveSubmission(studentId, testId, request, true);
     }
 
+    public StudentSubmissionDto saveNewOmrAnswers(Long studentId, Long testId, SaveAnswersRequest request) {
+        TenantContext.Context ctx = TenantContext.current();
+        if (ctx == null || ctx.role() == null || ctx.role() == TeacherAcademyRole.ASSISTANT) {
+            throw new ForbiddenException("선생님 권한이 필요합니다");
+        }
+        // Locking read first: under MySQL REPEATABLE READ an earlier plain SELECT
+        // would establish a snapshot that can miss a just-committed submission.
+        Test test = testRepository.findByIdForQuestionWrite(testId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "시험이 없습니다"));
+        authorizationService.assertCanAccessTest(test);
+        // Existing manual/student submissions take a read lock on this same test before
+        // checking for a submission. An exclusive lock serializes this create-only path
+        // with those writers, including another OMR tab, without changing the schema.
+        List<TestQuestion> questions = questionRepository.findByTestIdForSnapshot(testId);
+        com.example.service.omr.OmrService.validateQuestions(questions);
+        Set<Integer> numbers = questions.stream().map(TestQuestion::getNumber).collect(Collectors.toSet());
+        if (request == null || request.answers() == null || !numbers.equals(request.answers().keySet())
+                || request.answers().values().stream().anyMatch(value -> value == null
+                || !value.matches("(?:[1-5](?:,[1-5]){0,4})?"))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "시험의 모든 문항을 확인하고 답안을 1~5 또는 무응답으로 입력해 주세요.");
+        }
+        return saveSubmission(studentId, testId, request, false);
+    }
+
     private StudentSubmissionDto saveSubmission(Long studentId, Long testId, SaveAnswersRequest request, boolean allowExistingUpdate) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
@@ -127,7 +151,7 @@ public class SubmissionService {
         Map<Integer, String> answers = request.answers();
         
         // 기존 제출 확인
-        StudentSubmission submission = submissionRepository.findByStudentIdAndTestId(studentId, testId)
+        StudentSubmission submission = submissionRepository.findForAnswerWrite(studentId, testId)
                 .orElse(StudentSubmission.builder()
                         .student(student)
                         .test(test)

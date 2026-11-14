@@ -148,6 +148,109 @@ class TeacherSubmissionEntryControllerTest {
         return request.toString();
     }
 
+    private String omrRequest() throws Exception {
+        q2.setQuestionType(QuestionType.OBJECTIVE);
+        q2.setAnswer("2");
+        var body = (com.fasterxml.jackson.databind.node.ObjectNode) objectMapper.readTree(answersRequest(exam.getId(), "{\"1\":\"3\",\"2\":\"\"}"));
+        body.put("reviewed", true);
+        return body.toString();
+    }
+
+    @Test
+    void omr_creates_new_submission_and_retry_never_overwrites_grades() throws Exception {
+        String body = omrRequest();
+        mockMvc.perform(post("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), studentA.getId())
+                        .session(teacherSession()).contentType("application/json").content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.totalScore").value(50))
+                .andExpect(jsonPath("$.details[?(@.questionNumber == 2)].isCorrect", contains(false)));
+        mockMvc.perform(post("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), studentA.getId())
+                        .session(teacherSession()).contentType("application/json").content(body.replace("\"3\"", "\"1\"")))
+                .andExpect(status().isConflict());
+        em.clear();
+        var saved = submissionRepository.findByStudentIdAndTestId(studentA.getId(), exam.getId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(saved.getTotalScore()).isEqualTo(50);
+        org.assertj.core.api.Assertions.assertThat(saved.getDetails()).anySatisfy(detail -> {
+            org.assertj.core.api.Assertions.assertThat(detail.getQuestion().getNumber()).isEqualTo(1);
+            org.assertj.core.api.Assertions.assertThat(detail.getStudentAnswer()).isEqualTo("3");
+        });
+    }
+
+    @Test
+    void omr_rejects_existing_submission_and_preserves_its_details() throws Exception {
+        mockMvc.perform(post("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), studentB.getId())
+                        .session(teacherSession()).contentType("application/json").content(omrRequest()))
+                .andExpect(status().isConflict());
+        var saved = submissionRepository.findByStudentIdAndTestId(studentB.getId(), exam.getId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(saved.getTotalScore()).isEqualTo(50);
+        org.assertj.core.api.Assertions.assertThat(saved.getDetails()).extracting(StudentSubmissionDetail::getStudentAnswer).containsExactly("3", "x=1");
+    }
+
+    @Test
+    void omr_rejects_unreviewed_missing_answers_and_stale_questions() throws Exception {
+        String body = omrRequest();
+        mockMvc.perform(post("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), studentA.getId())
+                        .session(teacherSession()).contentType("application/json").content(body.replace("\"reviewed\":true", "\"reviewed\":false")))
+                .andExpect(status().isBadRequest());
+        var incomplete = (com.fasterxml.jackson.databind.node.ObjectNode) objectMapper.readTree(body);
+        ((com.fasterxml.jackson.databind.node.ObjectNode) incomplete.get("answers")).remove("2");
+        mockMvc.perform(post("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), studentA.getId())
+                        .session(teacherSession()).contentType("application/json").content(incomplete.toString()))
+                .andExpect(status().isBadRequest());
+        q1.setAnswer("1"); em.flush();
+        mockMvc.perform(post("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), studentA.getId())
+                        .session(teacherSession()).contentType("application/json").content(body))
+                .andExpect(status().isConflict());
+        org.assertj.core.api.Assertions.assertThat(submissionRepository.findByStudentIdAndTestId(studentA.getId(), exam.getId())).isEmpty();
+    }
+
+    @Test
+    void omr_rejects_students_other_classes_and_other_academies() throws Exception {
+        String body = omrRequest();
+        mockMvc.perform(post("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), studentA.getId())
+                        .session(studentSession(studentA)).contentType("application/json").content(body))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), otherClassStudent.getId())
+                        .session(teacherSession()).contentType("application/json").content(body))
+                .andExpect(status().isForbidden());
+        Academy other = Academy.builder().name("다른 학원").build(); em.persist(other);
+        AcademyClass foreignClass = AcademyClass.builder().name("다른 반").academy(other).ownerTeacherId(teacher.getId()).build(); em.persist(foreignClass);
+        Student foreign = Student.builder().name("가상 학생").grade("고1").school("가상 학교").academy(other).academyClass(foreignClass).build(); em.persist(foreign); em.flush();
+        mockMvc.perform(post("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), foreign.getId())
+                        .session(teacherSession()).contentType("application/json").content(body))
+                .andExpect(status().isForbidden());
+        var session = teacherSession(); session.setAttribute("activeAcademyId", other.getId());
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/tests/{testId}/omr/scan", exam.getId())
+                        .file("file", "%PDF-invalid".getBytes()).session(session))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void omr_scan_returns_thirty_marks_and_question_snapshot_without_registering_any_answers() throws Exception {
+        omrRequest();
+        try (var stream = getClass().getResourceAsStream("/omr/2026omr.pdf")) {
+            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/tests/{testId}/omr/scan", exam.getId())
+                            .file("file", stream.readAllBytes()).session(teacherSession()))
+                    .andExpect(status().isOk())
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Cache-Control", "no-store"))
+                    .andExpect(jsonPath("$.expectedQuestions", hasSize(2)))
+                    .andExpect(jsonPath("$.pages[0].recognized").value(true))
+                    .andExpect(jsonPath("$.pages[0].marks", hasSize(30)));
+        }
+        org.assertj.core.api.Assertions.assertThat(submissionRepository.findByStudentIdAndTestId(studentA.getId(), exam.getId())).isEmpty();
+    }
+
+    @Test
+    void omr_scan_rejects_mixed_exam_and_invalid_pdf() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/tests/{testId}/omr/scan", exam.getId())
+                        .file("file", "%PDF-invalid".getBytes()).session(teacherSession()))
+                .andExpect(status().isBadRequest());
+        omrRequest();
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/tests/{testId}/omr/scan", exam.getId())
+                        .file("file", "not a pdf".getBytes()).session(teacherSession()))
+                .andExpect(status().isBadRequest());
+    }
+
     @Test
     void roster_includes_unsubmitted_students_in_test_class_only() throws Exception {
         mockMvc.perform(get("/api/tests/{id}/submission-roster", exam.getId())

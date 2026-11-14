@@ -16,6 +16,7 @@ import { parseMultipleAnswer, serializeMultipleAnswer } from '@/utils/examAnswer
 import { createQuestionSnapshot } from '@/utils/questionSnapshot'
 import { copyTextToClipboard, formatIncorrectQuestionNumbers } from '@/utils/incorrectQuestions'
 import ErrorCauseEditor from '@/components/ErrorCauseEditor.vue'
+import OmrImportDialog from '@/components/OmrImportDialog.vue'
 import { errorCauseStatus } from '@/utils/errorCauses'
 import type { ErrorCauses } from '@/api/client'
 
@@ -24,6 +25,7 @@ const router = useRouter()
 const testId = route.params.id as string
 
 const loading = ref(false)
+const omrVisible = ref(false)
 const recalculating = ref(false)
 const test = ref<Test | null>(null)
 const roster = ref<TestSubmissionRoster[]>([])
@@ -283,6 +285,7 @@ onMounted(() => {
           </h1>
         </div>
         <div style="display: flex; gap: 12px">
+          <el-button type="success" @click="omrVisible = true">OMR 답안 입력</el-button>
           <el-button
             type="primary"
             @click="recalculateScores"
@@ -684,6 +687,8 @@ onMounted(() => {
         <el-empty v-if="roster.length === 0" description="표시할 학생이 없습니다" />
       </el-card>
     </div>
+
+    <OmrImportDialog v-if="omrVisible" :test-id="Number(testId)" :roster="roster" @close="omrVisible = false" @saved="fetchTestDetail" />
 
     <!-- 학생별 답안 입력 다이얼로그 -->
     <el-dialog
