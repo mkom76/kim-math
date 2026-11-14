@@ -4,7 +4,7 @@ import { ElMessageBox } from 'element-plus'
 import { omrAPI, type OmrScan } from '@/api/omr'
 import OmrImportDialog from './OmrImportDialog.vue'
 
-vi.mock('@/api/omr', () => ({ omrAPI: { scan: vi.fn(), confirm: vi.fn() } }))
+vi.mock('@/api/omr', () => ({ omrAPI: { scan: vi.fn(), review: vi.fn(), confirm: vi.fn() } }))
 vi.mock('element-plus', () => ({
   ElMessage: { success: vi.fn() }, ElMessageBox: { confirm: vi.fn() },
 }))
@@ -16,6 +16,14 @@ const result: OmrScan = {
   pages: [{ number: 1, recognized: true, message: '', preview: 'data:image/jpeg;base64,test', marks: [
     { number: 1, answer: '', status: 'UNCERTAIN', box }, { number: 2, answer: '1,3', status: 'MULTIPLE', box },
   ] }],
+}
+const review = {
+  revision: 'revision-1', existing: false, previousScore: null, preservedPoints: 0, maxPoints: 100,
+  preservedQuestionCount: 0, expectedQuestions: result.expectedQuestions,
+  objectives: [
+    { number: 1, answer: null, correctAnswer: '4', multipleAnswers: false, points: 50 },
+    { number: 2, answer: null, correctAnswer: '1', multipleAnswers: false, points: 50 },
+  ],
 }
 function setup() {
   return mount(OmrImportDialog, { props: { testId: 7, roster: [
@@ -41,6 +49,7 @@ describe('OMR import review', () => {
     vi.resetAllMocks()
     vi.mocked(omrAPI.scan).mockResolvedValue({ data: structuredClone(result) } as never)
     vi.mocked(omrAPI.confirm).mockResolvedValue({ data: { totalScore: 50 } } as never)
+    vi.mocked(omrAPI.review).mockResolvedValue({ data: structuredClone(review) } as never)
     vi.mocked(ElMessageBox.confirm).mockResolvedValue('confirm' as never)
   })
 
@@ -48,8 +57,9 @@ describe('OMR import review', () => {
     const wrapper = setup()
     await upload(wrapper)
     expect(saveButton(wrapper).attributes('disabled')).toBeDefined()
-    expect(wrapper.get('#omr-student option[value="2"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('#omr-student option[value="2"]').attributes('disabled')).toBeUndefined()
     await wrapper.get('#omr-student').setValue('1')
+    await flushPromises()
     await wrapper.get('input[aria-label="1번 답안"]').setValue('4')
     const checks = wrapper.findAll('input[type="checkbox"]')
     expect(checks).toHaveLength(3)
@@ -60,7 +70,7 @@ describe('OMR import review', () => {
     expect(saveButton(wrapper).attributes('disabled')).toBeUndefined()
     await saveButton(wrapper).trigger('click')
     await flushPromises()
-    expect(omrAPI.confirm).toHaveBeenCalledExactlyOnceWith(7, 1, { 1: '4', 2: '1,3' }, result.expectedQuestions)
+    expect(omrAPI.confirm).toHaveBeenCalledExactlyOnceWith(7, 1, { 1: '4', 2: '1,3' }, result.expectedQuestions, 'revision-1')
     expect(wrapper.text()).toContain('저장·채점 완료: 50점')
     expect(wrapper.emitted('saved')).toHaveLength(1)
     expect(saveButton(wrapper).attributes('disabled')).toBeDefined()
@@ -72,12 +82,56 @@ describe('OMR import review', () => {
     const wrapper = setup()
     await upload(wrapper)
     await wrapper.get('#omr-student').setValue('1')
+    await flushPromises()
     await wrapper.get('input[aria-label="1번 답안"]').setValue('5')
     for (const check of wrapper.findAll('input[type="checkbox"]')) await check.setValue(true)
     await saveButton(wrapper).trigger('click'); await flushPromises()
     expect(wrapper.text()).toContain('시험 문항이 변경되었습니다.')
     expect((wrapper.get('input[aria-label="1번 답안"]').element as HTMLInputElement).value).toBe('5')
     expect(wrapper.emitted('saved')).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  it('shows existing objective changes and the score that preserves essay points before updating an existing student', async () => {
+    vi.mocked(omrAPI.review).mockResolvedValue({ data: { ...review, existing: true, previousScore: 20,
+      preservedPoints: 12, maxPoints: 120, preservedQuestionCount: 2,
+      objectives: [{ number: 1, answer: '3', correctAnswer: '4', multipleAnswers: false, points: 50 },
+        { number: 2, answer: '1', correctAnswer: '1', multipleAnswers: false, points: 50 }] } } as never)
+    const wrapper = setup(); await upload(wrapper)
+    await wrapper.get('#omr-student').setValue('2'); await flushPromises()
+    await wrapper.get('input[aria-label="1번 답안"]').setValue('4')
+    for (const check of wrapper.findAll('input[type="checkbox"]')) await check.setValue(true)
+    expect(wrapper.text()).toContain('기존 20점 → 예상 52점')
+    expect(wrapper.text()).toContain('획득 12점 보존')
+    expect(wrapper.text()).toContain('기존 3 → 4')
+    await saveButton(wrapper).trigger('click'); await flushPromises()
+    expect(omrAPI.confirm).toHaveBeenCalledWith(7, 2, { 1: '4', 2: '1,3' }, result.expectedQuestions, 'revision-1')
+    expect(ElMessageBox.confirm).toHaveBeenCalledWith(expect.stringContaining('주관식·서술형 답안과 점수는 보존'), 'OMR 채점 확정', expect.any(Object))
+    wrapper.unmount()
+  })
+
+  it('blocks saving when the review cannot be loaded or question snapshots changed', async () => {
+    vi.mocked(omrAPI.review).mockRejectedValueOnce(new Error('offline'))
+    const wrapper = setup(); await upload(wrapper)
+    await wrapper.get('#omr-student').setValue('2'); await flushPromises()
+    expect(saveButton(wrapper).attributes('disabled')).toBeDefined()
+    vi.mocked(omrAPI.review).mockResolvedValue({ data: { ...review, expectedQuestions: [] } } as never)
+    await wrapper.findAll('button').find(b => b.text() === '기존 답안 다시 확인')!.trigger('click'); await flushPromises()
+    expect(wrapper.text()).toContain('시험 문항이 변경되었습니다.')
+    expect(saveButton(wrapper).attributes('disabled')).toBeDefined()
+    wrapper.unmount()
+  })
+
+  it('ignores an old review response after the selected student changes', async () => {
+    let resolveOld!: (value: never) => void
+    vi.mocked(omrAPI.review).mockReturnValueOnce(new Promise(resolve => { resolveOld = resolve }) as never)
+    const wrapper = setup(); await upload(wrapper)
+    await wrapper.get('#omr-student').setValue('1')
+    await wrapper.get('#omr-student').setValue('2'); await flushPromises()
+    resolveOld({ data: { ...review, existing: true, previousScore: 99 } } as never)
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('기존 99점')
+    expect(wrapper.text()).toContain('신규 제출 · 예상')
     wrapper.unmount()
   })
 

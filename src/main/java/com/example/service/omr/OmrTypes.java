@@ -13,4 +13,10 @@ public final class OmrTypes {
     public record Question(int number, boolean multipleAnswers) {}
     public record Scan(List<QuestionSnapshot> expectedQuestions, List<Question> questions, List<Page> pages) {}
     public record Confirm(Map<Integer, String> answers, List<QuestionSnapshot> expectedQuestions, boolean reviewed) {}
+    public record ObjectiveAnswer(int number, String answer, String correctAnswer, boolean multipleAnswers, double points) {}
+    public record Review(String revision, boolean existing, Integer previousScore, double preservedPoints,
+                         double maxPoints, int preservedQuestionCount, List<ObjectiveAnswer> objectives,
+                         List<QuestionSnapshot> expectedQuestions) {}
+    public record Update(Map<Integer, String> answers, List<QuestionSnapshot> expectedQuestions,
+                         String expectedRevision, boolean reviewed) {}
 }

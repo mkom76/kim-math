@@ -63,16 +63,18 @@ public class OmrService {
                 result.image().flush();
             }
             return new Scan(questions.stream().map(QuestionSnapshot::from).toList(),
-                    questions.stream().map(q -> new Question(q.getNumber(), Boolean.TRUE.equals(q.getMultipleAnswers()))).toList(), pages);
+                    questions.stream().filter(q -> q.getQuestionType() == QuestionType.OBJECTIVE)
+                            .map(q -> new Question(q.getNumber(), Boolean.TRUE.equals(q.getMultipleAnswers()))).toList(), pages);
         } catch (IOException | IllegalArgumentException e) {
             throw bad("PDF를 읽을 수 없습니다. 암호·손상 여부와 스캔 설정을 확인해 주세요.");
         } finally { scans.release(); }
     }
 
     public static void validateQuestions(List<TestQuestion> questions) {
-        if (questions.isEmpty() || questions.size() > 30 || questions.stream().anyMatch(q ->
-                q.getNumber() == null || q.getNumber() < 1 || q.getNumber() > 30 || q.getQuestionType() != QuestionType.OBJECTIVE)) {
-            throw bad("OMR은 문항 번호가 1~30인 객관식 시험에서 사용할 수 있습니다. 주관식·서술형은 기존 답안 입력을 이용해 주세요.");
+        var objective = questions.stream().filter(q -> q.getQuestionType() == QuestionType.OBJECTIVE).toList();
+        if (objective.isEmpty() || objective.size() > 30 || objective.stream().anyMatch(q ->
+                q.getNumber() == null || q.getNumber() < 1 || q.getNumber() > 30)) {
+            throw bad("OMR은 번호가 1~30인 객관식 문항이 있는 시험에서 사용할 수 있습니다. 주관식·서술형은 OMR로 변경하지 않습니다.");
         }
     }
 

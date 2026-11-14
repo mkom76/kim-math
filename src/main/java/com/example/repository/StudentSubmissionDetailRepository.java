@@ -10,6 +10,8 @@ import java.util.List;
 
 @Repository
 public interface StudentSubmissionDetailRepository extends JpaRepository<StudentSubmissionDetail, Long> {
+    @Query("SELECT d.submission.test.id FROM StudentSubmissionDetail d WHERE d.id = :id")
+    Long findTestIdForDetail(@org.springframework.data.repository.query.Param("id") Long id);
     List<StudentSubmissionDetail> findBySubmissionId(Long submissionId);
 
     // 문제 번호, 정답률, 문제 유형 반환 (OBJECTIVE/SUBJECTIVE용)

@@ -20,6 +20,17 @@ export interface OmrScan {
   pages: OmrPage[]
 }
 
+export interface OmrReview {
+  revision: string
+  existing: boolean
+  previousScore: number | null
+  preservedPoints: number
+  maxPoints: number
+  preservedQuestionCount: number
+  objectives: { number: number; answer: string | null; correctAnswer: string | null; multipleAnswers: boolean; points: number }[]
+  expectedQuestions: QuestionSnapshot[]
+}
+
 export const omrAPI = {
   scan: (testId: number, file: File) => {
     const body = new FormData()
@@ -28,6 +39,7 @@ export const omrAPI = {
       headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000,
     })
   },
-  confirm: (testId: number, studentId: number, answers: Record<number, string>, expectedQuestions: QuestionSnapshot[]) =>
-    client.post<SubmissionResult>(`/tests/${testId}/omr/submissions/${studentId}`, { answers, expectedQuestions, reviewed: true }),
+  review: (testId: number, studentId: number) => client.get<OmrReview>(`/tests/${testId}/omr/submissions/${studentId}/review`),
+  confirm: (testId: number, studentId: number, answers: Record<number, string>, expectedQuestions: QuestionSnapshot[], expectedRevision: string) =>
+    client.put<SubmissionResult>(`/tests/${testId}/omr/submissions/${studentId}`, { answers, expectedQuestions, expectedRevision, reviewed: true }),
 }

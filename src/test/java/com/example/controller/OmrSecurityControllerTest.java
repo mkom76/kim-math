@@ -43,10 +43,17 @@ class OmrSecurityControllerTest {
         mvc.perform(post("/api/tests/1/omr/submissions/2").contentType("application/json")
                         .content("{\"reviewed\":true}").session(session("TEACHER")))
                 .andExpect(status().isForbidden());
+        mvc.perform(put("/api/tests/1/omr/submissions/2").contentType("application/json")
+                        .content("{\"reviewed\":true,\"expectedRevision\":\"new\"}").session(session("TEACHER")))
+                .andExpect(status().isForbidden());
         verifyNoInteractions(service, submissions);
         mvc.perform(multipart("/api/tests/1/omr/scan").file("file", "%PDF-test".getBytes()).session(session("TEACHER")).with(csrf()))
                 .andExpect(status().isOk());
         for (String role : List.of("STUDENT", "ASSISTANT")) {
+            mvc.perform(get("/api/tests/1/omr/submissions/2/review").session(session(role))).andExpect(status().isForbidden());
+            mvc.perform(put("/api/tests/1/omr/submissions/2").contentType("application/json")
+                            .content("{\"reviewed\":true,\"expectedRevision\":\"new\"}").session(session(role)).with(csrf()))
+                    .andExpect(status().isForbidden());
             mvc.perform(multipart("/api/tests/1/omr/scan").file("file", "%PDF-test".getBytes()).session(session(role)).with(csrf()))
                     .andExpect(status().isForbidden());
             mvc.perform(post("/api/tests/1/omr/submissions/2").contentType("application/json")

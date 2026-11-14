@@ -40,4 +40,17 @@ public class OmrController {
         return ResponseEntity.status(HttpStatus.CREATED).cacheControl(CacheControl.noStore()).body(
                 submissionService.saveNewOmrAnswers(studentId, testId, new SaveAnswersRequest(request.answers(), request.expectedQuestions())));
     }
+
+    @GetMapping("/submissions/{studentId}/review")
+    public ResponseEntity<OmrTypes.Review> review(@PathVariable Long testId, @PathVariable Long studentId) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(submissionService.reviewOmrAnswers(studentId, testId));
+    }
+
+    @PutMapping("/submissions/{studentId}")
+    public ResponseEntity<StudentSubmissionDto> update(@PathVariable Long testId, @PathVariable Long studentId, @RequestBody OmrTypes.Update request) {
+        if (request == null || !request.reviewed() || request.expectedRevision() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "학생과 답안을 다시 확인한 뒤 확정해 주세요.");
+        }
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(submissionService.saveOmrAnswers(studentId, testId, request));
+    }
 }

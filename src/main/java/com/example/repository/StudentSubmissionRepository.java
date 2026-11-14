@@ -18,6 +18,9 @@ public interface StudentSubmissionRepository extends JpaRepository<StudentSubmis
     List<StudentSubmission> findByStudentIdAndTestAcademyClassId(Long studentId, Long classId);
     Optional<StudentSubmission> findByStudentIdAndTestId(Long studentId, Long testId);
 
+    @Query("SELECT s.test.id FROM StudentSubmission s WHERE s.id = :id")
+    Long findTestIdForSubmission(@Param("id") Long id);
+
     // Current/locking read, so a writer that waited on the test lock sees an OMR
     // submission committed after its transaction's first consistent read.
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
