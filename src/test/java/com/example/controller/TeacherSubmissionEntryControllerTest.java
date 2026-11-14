@@ -156,6 +156,115 @@ class TeacherSubmissionEntryControllerTest {
         return body.toString();
     }
 
+    private String mixedOmrRequest(Long studentId, String answers) throws Exception {
+        em.flush();
+        String response = mockMvc.perform(get("/api/tests/{testId}/omr/submissions/{studentId}/review", exam.getId(), studentId)
+                        .session(teacherSession())).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        var review = objectMapper.readTree(response);
+        var body = objectMapper.createObjectNode();
+        body.set("answers", objectMapper.readTree(answers)); body.set("expectedQuestions", review.get("expectedQuestions"));
+        body.set("expectedRevision", review.get("revision")); body.put("reviewed", true);
+        return body.toString();
+    }
+
+    private StudentSubmissionDetail addEssay() {
+        var essay = TestQuestion.builder().test(exam).number(3).questionType(QuestionType.ESSAY).points(20.0).build(); em.persist(essay);
+        var submission = submissionRepository.findByStudentIdAndTestId(studentB.getId(), exam.getId()).orElseThrow();
+        var detail = StudentSubmissionDetail.builder().submission(submission).question(essay).studentAnswer("가상 풀이").earnedPoints(12.0).teacherComment("기존 코멘트").build();
+        submission.getDetails().add(detail); em.persist(detail); em.flush(); return detail;
+    }
+
+    @Test void mixed_omr_updates_only_objective_details_and_preserves_non_objective_records() throws Exception {
+        var essay = addEssay();
+        em.refresh(essay);
+        var submission = submissionRepository.findByStudentIdAndTestId(studentB.getId(), exam.getId()).orElseThrow();
+        var originalTime = submission.getSubmittedAt();
+        var essayId = essay.getId(); var essayUpdated = essay.getUpdatedAt();
+        var subjective = submission.getDetails().stream().filter(d -> d.getQuestion().getId().equals(q2.getId())).findFirst().orElseThrow();
+        em.refresh(subjective);
+        var subjectiveId = subjective.getId(); var subjectiveUpdated = subjective.getUpdatedAt();
+        var objectiveId = submission.getDetails().stream().filter(d -> d.getQuestion().getId().equals(q1.getId())).findFirst().orElseThrow().getId();
+        mockMvc.perform(put("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), studentB.getId())
+                        .session(teacherSession()).contentType("application/json").content(mixedOmrRequest(studentB.getId(), "{\"1\":\"5\"}")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalScore").value(10));
+        em.flush(); em.clear();
+        var saved = submissionRepository.findByStudentIdAndTestId(studentB.getId(), exam.getId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(saved.getSubmittedAt()).isEqualTo(originalTime);
+        org.assertj.core.api.Assertions.assertThat(saved.getDetails()).hasSize(3);
+        var keptEssay = em.find(StudentSubmissionDetail.class, essayId);
+        org.assertj.core.api.Assertions.assertThat(keptEssay.getStudentAnswer()).isEqualTo("가상 풀이");
+        org.assertj.core.api.Assertions.assertThat(keptEssay.getEarnedPoints()).isEqualTo(12.0);
+        org.assertj.core.api.Assertions.assertThat(keptEssay.getTeacherComment()).isEqualTo("기존 코멘트");
+        org.assertj.core.api.Assertions.assertThat(keptEssay.getUpdatedAt()).isEqualTo(essayUpdated);
+        var keptSubjective = em.find(StudentSubmissionDetail.class, subjectiveId);
+        org.assertj.core.api.Assertions.assertThat(keptSubjective.getStudentAnswer()).isEqualTo("x=1");
+        org.assertj.core.api.Assertions.assertThat(keptSubjective.getEarnedPoints()).isZero();
+        org.assertj.core.api.Assertions.assertThat(keptSubjective.getUpdatedAt()).isEqualTo(subjectiveUpdated);
+        org.assertj.core.api.Assertions.assertThat(em.find(StudentSubmissionDetail.class, objectiveId).getStudentAnswer()).isEqualTo("5");
+    }
+
+    @Test void new_mixed_submission_leaves_essay_ungraded_and_ignores_non_objective_payload() throws Exception {
+        addEssay();
+        String request = mixedOmrRequest(studentA.getId(), "{\"1\":\"3\"}");
+        mockMvc.perform(put("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), studentA.getId())
+                        .session(teacherSession()).contentType("application/json").content(request))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalScore").value(42))
+                .andExpect(jsonPath("$.pendingEssayCount").value(1))
+                .andExpect(jsonPath("$.details[?(@.questionNumber == 2)].isCorrect", contains(false)))
+                .andExpect(jsonPath("$.details[?(@.questionNumber == 3)].earnedPoints", contains(nullValue())));
+        mockMvc.perform(put("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), studentB.getId())
+                        .session(teacherSession()).contentType("application/json").content(mixedOmrRequest(studentB.getId(), "{\"1\":\"3\",\"2\":\"덮어쓰기\"}")))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test void mixed_omr_rejects_essay_grade_changed_after_review() throws Exception {
+        var essay = addEssay();
+        String body = mixedOmrRequest(studentB.getId(), "{\"1\":\"5\"}");
+        mockMvc.perform(put("/api/submissions/details/{id}/grade", essay.getId()).session(teacherSession())
+                        .contentType("application/json").content("{\"earnedPoints\":15,\"teacherComment\":\"새 채점\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(put("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), studentB.getId())
+                        .session(teacherSession()).contentType("application/json").content(body))
+                .andExpect(status().isConflict());
+        org.assertj.core.api.Assertions.assertThat(essay.getEarnedPoints()).isEqualTo(15.0);
+        var saved = submissionRepository.findByStudentIdAndTestId(studentB.getId(), exam.getId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(saved.getDetails().stream().filter(d -> d.getQuestion().getId().equals(q1.getId())).findFirst().orElseThrow().getStudentAnswer()).isEqualTo("3");
+    }
+
+    @Test void mixed_omr_rejects_another_objective_update_with_the_same_review() throws Exception {
+        String body = mixedOmrRequest(studentB.getId(), "{\"1\":\"5\"}");
+        mockMvc.perform(put("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), studentB.getId())
+                        .session(teacherSession()).contentType("application/json").content(body)).andExpect(status().isOk());
+        mockMvc.perform(put("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), studentB.getId())
+                        .session(teacherSession()).contentType("application/json").content(body)).andExpect(status().isConflict());
+    }
+
+    @Test void mixed_omr_rejects_stale_questions_and_unreviewed_updates_and_wrong_class() throws Exception {
+        String body = mixedOmrRequest(studentB.getId(), "{\"1\":\"3\"}");
+        mockMvc.perform(put("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), studentB.getId())
+                        .session(teacherSession()).contentType("application/json").content(body.replace("\"reviewed\":true", "\"reviewed\":false")))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/tests/{testId}/omr/submissions/{studentId}/review", exam.getId(), otherClassStudent.getId()).session(teacherSession()))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(put("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), otherClassStudent.getId())
+                        .session(teacherSession()).contentType("application/json").content(body))
+                .andExpect(status().isForbidden());
+        q1.setAnswer("4"); em.flush();
+        mockMvc.perform(put("/api/tests/{testId}/omr/submissions/{studentId}", exam.getId(), studentB.getId())
+                        .session(teacherSession()).contentType("application/json").content(body))
+                .andExpect(status().isConflict());
+    }
+
+    @Test void mixed_scan_returns_only_objective_numbers_but_snapshots_all_questions() throws Exception {
+        addEssay();
+        try (var stream = getClass().getResourceAsStream("/omr/2026omr.pdf")) {
+            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/tests/{testId}/omr/scan", exam.getId())
+                            .file("file", stream.readAllBytes()).session(teacherSession()))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.expectedQuestions", hasSize(3)))
+                    .andExpect(jsonPath("$.questions", hasSize(1))).andExpect(jsonPath("$.questions[0].number").value(1));
+        }
+    }
+
     @Test
     void omr_creates_new_submission_and_retry_never_overwrites_grades() throws Exception {
         String body = omrRequest();

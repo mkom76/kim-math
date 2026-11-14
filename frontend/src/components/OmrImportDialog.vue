@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { TestSubmissionRoster } from '@/api/client'
-import { omrAPI, type OmrMark, type OmrPage, type OmrScan } from '@/api/omr'
+import { omrAPI, type OmrMark, type OmrPage, type OmrScan, type OmrReview } from '@/api/omr'
+import { parseMultipleAnswer } from '@/utils/examAnswers'
 
 const props = defineProps<{ testId: number; roster: TestSubmissionRoster[] }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 type DraftMark = OmrMark & { needsReview: boolean; verified: boolean; multipleAnswers: boolean }
-type DraftPage = Omit<OmrPage, 'marks'> & { marks: DraftMark[]; studentId: number | null; reviewed: boolean; saved: boolean; score?: number }
+type DraftPage = Omit<OmrPage, 'marks'> & { marks: DraftMark[]; studentId: number | null; reviewed: boolean; saved: boolean; review: OmrReview | null; score?: number }
 const scan = ref<OmrScan | null>(null)
 const pages = ref<DraftPage[]>([])
 const active = ref(0)
@@ -15,16 +16,33 @@ const focusedNumber = ref<number | null>(null)
 const file = ref<File | null>(null)
 const busy = ref(false)
 const error = ref('')
+const reviewLoading = ref(false)
+let reviewGeneration = 0
+onBeforeUnmount(() => { reviewGeneration++ })
 const current = computed(() => pages.value[active.value])
 const focused = computed(() => current.value?.marks.find(mark => mark.number === focusedNumber.value))
 const savedCount = computed(() => pages.value.filter(page => page.saved).length)
 const unresolved = computed(() => current.value?.marks.filter(mark => mark.needsReview && !mark.verified).length || 0)
 const duplicate = computed(() => Boolean(current.value?.studentId && pages.value.some((page, index) => index !== active.value && page.studentId === current.value?.studentId)))
-const studentSubmitted = computed(() => props.roster.find(row => row.studentId === current.value?.studentId)?.submitted)
 const validAnswers = computed(() => current.value?.marks.every(mark => /^(?:[1-5](?:,[1-5]){0,4})?$/.test(mark.answer)))
 const canSave = computed(() => Boolean(current.value?.recognized && current.value.studentId && current.value.reviewed
-  && !current.value.saved && !unresolved.value && !duplicate.value && !studentSubmitted.value && validAnswers.value && !busy.value))
+  && current.value.review && !current.value.saved && !unresolved.value && !duplicate.value && validAnswers.value && !busy.value && !reviewLoading.value))
 const blankCount = computed(() => current.value?.marks.filter(mark => !mark.answer).length || 0)
+const predictedScore = computed(() => {
+  const review = current.value?.review
+  if (!review || !validAnswers.value) return null
+  const objectivePoints = review.objectives.reduce((sum, question) => {
+    const answer = current.value?.marks.find(mark => mark.number === question.number)?.answer || ''
+    const matches = question.multipleAnswers
+      ? JSON.stringify(parseMultipleAnswer(answer)) === JSON.stringify(parseMultipleAnswer(question.correctAnswer || ''))
+      : answer === question.correctAnswer
+    return sum + (answer && question.correctAnswer && matches ? question.points : 0)
+  }, 0)
+  return review.maxPoints === 0 ? 0 : Math.round((review.preservedPoints + objectivePoints) / review.maxPoints * 100)
+})
+function previousAnswer(number: number) {
+  return current.value?.review?.objectives.find(question => question.number === number)?.answer || '무응답'
+}
 
 function message(cause: unknown, fallback: string) {
   return (cause as { response?: { data?: { message?: string } } })?.response?.data?.message || fallback
@@ -43,7 +61,7 @@ async function upload() {
   try {
     const result = (await omrAPI.scan(props.testId, file.value)).data
     scan.value = result
-    pages.value = result.pages.map(page => ({ ...page, studentId: null, reviewed: false, saved: false,
+    pages.value = result.pages.map(page => ({ ...page, studentId: null, reviewed: false, saved: false, review: null,
       marks: page.marks.filter(mark => result.questions.some(q => q.number === mark.number)).map(mark => {
         const multipleAnswers = result.questions.find(q => q.number === mark.number)?.multipleAnswers || false
         return { ...mark, multipleAnswers, verified: false, needsReview: mark.status === 'UNCERTAIN' || (mark.status === 'MULTIPLE' && !multipleAnswers) }
@@ -56,7 +74,28 @@ async function upload() {
 function invalidate() {
   if (current.value) current.value.reviewed = false
 }
-function switchPage() { focusedNumber.value = null; error.value = '' }
+async function loadReview() {
+  const generation = ++reviewGeneration
+  const page = current.value
+  reviewLoading.value = false
+  if (!page || page.saved) return
+  page.review = null; page.reviewed = false; error.value = ''
+  if (!page.studentId) return
+  const studentId = page.studentId
+  reviewLoading.value = true
+  try {
+    const review = (await omrAPI.review(props.testId, studentId)).data
+    if (generation !== reviewGeneration || current.value !== page || page.studentId !== studentId) return
+    if (JSON.stringify(review.expectedQuestions) !== JSON.stringify(scan.value?.expectedQuestions)) {
+      error.value = '시험 문항이 변경되었습니다. PDF를 다시 인식해 주세요.'
+      return
+    }
+    page.review = review
+  } catch (cause) {
+    if (generation === reviewGeneration) error.value = message(cause, '기존 답안을 불러오지 못했습니다. 다시 확인을 눌러 주세요.')
+  } finally { if (generation === reviewGeneration) reviewLoading.value = false }
+}
+function switchPage() { focusedNumber.value = null; error.value = ''; void loadReview() }
 function focus(mark: DraftMark) { focusedNumber.value = mark.number }
 async function save() {
   if (!canSave.value || !current.value || !scan.value) return
@@ -64,15 +103,17 @@ async function save() {
   const page = current.value
   try {
     const student = props.roster.find(row => row.studentId === page.studentId)
-    await ElMessageBox.confirm(`${student?.studentName} 학생의 ${page.number}쪽 답안을 저장하고 채점합니다. 무응답 ${blankCount.value}문항은 오답 처리됩니다.`, 'OMR 채점 확정', {
+    const review = page.review!
+    await ElMessageBox.confirm(`${student?.studentName} 학생의 ${page.number}쪽 객관식 답안만 ${review.existing ? '갱신' : '저장'}합니다. ${review.existing ? `기존 ${review.previousScore}점 → 예상 ${predictedScore.value}점. ` : `예상 ${predictedScore.value}점. `}주관식·서술형 답안과 점수는 보존됩니다. 무응답 ${blankCount.value}문항은 오답 처리됩니다.`, 'OMR 채점 확정', {
       confirmButtonText: '저장·채점', cancelButtonText: '취소', type: 'warning',
     })
-    const result = await omrAPI.confirm(props.testId, page.studentId!, Object.fromEntries(page.marks.map(mark => [mark.number, mark.answer])), scan.value.expectedQuestions)
+    const result = await omrAPI.confirm(props.testId, page.studentId!, Object.fromEntries(page.marks.map(mark => [mark.number, mark.answer])), scan.value.expectedQuestions, review.revision)
     page.saved = true; page.score = result.data.totalScore
     emit('saved')
     ElMessage.success(`${student?.studentName} 학생의 채점이 완료되었습니다.`)
   } catch (cause) {
-    if (cause !== 'cancel' && cause !== 'close') error.value = message(cause, '저장 결과를 확인하지 못했습니다. 시험의 응시 현황을 확인한 뒤 다시 시도해 주세요. 기존 답안은 덮어쓰지 않습니다.')
+    if (cause !== 'cancel' && cause !== 'close') error.value = message(cause, '저장 결과를 확인하지 못했습니다. 시험의 응시 현황과 기존 답안을 다시 확인해 주세요. 주관식·서술형은 변경하지 않습니다.')
+    if ((cause as { response?: { status?: number } })?.response?.status === 409) { page.review = null; page.reviewed = false }
   } finally { busy.value = false }
 }
 async function discard(): Promise<boolean> {
@@ -92,8 +133,8 @@ async function reset() {
 <template>
   <el-dialog :model-value="true" title="OMR 답안 입력·자동 채점" width="1200px" class="omr-dialog"
     :close-on-click-modal="false" :close-on-press-escape="false" :show-close="!busy" :before-close="close">
-    <p class="guide">기존 2026 OMR 공통 양식 · 1~30번 객관식 · PDF 8MB / 30쪽 이하 · 300dpi 스캔 권장</p>
-    <p class="guide">학생을 직접 연결하고 답안을 확인한 뒤 페이지별로 확정합니다. 기존 제출 답안은 덮어쓰지 않습니다. 스캔 파일은 영구 저장하지 않으며, 창을 닫으면 검토 내용이 사라집니다.</p>
+    <p class="guide">기존 2026 OMR 공통 양식 · 혼합형 시험의 1~30번 객관식만 인식 · PDF 8MB / 30쪽 이하 · 300dpi 스캔 권장</p>
+    <p class="guide">기존 제출 학생도 객관식만 갱신할 수 있습니다. 주관식·서술형 답안·점수·교사 코멘트는 보존합니다. 스캔 파일은 영구 저장하지 않으며, 창을 닫으면 검토 내용이 사라집니다.</p>
     <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon class="notice" />
     <section v-if="!scan" class="upload-panel" v-loading="busy" element-loading-text="페이지별 답안을 인식하고 있습니다…">
       <label for="omr-file">스캔 PDF 선택</label>
@@ -124,24 +165,26 @@ async function reset() {
           <el-alert v-if="!current.recognized" :title="current.message" type="warning" :closable="false" show-icon />
           <template v-else>
             <label for="omr-student"><strong>이 페이지의 학생</strong></label>
-            <select id="omr-student" v-model="current.studentId" :disabled="busy || current.saved" @change="invalidate">
+            <select id="omr-student" v-model="current.studentId" :disabled="busy || current.saved" @change="loadReview">
               <option :value="null">성명란을 보고 학생 선택</option>
-              <option v-for="row in roster" :key="row.studentId" :value="row.studentId" :disabled="row.submitted || pages.some((p, i) => i !== active && p.studentId === row.studentId)">
-                {{ row.studentName }}{{ row.school ? ` · ${row.school}` : '' }}{{ row.grade ? ` · ${row.grade}` : '' }}{{ row.submitted ? ' (기존 답안 있음)' : '' }}
+              <option v-for="row in roster" :key="row.studentId" :value="row.studentId" :disabled="pages.some((p, i) => i !== active && p.studentId === row.studentId)">
+                {{ row.studentName }}{{ row.school ? ` · ${row.school}` : '' }}{{ row.grade ? ` · ${row.grade}` : '' }}{{ row.submitted ? ' (객관식 갱신)' : '' }}
               </option>
             </select>
-            <el-alert v-if="!current.saved && (duplicate || studentSubmitted)" title="중복 학생이거나 이미 제출된 학생입니다. 다른 학생을 선택해 주세요." type="warning" :closable="false" />
+            <el-alert v-if="!current.saved && duplicate" title="다른 페이지에 연결된 학생입니다. 중복 연결을 해제해 주세요." type="warning" :closable="false" />
+            <el-button v-if="current.studentId && !current.saved" :disabled="busy || reviewLoading" :loading="reviewLoading" @click="loadReview">기존 답안 다시 확인</el-button>
+            <p v-if="current.review" class="guide">{{ current.review.existing ? `기존 ${current.review.previousScore}점 → 예상 ${predictedScore ?? '-'}점` : `신규 제출 · 예상 ${predictedScore ?? '-'}점` }} · 주관식·서술형 {{ current.review.preservedQuestionCount }}문항 / 획득 {{ current.review.preservedPoints }}점 보존. 신규 서술형은 미채점으로 남습니다.</p>
             <p class="guide">확인 필요 {{ unresolved }}문항 · 무응답 {{ blankCount }}문항. 시험에 등록된 문항만 표시·채점합니다.</p>
             <div class="answer-list">
               <div v-for="mark in current.marks" :key="mark.number" class="answer-row" :class="{ attention: mark.needsReview && !mark.verified }">
                 <button type="button" class="question-button" :aria-label="`${mark.number}번 원본 확대`" @click="focus(mark)">{{ mark.number }}번</button>
                 <input v-model="mark.answer" :aria-label="`${mark.number}번 답안`" :disabled="busy || current.saved" placeholder="무응답" maxlength="9" @input="invalidate" @focus="focus(mark)" />
-                <span class="mark-status">{{ mark.status === 'UNCERTAIN' ? '흐림·지움 확인' : mark.status === 'MULTIPLE' ? (mark.multipleAnswers ? '복수정답 문항' : '복수 마킹 확인') : mark.status === 'BLANK' ? '무응답' : '' }}</span>
+                <span class="mark-status"><span v-if="current.review?.existing">기존 {{ previousAnswer(mark.number) }} → {{ mark.answer || '무응답' }}<br /></span>{{ mark.status === 'UNCERTAIN' ? '원본 흐림·지움 확인' : mark.status === 'MULTIPLE' ? (mark.multipleAnswers ? '복수정답 문항' : '원본 복수 마킹 확인') : mark.status === 'BLANK' ? '원본 무응답' : '' }}</span>
                 <label v-if="mark.needsReview" class="verify"><input v-model="mark.verified" type="checkbox" :disabled="busy || current.saved" @change="invalidate" />확인</label>
               </div>
             </div>
             <p class="guide">답은 1~5로 입력합니다. 복수 마킹은 1,3처럼 입력하며, 단일정답 문항의 복수 마킹은 오답 처리됩니다. 무응답은 빈칸으로 둡니다.</p>
-            <label v-if="!current.saved" class="final-review"><input v-model="current.reviewed" type="checkbox" :disabled="busy || unresolved > 0" /> 학생과 모든 답안을 원본과 대조했습니다. 무응답은 오답 처리합니다.</label>
+            <label v-if="!current.saved" class="final-review"><input v-model="current.reviewed" type="checkbox" :disabled="busy || reviewLoading || !current.review || unresolved > 0" /> 학생과 객관식 답안을 대조하고 변경 내용을 확인했습니다. 무응답은 오답 처리합니다.</label>
             <el-alert v-if="current.saved" :title="`저장·채점 완료: ${current.score}점`" type="success" :closable="false" show-icon />
           </template>
         </section>

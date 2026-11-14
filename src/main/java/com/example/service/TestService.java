@@ -275,7 +275,7 @@ public class TestService {
     }
     
     public void recalculateScores(Long testId) {
-        Test testForAuth = testRepository.findById(testId)
+        Test testForAuth = testRepository.findByIdForQuestionWrite(testId)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
         authorizationService.assertCanAccessTest(testForAuth);
 

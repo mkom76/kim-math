@@ -10,6 +10,9 @@ import com.example.dto.SaveAnswersRequest;
 import com.example.entity.*;
 import com.example.exception.ForbiddenException;
 import com.example.repository.*;
+import com.example.service.omr.OmrRevision;
+import com.example.service.omr.OmrService;
+import com.example.service.omr.OmrTypes;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -37,11 +40,13 @@ public class SubmissionService {
     private final AuthorizationService authorizationService;
     private final StudentClassEnrollmentService studentClassEnrollmentService;
 
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public ErrorCausesDto saveErrorCauses(Long submissionId, Map<String, BigDecimal> counts) {
         TenantContext.Context ctx = TenantContext.current();
         if (ctx == null || ctx.role() == null) {
             throw new ForbiddenException("선생님 권한이 필요합니다");
         }
+        lockTestForSubmissionWrite(submissionRepository.findTestIdForSubmission(submissionId));
         StudentSubmission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "응시 기록이 없습니다"));
         authorizationService.assertCanAccessSubmission(submission);
@@ -109,27 +114,101 @@ public class SubmissionService {
     }
 
     public StudentSubmissionDto saveNewOmrAnswers(Long studentId, Long testId, SaveAnswersRequest request) {
+        // Keep the original POST create-only for older clients. Updates require an
+        // explicit review snapshot through the new PUT endpoint.
+        return saveOmrAnswers(studentId, testId, new OmrTypes.Update(request.answers(), request.expectedQuestions(), "new", true));
+    }
+
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    public OmrTypes.Review reviewOmrAnswers(Long studentId, Long testId) {
+        assertOmrTeacher();
+        Test test = testRepository.findByIdForQuestionRead(testId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "시험이 없습니다"));
+        authorizationService.assertCanAccessTest(test);
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "학생이 없습니다"));
+        authorizationService.assertCanAccessStudent(student);
+        assertStudentBelongsToTest(student, test);
+        List<TestQuestion> questions = questionRepository.findByTestIdForSnapshot(testId);
+        OmrService.validateQuestions(questions);
+        StudentSubmission submission = submissionRepository.findByStudentIdAndTestId(studentId, testId).orElse(null);
+        var details = submission == null ? Map.<Long, StudentSubmissionDetail>of() : submission.getDetails().stream()
+                .collect(Collectors.toMap(d -> d.getQuestion().getId(), d -> d));
+        double preserved = questions.stream().filter(q -> q.getQuestionType() != QuestionType.OBJECTIVE)
+                .map(q -> details.get(q.getId())).filter(Objects::nonNull).filter(d -> d.getEarnedPoints() != null)
+                .mapToDouble(StudentSubmissionDetail::getEarnedPoints).sum();
+        return new OmrTypes.Review(OmrRevision.of(submission), submission != null,
+                submission == null ? null : submission.getTotalScore(), preserved,
+                questions.stream().mapToDouble(q -> q.getPoints() == null ? 0 : q.getPoints()).sum(),
+                (int) questions.stream().filter(q -> q.getQuestionType() != QuestionType.OBJECTIVE).count(),
+                questions.stream().filter(q -> q.getQuestionType() == QuestionType.OBJECTIVE).map(q ->
+                        new OmrTypes.ObjectiveAnswer(q.getNumber(), details.containsKey(q.getId()) ? details.get(q.getId()).getStudentAnswer() : null,
+                                q.getAnswer(), Boolean.TRUE.equals(q.getMultipleAnswers()), q.getPoints() == null ? 0 : q.getPoints())).toList(),
+                questions.stream().map(QuestionSnapshot::from).toList());
+    }
+
+    private void assertOmrTeacher() {
         TenantContext.Context ctx = TenantContext.current();
         if (ctx == null || ctx.role() == null || ctx.role() == TeacherAcademyRole.ASSISTANT) {
             throw new ForbiddenException("선생님 권한이 필요합니다");
         }
-        // Locking read first: under MySQL REPEATABLE READ an earlier plain SELECT
-        // would establish a snapshot that can miss a just-committed submission.
+    }
+
+    public StudentSubmissionDto saveOmrAnswers(Long studentId, Long testId, OmrTypes.Update request) {
+        assertOmrTeacher();
         Test test = testRepository.findByIdForQuestionWrite(testId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "시험이 없습니다"));
         authorizationService.assertCanAccessTest(test);
-        // Existing manual/student submissions take a read lock on this same test before
-        // checking for a submission. An exclusive lock serializes this create-only path
-        // with those writers, including another OMR tab, without changing the schema.
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "학생이 없습니다"));
+        authorizationService.assertCanAccessStudent(student);
+        assertStudentBelongsToTest(student, test);
         List<TestQuestion> questions = questionRepository.findByTestIdForSnapshot(testId);
-        com.example.service.omr.OmrService.validateQuestions(questions);
-        Set<Integer> numbers = questions.stream().map(TestQuestion::getNumber).collect(Collectors.toSet());
-        if (request == null || request.answers() == null || !numbers.equals(request.answers().keySet())
+        OmrService.validateQuestions(questions);
+        if (request == null || !request.reviewed() || !questions.stream().map(QuestionSnapshot::from).toList().equals(request.expectedQuestions())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "시험 문항이 변경되었습니다. PDF를 다시 인식한 뒤 확인해 주세요.");
+        }
+        Set<Integer> numbers = questions.stream().filter(q -> q.getQuestionType() == QuestionType.OBJECTIVE)
+                .map(TestQuestion::getNumber).collect(Collectors.toSet());
+        if (request.answers() == null || !numbers.equals(request.answers().keySet())
                 || request.answers().values().stream().anyMatch(value -> value == null
                 || !value.matches("(?:[1-5](?:,[1-5]){0,4})?"))) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "시험의 모든 문항을 확인하고 답안을 1~5 또는 무응답으로 입력해 주세요.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "객관식 문항의 답안만 1~5 또는 무응답으로 입력해 주세요.");
         }
-        return saveSubmission(studentId, testId, request, false);
+        StudentSubmission submission = submissionRepository.findForAnswerWrite(studentId, testId).orElse(null);
+        if (!OmrRevision.of(submission).equals(request.expectedRevision())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "답안 또는 채점 결과가 변경되었습니다. 학생을 다시 선택해 기존 성적을 확인해 주세요.");
+        }
+        boolean existing = submission != null;
+        if (!existing) submission = StudentSubmission.builder().student(student).test(test).submittedAt(LocalDateTime.now()).build();
+        var details = submission.getDetails().stream().collect(Collectors.toMap(d -> d.getQuestion().getId(), d -> d));
+        for (TestQuestion question : questions) {
+            StudentSubmissionDetail detail = details.get(question.getId());
+            if (detail == null) {
+                // Existing non-objective records (including their absence) are untouched.
+                if (existing && question.getQuestionType() != QuestionType.OBJECTIVE) continue;
+                detail = StudentSubmissionDetail.builder().submission(submission).question(question).build();
+                submission.getDetails().add(detail);
+                if (question.getQuestionType() == QuestionType.SUBJECTIVE) {
+                    detail.setIsCorrect(false); detail.setEarnedPoints(0.0);
+                }
+            }
+            if (question.getQuestionType() == QuestionType.OBJECTIVE) {
+                String answer = normalizeStudentAnswer(request.answers().get(question.getNumber()));
+                boolean correct = TestAnswerMatcher.matches(question, answer);
+                detail.setStudentAnswer(answer); detail.setIsCorrect(correct);
+                detail.setEarnedPoints(correct && question.getPoints() != null ? question.getPoints() : 0.0);
+            }
+        }
+        double earned = submission.getDetails().stream().filter(d -> d.getEarnedPoints() != null).mapToDouble(StudentSubmissionDetail::getEarnedPoints).sum();
+        double max = questions.stream().mapToDouble(q -> q.getPoints() == null ? 0 : q.getPoints()).sum();
+        submission.setTotalScore(max == 0 ? 0 : (int) Math.round(earned / max * 100));
+        submission.markErrorCausesForReview();
+        submission = submissionRepository.saveAndFlush(submission);
+        var dto = StudentSubmissionDto.from(submission);
+        dto.setDetails(submission.getDetails().stream().map(SubmissionDetailDto::from).toList());
+        dto.setPendingEssayCount((int) submission.getDetails().stream().filter(d -> d.getQuestion().getQuestionType() == QuestionType.ESSAY && d.getEarnedPoints() == null).count());
+        return dto;
     }
 
     private StudentSubmissionDto saveSubmission(Long studentId, Long testId, SaveAnswersRequest request, boolean allowExistingUpdate) {
@@ -364,7 +443,11 @@ public class SubmissionService {
                 .collect(Collectors.toList());
     }
 
+    // Resolve only a scalar ID before the test lock. READ_COMMITTED ensures a
+    // writer that waited for OMR sees the newly committed objective details.
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public SubmissionDetailDto gradeEssay(Long detailId, EssayGradeRequest request) {
+        lockTestForSubmissionWrite(detailRepository.findTestIdForDetail(detailId));
         StudentSubmissionDetail detail = detailRepository.findById(detailId)
                 .orElseThrow(() -> new RuntimeException("Detail not found"));
         authorizationService.assertCanAccessSubmission(detail.getSubmission());
@@ -389,6 +472,13 @@ public class SubmissionService {
         recalculateTotalScore(submission);
 
         return SubmissionDetailDto.from(detail);
+    }
+
+    private void lockTestForSubmissionWrite(Long testId) {
+        if (testId == null) throw new ForbiddenException("답안에 접근할 수 없습니다");
+        Test test = testRepository.findByIdForQuestionWrite(testId)
+                .orElseThrow(() -> new ForbiddenException("시험에 접근할 수 없습니다"));
+        authorizationService.assertCanAccessTest(test);
     }
 
     private void recalculateTotalScore(StudentSubmission submission) {
