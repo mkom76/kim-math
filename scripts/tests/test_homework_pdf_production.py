@@ -4,6 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 
 spec = importlib.util.spec_from_file_location('pdf_production', Path(__file__).parents[1] / 'homework-pdf-production.py')
 ops = importlib.util.module_from_spec(spec)
@@ -11,6 +12,23 @@ spec.loader.exec_module(ops)
 
 
 class ProductionGuardTests(unittest.TestCase):
+    def test_diagnosis_reads_only_metadata_and_never_prints_raw_logs_or_key(self):
+        sample = 'FAILED\tANALYSIS_FAILED\t3\t1\t1000\tgpt-6.1-sol\t2026-11-14 10:00:00\t150'
+        raw = SimpleNamespace(stdout=b'private-pdf-content private-key', stderr=b'TimeoutException')
+        with patch.object(ops, 'verify_target', return_value={'OPENAI_API_KEY':'private-key'}), patch.object(ops, 'database_guard'), \
+                patch.object(ops, 'sql', return_value=sample) as sql, patch.object(ops, 'inspect', side_effect=['{"OOMKilled":false}', '0']), \
+                patch.object(ops.subprocess, 'run', return_value=raw) as command, patch.object(ops.urllib.request, 'urlopen') as model, patch.object(ops, 'emit') as emit:
+            model.return_value.__enter__.return_value.status = 200
+            ops.diagnose_pdf('a' * 40)
+            self.assertTrue(all(call.args[0].startswith('SELECT ') for call in sql.call_args_list))
+            self.assertTrue(all(call.args[0][:2] == ['docker','logs'] for call in command.call_args_list))
+            self.assertEqual(model.call_args.args[0].get_method(), 'GET')
+            self.assertIsNone(model.call_args.args[0].data)
+            output = str(emit.call_args_list)
+            self.assertNotIn('private-key', output)
+            self.assertNotIn('private-pdf-content', output)
+            self.assertIn('pdf_diagnosis', output)
+
     def test_exam_migration_is_pinned_to_the_reviewed_sql(self):
         source = Path(__file__).parents[2] / ops.EXAM_MIGRATION
         with patch.object(ops, 'source_file', return_value=source.read_bytes()):

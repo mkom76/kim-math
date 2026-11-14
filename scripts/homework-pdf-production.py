@@ -14,6 +14,8 @@ import tarfile
 import tempfile
 import time
 import urllib.request
+import urllib.error
+from collections import Counter
 from datetime import datetime, timezone
 
 ROOT = Path('/home/suhui/kim-math')
@@ -580,6 +582,55 @@ def preflight(expected, source):
     emit('homework_pdf_preflight', 'passed')
 
 
+def diagnose_pdf(expected):
+    """Read metadata only. Never read originals, answers, names or credentials into output."""
+    env = verify_target(expected)
+    database_guard()
+    for table, extra in [('homework_pdf_imports', '0'), ('exam_pdf_imports', 'question_page_count')]:
+        rows = sql("SELECT state,COALESCE(error_code,'NONE'),page_count," + extra +
+                   ",file_size,ai_model,created_at,TIMESTAMPDIFF(SECOND,created_at,updated_at) FROM " + table +
+                   " ORDER BY created_at DESC LIMIT 8;")
+        emit(table + '_recent_metadata', json.dumps([line.split('\t') for line in rows.splitlines()]))
+    state = json.loads(inspect('kim-math-backend', '{{json .State}}'))
+    emit('backend_oom_killed', bool(state.get('OOMKilled')))
+    emit('backend_restart_count', inspect('kim-math-backend', '{{.RestartCount}}'))
+    process = subprocess.run(['docker','logs','--since','24h','--tail','12000','kim-math-backend'], cwd=ROOT, capture_output=True, timeout=30)
+    logs = (process.stdout + process.stderr).decode(errors='replace')
+    markers = ('TimeoutException','DataBufferLimitException','OutOfMemoryError','SSLHandshakeException','ConnectException','WebClientResponseException','SQLIntegrityConstraintViolationException')
+    emit('backend_error_marker_counts', json.dumps({name:logs.count(name) for name in markers}))
+    status_codes = Counter(re.findall(r'\b([45][0-9]{2}) [^\r\n]{0,40}from POST https://api\.openai\.com/v1/responses', logs))
+    emit('openai_http_error_counts', json.dumps(dict(status_codes)))
+    proxy = subprocess.run(['docker','logs','--since','24h','--tail','12000','kim-math-nginx'], cwd=ROOT, capture_output=True, timeout=30)
+    access = (proxy.stdout + proxy.stderr).decode(errors='replace')
+    requests = Counter()
+    for method, section, suffix, status in re.findall(r'"(GET|POST|DELETE) /api/(tests|homeworks)/pdf-imports([^ ?"]*)[^\r\n"]*" ([0-9]{3})', access):
+        operation = 'upload' if not suffix else 'register' if suffix.endswith('/register') else 'document' if suffix.endswith('/document') else 'status'
+        requests[section + ':' + method + ':' + operation + ':' + status] += 1
+    emit('pdf_http_status_counts', json.dumps(dict(requests)))
+    model = env.get('HOMEWORK_PDF_MODEL','gpt-6.1-sol')
+    if not re.fullmatch('[A-Za-z0-9_.-]{1,80}', model):
+        raise RuntimeError('Unexpected model identifier')
+    emit('pdf_model', model)
+    request = urllib.request.Request('https://api.openai.com/v1/models/' + model,
+                                     headers={'Authorization':'Bearer ' + env.get('OPENAI_API_KEY','')})
+    # Model metadata GET does not submit PDF data or request an inference.
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            emit('openai_model_metadata_status', response.status)
+    except urllib.error.HTTPError as error:
+        emit('openai_model_metadata_status', error.code)
+        try:
+            details = json.loads(error.read(16000)).get('error',{})
+            for field in ('code','type','param'):
+                value = str(details.get(field) or 'NONE')
+                emit('openai_model_metadata_' + field, value if re.fullmatch('[A-Za-z0-9_.-]{1,80}',value) else 'REDACTED')
+        except (ValueError, AttributeError):
+            emit('openai_model_metadata_error','UNPARSEABLE')
+    except (urllib.error.URLError, TimeoutError):
+        emit('openai_model_metadata_error','NETWORK_OR_TIMEOUT')
+    emit('pdf_diagnosis', 'read_only_complete')
+
+
 def main():
     operation = os.environ.get('HOMEWORK_PDF_OPERATION', '')
     expected = os.environ.get('HOMEWORK_PDF_EXPECTED_SERVER_SHA', '')
@@ -598,6 +649,8 @@ def main():
         migrate_exam(expected, source)
     elif operation == 'homework-pdf-exam-verify':
         verify_exam_runtime(expected)
+    elif operation == 'homework-pdf-diagnose':
+        diagnose_pdf(expected)
     else:
         raise RuntimeError('Operation not prepared; no changes performed')
 
