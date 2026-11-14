@@ -17,6 +17,12 @@ public interface StudentSubmissionRepository extends JpaRepository<StudentSubmis
     List<StudentSubmission> findByStudentId(Long studentId);
     List<StudentSubmission> findByStudentIdAndTestAcademyClassId(Long studentId, Long classId);
     Optional<StudentSubmission> findByStudentIdAndTestId(Long studentId, Long testId);
+
+    // Current/locking read, so a writer that waited on the test lock sees an OMR
+    // submission committed after its transaction's first consistent read.
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM StudentSubmission s WHERE s.student.id = :studentId AND s.test.id = :testId")
+    Optional<StudentSubmission> findForAnswerWrite(@Param("studentId") Long studentId, @Param("testId") Long testId);
     
     @Query("SELECT AVG(s.totalScore) FROM StudentSubmission s WHERE s.test.id = :testId")
     Double getAverageScoreByTestId(Long testId);
