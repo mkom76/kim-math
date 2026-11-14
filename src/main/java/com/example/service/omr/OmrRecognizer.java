@@ -16,6 +16,11 @@ import static com.example.service.omr.OmrTypes.*;
 /** Fixed-layout optical mark reading for the existing 2026omr form, without OCR or AI calls. */
 @Component
 public class OmrRecognizer {
+    static final double MARK_THRESHOLD = .40;
+    private static final double FAINT_THRESHOLD = .10;
+    private static final double SECONDARY_LIMIT = .15;
+    private static final double MIN_SINGLE_MARK_GAP = .30;
+    record Reading(String answer, String status) {}
     // Coordinates measured from the supplied blank form at 1600 x 1132. The two tables
     // have slightly different row spacing, so an evenly divided 15-row grid is incorrect.
     private static final double[][] ROWS = {
@@ -41,24 +46,37 @@ public class OmrRecognizer {
             double sy = (table.bottom() - table.top()) / 696.0;
             for (int row = 0; row < 15; row++) {
                 double cy = table.top() + (ROWS[tableIndex][row] - 101) * sy;
-                List<String> selected = new ArrayList<>();
-                boolean uncertain = false;
+                double[] scores = new double[5];
                 for (int col = 0; col < 5; col++) {
                     double cx = table.left() + COLUMNS[col] * sx;
                     if (borderSupport(image, cx, cy, sx, sy) > .12) outlined++;
-                    double ink = ink(image, cx - 4 * sx, cy - 9 * sy, cx + 4 * sx, cy + 9 * sy);
-                    if (ink >= .55) selected.add(Integer.toString(col + 1));
-                    else if (ink >= .10) uncertain = true;
+                    scores[col] = ink(image, cx - 4 * sx, cy - 9 * sy, cx + 4 * sx, cy + 9 * sy);
                 }
-                String status = uncertain ? "UNCERTAIN" : selected.isEmpty() ? "BLANK" : selected.size() > 1 ? "MULTIPLE" : "MARKED";
+                Reading reading = classify(scores);
                 Box box = new Box((table.left() + 86 * sx) / image.getWidth(), (cy - 17 * sy) / image.getHeight(),
                         252 * sx / image.getWidth(), 34 * sy / image.getHeight());
-                marks.add(new Mark(tableIndex * 15 + row + 1, String.join(",", selected), status, box));
+                marks.add(new Mark(tableIndex * 15 + row + 1, reading.answer(), reading.status(), box));
             }
         }
         // Similar-looking unrelated tables must not silently produce thirty blank answers.
         if (outlined < 120) return new Result(image, false, List.of());
         return new Result(image, true, marks);
+    }
+
+    /** Require a clear gap for a single mark; never resolve two dark choices to a winner. */
+    static Reading classify(double[] scores) {
+        List<String> selected = new ArrayList<>();
+        double peak = 0, secondary = 0;
+        for (int i = 0; i < scores.length; i++) {
+            peak = Math.max(peak, scores[i]);
+            if (scores[i] >= MARK_THRESHOLD) selected.add(Integer.toString(i + 1));
+            else secondary = Math.max(secondary, scores[i]);
+        }
+        String status;
+        if (selected.isEmpty()) status = peak >= FAINT_THRESHOLD ? "UNCERTAIN" : "BLANK";
+        else if (selected.size() > 1) status = secondary >= FAINT_THRESHOLD ? "UNCERTAIN" : "MULTIPLE";
+        else status = secondary >= SECONDARY_LIMIT || peak - secondary < MIN_SINGLE_MARK_GAP ? "UNCERTAIN" : "MARKED";
+        return new Reading(String.join(",", selected), status);
     }
 
     private Layout locate(BufferedImage image) {

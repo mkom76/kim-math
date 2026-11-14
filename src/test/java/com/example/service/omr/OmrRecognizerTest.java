@@ -77,4 +77,41 @@ class OmrRecognizerTest {
         Graphics2D g = image.createGraphics(); g.setColor(Color.WHITE); g.fillRect(1160, 0, 440, 1132); g.dispose();
         assertThat(recognizer.read(image).recognized()).isFalse();
     }
+
+    @Test void threshold_is_inclusive_and_separates_blank_faint_and_ambiguous_marks() {
+        assertThat(OmrRecognizer.classify(new double[]{.01,.40,.03,.02,.04}))
+                .isEqualTo(new OmrRecognizer.Reading("2", "MARKED"));
+        assertThat(OmrRecognizer.classify(new double[]{.01,.3999,.03,.02,.04}).status()).isEqualTo("UNCERTAIN");
+        assertThat(OmrRecognizer.classify(new double[]{.01,.50,.03,.02,.14}).status()).isEqualTo("MARKED");
+        assertThat(OmrRecognizer.classify(new double[]{.01,.40,.03,.02,.14}).status()).isEqualTo("UNCERTAIN");
+        assertThat(OmrRecognizer.classify(new double[]{.01,.50,.03,.02,.15}).status()).isEqualTo("UNCERTAIN");
+        assertThat(OmrRecognizer.classify(new double[]{.01,.50,.03,.02,.39}).status()).isEqualTo("UNCERTAIN");
+        assertThat(OmrRecognizer.classify(new double[]{.01,.09,.03,.02,.04}).status()).isEqualTo("BLANK");
+        assertThat(OmrRecognizer.classify(new double[]{.01,.10,.03,.02,.04}).status()).isEqualTo("UNCERTAIN");
+        assertThat(OmrRecognizer.classify(new double[]{.01,.50,.03,.45,.04}))
+                .isEqualTo(new OmrRecognizer.Reading("2,4", "MULTIPLE"));
+        assertThat(OmrRecognizer.classify(new double[]{.01,.50,.18,.45,.04}).status()).isEqualTo("UNCERTAIN");
+    }
+
+    @Test void gray_pencil_fill_is_read_without_accepting_erasure_or_double_marks() throws Exception {
+        var image = form();
+        Graphics2D g = image.createGraphics();
+        g.setColor(new Color(128,128,128));
+        g.fillRect(830,146,11,22); // ordinary gray pencil fill, previously below .55
+        g.fillRect(886,187,11,22);
+        g.fillRect(995,187,11,22); // two equally strong marks must remain multiple
+        g.fillRect(940,231,11,22);
+        g.setColor(new Color(205,205,205)); g.fillRect(830,231,11,22); // erased alternate choice
+        g.setColor(new Color(210,210,210)); g.fillRect(830,275,11,22); // faint only
+        g.dispose();
+        var result = recognizer.read(image);
+        assertThat(result.recognized()).isTrue();
+        assertThat(result.marks().get(0).status()).isEqualTo("MARKED");
+        assertThat(result.marks().get(0).answer()).isEqualTo("1");
+        assertThat(result.marks().get(1).status()).isEqualTo("MULTIPLE");
+        assertThat(result.marks().get(1).answer()).isEqualTo("2,4");
+        assertThat(result.marks().get(2).status()).isEqualTo("UNCERTAIN");
+        assertThat(result.marks().get(3).status()).isEqualTo("UNCERTAIN");
+        assertThat(result.marks().subList(4,30)).allSatisfy(mark -> assertThat(mark.status()).isEqualTo("BLANK"));
+    }
 }
