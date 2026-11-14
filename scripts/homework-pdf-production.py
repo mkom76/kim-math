@@ -16,6 +16,8 @@ import time
 import urllib.request
 import urllib.error
 from collections import Counter
+import base64
+import math
 from datetime import datetime, timezone
 
 ROOT = Path('/home/suhui/kim-math')
@@ -631,6 +633,143 @@ def diagnose_pdf(expected):
     emit('pdf_diagnosis', 'read_only_complete')
 
 
+def pdf_replay_budget(count):
+    return isinstance(count,dict) and type(count.get('input_tokens')) is int and 0<count['input_tokens']<=100000
+
+
+def homework_replay_body(pdf, candidates, source):
+    section = source.split('String instructions=',1)[1].split(';',1)[0]
+    instructions = ''.join(json.loads('"' + value + '"') for value in re.findall(r'"((?:[^"\\]|\\.)*)"',section))
+    def obj(properties):
+        return {'type':'object','properties':properties,'required':list(properties),'additionalProperties':False}
+    region = obj({name:{'type':'integer' if name=='page' else 'number'} for name in ('page','x','y','width','height')})
+    question = obj({'number':{'type':'string'},'text':{'type':'string'},'regions':{'type':'array','items':region},
+                    'typeId':{'type':['string','null']},'reason':{'type':'string'},'needsReview':{'type':'boolean'}})
+    schema = obj({'complete':{'type':'boolean'},'questions':{'type':'array','items':question}})
+    return {'model':'gpt-6.1-sol','store':False,'service_tier':'default','max_output_tokens':24000,'reasoning':{'effort':'low'},'instructions':instructions,
+            'input':[{'role':'user','content':[{'type':'input_file','filename':'homework.pdf','file_data':'data:application/pdf;base64,'+base64.b64encode(pdf).decode(),'detail':'high'},
+                    {'type':'input_text','text':'유형 후보 데이터: '+json.dumps(candidates,ensure_ascii=False,separators=(',',':'))}]}],
+            'text':{'format':{'type':'json_schema','name':'homework_questions','strict':True,'schema':schema}}}
+
+
+def pdf_replay_validation(result, pages):
+    issues = Counter()
+    rows = result.get('questions')
+    if not isinstance(rows,list) or not 1 <= len(rows) <= 60:
+        issues['QUESTION_COUNT'] += 1
+    numbers = set()
+    for row in rows if isinstance(rows,list) else []:
+        number = row.get('number')
+        if not isinstance(number,str) or not number.strip() or len(number)>40:
+            issues['SOURCE_NUMBER'] += 1
+        elif number.strip() in numbers:
+            issues['DUPLICATE_NUMBER'] += 1
+        else:
+            numbers.add(number.strip())
+        content = row.get('text')
+        if not isinstance(content,str) or not content.strip() or len(content)>6000:
+            issues['QUESTION_TEXT'] += 1
+        regions = row.get('regions')
+        if not isinstance(regions,list) or not 1 <= len(regions) <= 20:
+            issues['REGION_COUNT'] += 1
+            continue
+        for region in regions:
+            try:
+                x,y,w,h = (region[name] for name in ('x','y','width','height'))
+                if not 1 <= region['page'] <= pages:
+                    issues['REGION_PAGE'] += 1
+                if not all(math.isfinite(value) for value in (x,y,w,h)) or x<0 or y<0 or w<=0 or h<=0 or x+w>1.00001 or y+h>1.00001:
+                    issues['REGION_BOUNDS'] += 1
+            except (KeyError,TypeError,ValueError):
+                issues['REGION_SHAPE'] += 1
+    return dict(issues)
+
+
+def replay_pdf_once(expected):
+    # User approved precisely one replay of this failed 10-page upload, <= USD .50.
+    env = verify_target(expected)
+    database_guard()
+    if env.get('HOMEWORK_PDF_MODEL','gpt-6.1-sol') != 'gpt-6.1-sol':
+        raise RuntimeError('Approved replay model changed')
+    rows = sql("SELECT id,storage_key,subject_id,file_sha256 FROM homework_pdf_imports WHERE state='FAILED' AND error_code='ANALYSIS_FAILED' "
+               "AND page_count=10 AND file_size=1228111 AND created_at='2026-11-14 09:54:30.933787';").splitlines()
+    if len(rows) != 1:
+        raise RuntimeError('Approved failed upload is unavailable or ambiguous')
+    identifier, key, subject, digest = rows[0].split('\t')
+    if not all(re.fullmatch('[a-f0-9-]{36}',value) for value in (identifier,key)) or not re.fullmatch('[a-f0-9]{64}',digest):
+        raise RuntimeError('Invalid approved file identity')
+    pdf = subprocess.run(['docker','exec','kim-math-backend','cat','/var/lib/kim-math/homework-pdfs/'+key+'.pdf'], cwd=ROOT, capture_output=True, timeout=20, check=True).stdout
+    if len(pdf)!=1228111 or hashlib.sha256(pdf).hexdigest()!=digest:
+        raise RuntimeError('Approved PDF checksum changed')
+    catalog = json.loads((ROOT/'src/main/resources/homework/question-types.json').read_text())
+    candidates = []
+    def walk(node, parents):
+        path = parents+[node['name']]
+        if 'children' in node:
+            for child in node['children']: walk(child,path)
+        else:
+            candidates.append({'id':node['id'],'path':path})
+    for node in catalog['subjects']:
+        if node['id']==subject: walk(node,[])
+    source = (ROOT/'src/main/java/com/example/service/homeworkpdf/OpenAiHomeworkPdfAi.java').read_text()
+    body = homework_replay_body(pdf,candidates,source)
+    # Exclusive one-shot marker prevents workflow reruns from making another paid call.
+    descriptor = os.open('/tmp/kim-math-pdf-replay-'+identifier+'.lock',os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
+    os.close(descriptor)
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self,*args,**kwargs): return None
+    opener = urllib.request.build_opener(NoRedirect)
+    def api(path,payload):
+        request = urllib.request.Request('https://api.openai.com/v1/responses'+path,data=json.dumps(payload,ensure_ascii=False).encode(),
+                  headers={'Authorization':'Bearer '+env['OPENAI_API_KEY'],'Content-Type':'application/json'})
+        try:
+            with opener.open(request,timeout=150) as response:
+                return json.loads(response.read(2*1024*1024))
+        except urllib.error.HTTPError as error:
+            emit('pdf_replay_http_status',error.code)
+            try:
+                detail = json.loads(error.read(16000)).get('error',{})
+                for field in ('code','type','param'):
+                    value = str(detail.get(field) or 'NONE')
+                    emit('pdf_replay_error_'+field,value if re.fullmatch(r'[A-Za-z0-9_.\[\]-]{1,120}',value) else 'REDACTED')
+                message = str(detail.get('message','')).lower()
+                for marker in ('quota','billing','rate limit','schema','unsupported','parameter','pdf','file','permission','model'):
+                    if marker in message: emit('pdf_replay_error_hint',marker.replace(' ','_'))
+            except (ValueError,AttributeError): pass
+            return None
+        except (urllib.error.URLError,TimeoutError):
+            emit('pdf_replay_network_error','NETWORK_OR_TIMEOUT')
+            return None
+    # Count full input first; fail closed on errors or >100k tokens. No generation here.
+    count = api('/input_tokens',{name:body[name] for name in ('model','input','instructions','text')})
+    if not pdf_replay_budget(count):
+        emit('pdf_replay','stopped_before_inference_budget_or_count_error')
+        return
+    emit('pdf_replay_input_tokens',count['input_tokens'])
+    emit('pdf_replay_max_standard_cost_usd',round(count['input_tokens']*2/1000000+24000*10/1000000,6))
+    # The sole paid generation: same PDF, model, prompt, schema, detail and output cap.
+    started = time.monotonic()
+    response = api('',body)
+    emit('pdf_replay_elapsed_seconds',round(time.monotonic()-started,2))
+    if response is None:
+        emit('pdf_replay','api_error')
+        return
+    emit('pdf_replay_response_status',response.get('status','MISSING'))
+    emit('pdf_replay_incomplete_reason',response.get('incomplete_details') or {})
+    usage = response.get('usage') or {}
+    emit('pdf_replay_usage',json.dumps({name:usage.get(name) for name in ('input_tokens','output_tokens','total_tokens')}))
+    parts = [part for output in response.get('output',[]) for part in output.get('content',[])]
+    emit('pdf_replay_refusal',any(part.get('type')=='refusal' for part in parts))
+    text = ''.join(part.get('text','') for part in parts if part.get('type')=='output_text')
+    try:
+        analysis = json.loads(text)
+        emit('pdf_replay_question_count',len(analysis.get('questions',[])))
+        emit('pdf_replay_validation_issues',json.dumps(pdf_replay_validation(analysis,10)))
+    except (ValueError,TypeError,AttributeError):
+        emit('pdf_replay_parse','INVALID_ANALYSIS_JSON')
+    emit('pdf_replay','complete_no_database_changes')
+
+
 def main():
     operation = os.environ.get('HOMEWORK_PDF_OPERATION', '')
     expected = os.environ.get('HOMEWORK_PDF_EXPECTED_SERVER_SHA', '')
@@ -651,6 +790,8 @@ def main():
         verify_exam_runtime(expected)
     elif operation == 'homework-pdf-diagnose':
         diagnose_pdf(expected)
+    elif operation == 'homework-pdf-replay-once':
+        replay_pdf_once(expected)
     else:
         raise RuntimeError('Operation not prepared; no changes performed')
 

@@ -23,6 +23,7 @@ on:
           - homework-pdf-exam-migrate
           - homework-pdf-exam-verify
           - homework-pdf-diagnose
+          - homework-pdf-replay-once
       expected_server_sha:
         description: Expected current server commit for the read-only preflight
         type: string

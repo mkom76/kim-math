@@ -12,6 +12,22 @@ spec.loader.exec_module(ops)
 
 
 class ProductionGuardTests(unittest.TestCase):
+    def test_pdf_replay_budget_stops_before_paid_generation_on_unknown_or_large_input(self):
+        for count in (None,{}, {'input_tokens':0},{'input_tokens':100001},{'input_tokens':True},{'input_tokens':'100'}):
+            self.assertFalse(ops.pdf_replay_budget(count))
+        self.assertTrue(ops.pdf_replay_budget({'input_tokens':100000}))
+
+    def test_pdf_replay_preserves_prompt_and_schema_and_uses_private_bounded_request(self):
+        source=(Path(__file__).parents[2]/'src/main/java/com/example/service/homeworkpdf/OpenAiHomeworkPdfAi.java').read_text(encoding='utf-8')
+        body=ops.homework_replay_body(b'%PDF-test',[{'id':'test-id','path':['a','b','c','d']}],source)
+        self.assertFalse(body['store'])
+        self.assertEqual(body['max_output_tokens'],24000)
+        self.assertEqual(body['service_tier'],'default')
+        self.assertIn('한국어 수학 숙제 PDF',body['instructions'])
+        self.assertTrue(body['text']['format']['strict'])
+        self.assertIn('test-id',body['input'][0]['content'][1]['text'])
+        self.assertEqual(ops.pdf_replay_validation({'questions':[{'number':'1','text':'sample','regions':[{'page':11,'x':0,'y':0,'width':2,'height':1}]}]},10),{'REGION_PAGE':1,'REGION_BOUNDS':1})
+
     def test_diagnosis_reads_only_metadata_and_never_prints_raw_logs_or_key(self):
         sample = 'FAILED\tANALYSIS_FAILED\t3\t1\t1000\tgpt-6.1-sol\t2026-11-14 10:00:00\t150'
         raw = SimpleNamespace(stdout=b'private-pdf-content private-key', stderr=b'TimeoutException')
