@@ -110,6 +110,19 @@ describe('OMR import review', () => {
     wrapper.unmount()
   })
 
+  it('explains an empty server error without claiming that answers were saved', async () => {
+    vi.mocked(omrAPI.confirm).mockRejectedValue({ response: { status: 500, data: { message: 'No message available' } } })
+    const wrapper = setup(); await upload(wrapper)
+    await wrapper.get('#omr-student').setValue('1'); await flushPromises()
+    for (const check of wrapper.findAll('input[type="checkbox"]')) await check.setValue(true)
+    await saveButton(wrapper).trigger('click'); await flushPromises()
+    expect(wrapper.text()).toContain('저장 결과를 확인하지 못했습니다.')
+    expect(wrapper.text()).toContain('오류 코드: 500')
+    expect(wrapper.text()).not.toContain('No message available')
+    expect(wrapper.emitted('saved')).toBeUndefined()
+    wrapper.unmount()
+  })
+
   it('blocks saving when the review cannot be loaded or question snapshots changed', async () => {
     vi.mocked(omrAPI.review).mockRejectedValueOnce(new Error('offline'))
     const wrapper = setup(); await upload(wrapper)

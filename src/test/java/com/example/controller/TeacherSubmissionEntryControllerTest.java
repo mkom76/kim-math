@@ -174,6 +174,36 @@ class TeacherSubmissionEntryControllerTest {
         submission.getDetails().add(detail); em.persist(detail); em.flush(); return detail;
     }
 
+    @Test void lesson_linked_omr_can_save_and_then_manually_grade_essays() throws Exception {
+        var lesson = com.example.entity.Lesson.builder().academy(academy).academyClass(clazz)
+                .lessonDate(java.time.LocalDate.of(2026, 11, 9)).build();
+        em.persist(lesson);
+        exam.setLesson(lesson); lesson.setTest(exam);
+        addEssay();
+        Long testId = exam.getId(), studentId = studentA.getId();
+        em.flush(); em.clear();
+        String body = mixedOmrRequest(studentId, "{\"1\":\"3\"}");
+        String response = mockMvc.perform(put("/api/tests/{testId}/omr/submissions/{studentId}", testId, studentId)
+                        .session(teacherSession()).contentType("application/json").content(body))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.pendingEssayCount").value(1))
+                .andReturn().getResponse().getContentAsString();
+        var saved = objectMapper.readTree(response);
+        Long essayId = null;
+        for (var detail : saved.path("details")) {
+            if ("ESSAY".equals(detail.path("questionType").asText())) essayId = detail.path("id").asLong();
+        }
+        org.assertj.core.api.Assertions.assertThat(essayId).isNotNull();
+        mockMvc.perform(put("/api/submissions/details/{id}/grade", essayId).session(teacherSession())
+                        .contentType("application/json").content("{\"earnedPoints\":15,\"teacherComment\":\"가상 채점\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.earnedPoints").value(15));
+        String refreshed = mixedOmrRequest(studentId, "{\"1\":\"5\"}");
+        mockMvc.perform(put("/api/tests/{testId}/omr/submissions/{studentId}", testId, studentId)
+                        .session(teacherSession()).contentType("application/json").content(refreshed))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.details[?(@.questionType == 'ESSAY')].earnedPoints", contains(15.0)))
+                .andExpect(jsonPath("$.details[?(@.questionType == 'ESSAY')].teacherComment", contains("가상 채점")));
+    }
+
     @Test void mixed_omr_updates_only_objective_details_and_preserves_non_objective_records() throws Exception {
         var essay = addEssay();
         em.refresh(essay);

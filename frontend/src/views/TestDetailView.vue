@@ -30,6 +30,7 @@ const recalculating = ref(false)
 const test = ref<Test | null>(null)
 const roster = ref<TestSubmissionRoster[]>([])
 const stats = ref<any>(null)
+const testQuestions = ref<Question[]>([])
 const causeDialogVisible = ref(false)
 const causeEditorRow = ref<TestSubmissionRoster | null>(null)
 
@@ -47,15 +48,17 @@ function onCausesSaved(value: ErrorCauses) {
 const fetchTestDetail = async () => {
   loading.value = true
   try {
-    const [testResponse, statsResponse, rosterResponse] = await Promise.all([
+    const [testResponse, statsResponse, rosterResponse, questionsResponse] = await Promise.all([
       testAPI.getTest(Number(testId)),
       testAPI.getTestStats(Number(testId)),
-      testAPI.getSubmissionRoster(Number(testId))
+      testAPI.getSubmissionRoster(Number(testId)),
+      testAPI.getTestQuestions(Number(testId)),
     ])
 
     test.value = testResponse.data
     stats.value = statsResponse.data
     roster.value = rosterResponse.data
+    testQuestions.value = questionsResponse.data
   } catch (error) {
     ElMessage.error('시험 정보를 불러오는데 실패했습니다.')
   } finally {
@@ -142,7 +145,7 @@ const setMultipleAnswer = (questionNumber: number, selected: string[]) => {
 
 const submittedCount = computed(() => roster.value.filter(row => row.submitted).length)
 const hasEssayQuestions = computed(() =>
-  (stats.value?.questionStats || []).some((row: any) => row.questionType === 'ESSAY'),
+  testQuestions.value.some(question => question.questionType === 'ESSAY'),
 )
 const unansweredAutoGradedCount = computed(
   () => answerQuestions.value.filter(question =>
@@ -671,15 +674,20 @@ onMounted(() => {
               >
                 결과 보기
               </el-button>
+            </template>
+          </el-table-column>
+          <el-table-column v-if="hasEssayQuestions" label="서술형 점수" min-width="180" align="center">
+            <template #default="{ row }">
               <el-button
-                v-if="row.submitted && hasEssayQuestions"
+                v-if="row.submitted"
                 size="small"
                 :type="row.pendingEssayCount > 0 ? 'warning' : 'info'"
                 plain
                 @click="openEssayGradeFromRoster(row)"
               >
-                {{ row.pendingEssayCount > 0 ? `채점 (${row.pendingEssayCount})` : '채점 수정' }}
+                {{ row.pendingEssayCount > 0 ? `점수 입력 (${row.pendingEssayCount})` : '점수 입력·수정' }}
               </el-button>
+              <span v-else style="color: #909399">객관식 답안 저장 후 입력</span>
             </template>
           </el-table-column>
         </el-table>
