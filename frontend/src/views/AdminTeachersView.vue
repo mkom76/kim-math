@@ -10,6 +10,37 @@ const teachers = ref<AdminTeacherDto[]>([])
 const loading = ref(false)
 const inviteDialogVisible = ref(false)
 const inviting = ref(false)
+const nameDialogVisible = ref(false)
+const savingName = ref(false)
+const editingTeacher = ref<AdminTeacherDto | null>(null)
+const editedName = ref('')
+
+function openNameDialog(teacher: AdminTeacherDto) {
+  editingTeacher.value = teacher
+  editedName.value = teacher.name
+  nameDialogVisible.value = true
+}
+
+async function saveName() {
+  if (savingName.value || !editingTeacher.value) return
+  const name = editedName.value.trim()
+  if (!name || name.length > 255) {
+    ElMessage.error('이름을 1~255자로 입력하세요')
+    return
+  }
+  savingName.value = true
+  try {
+    const { data } = await adminTeacherAPI.updateName(editingTeacher.value.teacherId, name)
+    editingTeacher.value.name = data.name
+    if (editingTeacher.value.teacherId === authStore.userId) authStore.name = data.name
+    ElMessage.success('이름이 변경되었습니다')
+    nameDialogVisible.value = false
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || '이름 변경에 실패했습니다')
+  } finally {
+    savingName.value = false
+  }
+}
 
 const inviteForm = ref<InviteTeacherRequest>({
   username: '',
@@ -125,6 +156,7 @@ onMounted(loadTeachers)
         <el-table-column prop="ownedClassCount" label="담당 반 수" width="120" align="center" />
         <el-table-column label="작업" align="center">
           <template #default="{ row }">
+            <el-button size="small" @click="openNameDialog(row)">이름 수정</el-button>
             <el-button
               type="danger"
               size="small"
@@ -137,6 +169,23 @@ onMounted(loadTeachers)
         </el-table-column>
       </el-table>
     </el-card>
+
+    <el-dialog v-model="nameDialogVisible" title="이름 수정" width="min(480px, 92vw)"
+      :close-on-click-modal="!savingName" :close-on-press-escape="!savingName" :show-close="!savingName">
+      <el-alert title="이름은 계정의 모든 소속 학원에 함께 반영됩니다." type="warning" :closable="false" />
+      <el-form label-position="top" @submit.prevent="saveName">
+        <el-form-item label="아이디">
+          <span>{{ editingTeacher?.username }}</span>
+        </el-form-item>
+        <el-form-item label="이름" required>
+          <el-input v-model="editedName" maxlength="255" :disabled="savingName" placeholder="이름을 입력하세요" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button :disabled="savingName" @click="nameDialogVisible = false">취소</el-button>
+        <el-button type="primary" :loading="savingName" @click="saveName">저장</el-button>
+      </template>
+    </el-dialog>
 
     <el-dialog v-model="inviteDialogVisible" title="선생님 초대" width="480px">
       <el-form :model="inviteForm" label-position="left" label-width="80px">

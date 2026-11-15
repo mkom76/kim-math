@@ -10,6 +10,7 @@ import com.example.entity.TeacherAcademyRole;
 import com.example.repository.ClassAssistantRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -120,6 +121,62 @@ class ClassAssistantTest {
     private MockHttpSession assistantSession() { return session(assistant, academy.getId(), TeacherAcademyRole.ASSISTANT); }
 
     // ---------------- admin endpoints ----------------
+
+    @Test
+    void admin_can_rename_shared_member_without_changing_account_or_memberships() throws Exception {
+        em.persist(membership(assistant.getId(), otherAcademy.getId(), TeacherAcademyRole.TEACHER));
+        em.flush();
+        mockMvc.perform(patch("/api/admin/teachers/{id}/name", assistant.getId())
+                        .session(adminSession()).contentType("application/json")
+                        .content("{\"name\":\"  새이름  \"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.name").value("새이름"));
+        em.flush();
+        em.clear();
+        Teacher renamed = em.find(Teacher.class, assistant.getId());
+        assertThat(renamed.getName()).isEqualTo("새이름");
+        assertThat(renamed.getUsername()).isEqualTo("ta");
+        assertThat(renamed.getPin()).isEqualTo("000000");
+        assertThat(em.createQuery("select m from TeacherAcademy m where m.teacherId = :id", TeacherAcademy.class)
+                .setParameter("id", renamed.getId()).getResultList())
+                .extracting(TeacherAcademy::getRole)
+                .containsExactlyInAnyOrder(TeacherAcademyRole.ASSISTANT, TeacherAcademyRole.TEACHER);
+        mockMvc.perform(get("/api/admin/teachers").session(adminSession()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.username == 'ta')].name").value("새이름"));
+    }
+
+    @Test
+    void rename_rejects_other_academy_and_unknown_members() throws Exception {
+        for (Long id : List.of(outsider.getId(), Long.MAX_VALUE)) {
+            mockMvc.perform(patch("/api/admin/teachers/{id}/name", id)
+                            .session(adminSession()).contentType("application/json")
+                            .content("{\"name\":\"변경\"}"))
+                    .andExpect(status().isForbidden());
+        }
+        assertThat(em.find(Teacher.class, outsider.getId()).getName()).isEqualTo("외부쌤");
+    }
+
+    @Test
+    void rename_rejects_non_admins_and_anonymous_users() throws Exception {
+        for (MockHttpSession s : List.of(ownerSession(), assistantSession(), new MockHttpSession())) {
+            mockMvc.perform(patch("/api/admin/teachers/{id}/name", assistant.getId())
+                            .session(s).contentType("application/json")
+                            .content("{\"name\":\"변경\"}"))
+                    .andExpect(status().is4xxClientError());
+        }
+        assertThat(em.find(Teacher.class, assistant.getId()).getName()).isEqualTo("조교쌤");
+    }
+
+    @Test
+    void rename_rejects_missing_blank_and_too_long_names() throws Exception {
+        for (String body : List.of("{}", "{\"name\":null}", "{\"name\":\"   \"}",
+                "{\"name\":\"" + "a".repeat(256) + "\"}")) {
+            mockMvc.perform(patch("/api/admin/teachers/{id}/name", assistant.getId())
+                            .session(adminSession()).contentType("application/json").content(body))
+                    .andExpect(status().isBadRequest());
+        }
+        assertThat(em.find(Teacher.class, assistant.getId()).getName()).isEqualTo("조교쌤");
+    }
 
     @Test
     void admin_can_add_and_list_assistant() throws Exception {

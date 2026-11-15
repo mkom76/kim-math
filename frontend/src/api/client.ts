@@ -830,6 +830,8 @@ export const adminTeacherAPI = {
     client.post<{ teacherId: number; username: string; role: string }>('/admin/teachers', data),
   updateRole: (teacherId: number, role: AdminRole) =>
     client.patch(`/admin/teachers/${teacherId}/role`, { role }),
+  updateName: (teacherId: number, name: string) =>
+    client.patch<{ teacherId: number; name: string }>(`/admin/teachers/${teacherId}/name`, { name }),
   remove: (teacherId: number) =>
     client.delete(`/admin/teachers/${teacherId}`),
 }
