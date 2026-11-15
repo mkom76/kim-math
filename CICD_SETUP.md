@@ -83,7 +83,15 @@ git push origin main
 푸시하면 자동으로:
 1. GitHub Actions가 빌드 시작
 2. Docker 이미지를 GitHub Container Registry에 푸시
-3. 서버에 SSH 접속하여 이미지 pull 및 재시작
+3. 서버에 SSH 접속하여 DB를 압축 백업하고 파일 무결성 확인
+4. 백업 성공 시에만 이미지 pull 및 컨테이너 재시작
+
+어느 컴퓨터에서 `main`에 push하든 같은 서버 백업이 실행됩니다. 로컬 Git hook 설치는 필요하지 않습니다.
+백업은 서버의 `/home/suhui/backups/kim_math_backup_*.sql.gz`에 저장하고 30일이 지난 파일은
+새 백업 성공 후 정리합니다. `MYSQL_BACKUP_DIR`로 저장 경로를 변경할 수 있습니다.
+현재 자동 배포는 S3를 사용하지 않으며, 서버 `.env`의 MySQL 접속 설정만 필요합니다.
+덤프·압축·파일 검증·저장 중 하나라도 실패하면 Actions가 실패하고 컨테이너를 갱신하지 않습니다.
+연속 push로 배포가 겹치지 않도록 워크플로우를 직렬로 실행하며, 진행 중인 배포는 취소하지 않습니다.
 
 ## 4단계: 배포 상태 확인
 
@@ -105,9 +113,11 @@ GitHub 저장소 페이지에서:
    ↓
 5. 서버 SSH 접속
    ↓
-6. 이미지 pull & 컨테이너 재시작
+6. 서버 DB 압축 백업 및 파일 검증 (실패하면 여기서 중단)
    ↓
-7. 배포 완료! 🎉
+7. 이미지 pull & 컨테이너 재시작
+   ↓
+8. 배포 완료! 🎉
 ```
 
 ## 장점
@@ -124,16 +134,20 @@ GitHub 저장소 페이지에서:
 
 1. **Actions 탭에서 로그 확인**
 2. **빌드 단계 실패**: Dockerfile 문제 확인
-3. **배포 단계 실패**: SSH 접속 정보 확인
+3. **배포 단계 실패**: SSH 접속 정보와 로그의 백업 오류 확인. 백업 실패 시 서버의 `.env`, MySQL 컨테이너, 백업 경로 권한과 남은 디스크 공간을 확인합니다.
 
 ### 수동으로 배포하려면?
 
-서버에서:
+서버에서 다음 명령을 한 번에 실행하면 백업 실패 시 배포를 중단합니다:
 ```bash
+bash <<'DEPLOY'
+set -euo pipefail
 cd /home/suhui/kim-math
-git pull origin main
+git pull --ff-only origin main
+bash ./scripts/backup-mysql.sh
 docker-compose -f docker-compose.prod.yml pull
 docker-compose -f docker-compose.prod.yml up -d
+DEPLOY
 ```
 
 ### 이미지가 안 받아져요

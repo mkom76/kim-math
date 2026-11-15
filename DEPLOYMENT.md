@@ -8,10 +8,12 @@
 - Database: MySQL 8.0 (Docker)
 - Reverse Proxy: Nginx (Docker)
 
-**백업 시스템:** DigitalOcean Spaces (S3 호환)
-- 로컬: 30일간 보관
-- S3: 90일간 보관
-- 자동 백업: 매일 새벽 2시
+**백업 시스템:** 배포 전 서버 디스크에 MySQL 압축 백업
+- 저장 위치: `/home/suhui/backups/kim_math_backup_*.sql.gz`
+- 보관: 30일이 지난 파일은 새 백업 성공 후 정리
+- 자동 배포: `main` push → 백업 및 파일 검증 → 이미지 갱신·컨테이너 재시작
+- 백업 실패 시 배포 중단
+- 정기 백업과 DigitalOcean Spaces(S3)는 아래 절차로 별도 설정하는 선택 사항
 
 **예상 비용:** $29/month
 - Droplet (2 vCPU, 4GB RAM): $24/month
@@ -41,7 +43,7 @@
 4. "Create Droplet" 클릭
 5. **IP 주소 기록** (예: 159.89.XXX.XXX)
 
-### 1.2 DigitalOcean Spaces 생성 (S3 백업용)
+### 1.2 DigitalOcean Spaces 생성 (S3 백업을 추가할 경우)
 
 1. "Create" → "Spaces Object Storage" 클릭
 2. 설정:
@@ -260,29 +262,36 @@ curl http://localhost/api/actuator/health
 # 백업 디렉토리 생성
 mkdir -p /home/suhui/backups
 
-# 수동 백업 테스트
+# 배포 전 실행되는 서버 로컬 백업 수동 테스트
 cd /home/suhui/kim-math
-./scripts/backup-mysql-to-s3.sh
+bash ./scripts/backup-mysql.sh
 ```
 
 성공하면 다음과 같이 표시됩니다:
 ```
-✓ Database dump created: kim_math_backup_20250126_140530.sql.gz (2.3M)
-✓ Backup uploaded to S3: s3://kim-math-backups/mysql-backups/...
-✓ Backup Completed Successfully!
+Local backup verified: /home/suhui/backups/kim_math_backup_20250126_140530_XXXXXX.sql.gz (2.3M)
+MySQL backup completed successfully: /home/suhui/backups/kim_math_backup_20250126_140530_XXXXXX.sql.gz
 ```
 
-### 4.2 자동 백업 설정 (Cron)
+`--single-transaction`으로 덤프한 뒤 압축 파일 전체를 읽어 무결성과 빈 덤프 여부를 검증합니다.
+실패한 임시 파일은 제거하며, 성공한 파일만 `.sql.gz` 이름으로 보관합니다.
+이 검증은 실제 복원 테스트를 대신하지 않으므로 복구 절차도 별도로 확인합니다.
+
+현재 자동 배포는 서버 로컬 백업만 사용합니다. S3 연동은 별도 작업으로 진행합니다.
+
+### 4.2 정기 백업 추가 설정 (선택 사항, Cron)
+
+배포가 없는 날에도 백업하려면 서버에서 아래 Cron을 별도로 등록합니다.
 
 ```bash
 # Crontab 편집
 crontab -e
 
 # 다음 라인 추가 (매일 새벽 2시에 백업)
-0 2 * * * /home/suhui/kim-math/scripts/backup-mysql-to-s3.sh >> /home/suhui/backups/backup.log 2>&1
+0 2 * * * bash /home/suhui/kim-math/scripts/backup-mysql.sh >> /home/suhui/backups/backup.log 2>&1
 ```
 
-### 4.3 복구 테스트
+### 4.3 S3 복구 테스트 (S3 설정 시)
 
 ```bash
 # S3에 있는 백업 목록 확인
@@ -403,16 +412,21 @@ docker stats
 ### 6.3 업데이트 배포
 
 ```bash
+bash <<'DEPLOY'
+set -euo pipefail
 cd /home/suhui/kim-math
 
 # 최신 코드 가져오기
-git pull origin main
+git pull --ff-only origin main
 
-# 재빌드 및 재시작
-docker-compose -f docker-compose.prod.yml up -d --build
+# DB 백업이 성공한 뒤 이미지 갱신 및 재시작
+bash ./scripts/backup-mysql.sh
+docker-compose -f docker-compose.prod.yml pull
+docker-compose -f docker-compose.prod.yml up -d
+DEPLOY
 
 # 로그 확인
-docker-compose -f docker-compose.prod.yml logs -f backend
+docker-compose -f /home/suhui/kim-math/docker-compose.prod.yml logs -f backend
 ```
 
 ### 6.4 데이터베이스 백업 확인
@@ -421,7 +435,7 @@ docker-compose -f docker-compose.prod.yml logs -f backend
 # 로컬 백업 확인
 ls -lh /home/suhui/backups/
 
-# S3 백업 확인
+# S3 백업을 별도로 설정한 경우에만 확인
 source /home/suhui/kim-math/.env
 s3cmd ls s3://${S3_BUCKET}/mysql-backups/ \
   --access_key=${S3_ACCESS_KEY} \

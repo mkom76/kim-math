@@ -27,6 +27,10 @@ on:
         type: string
         required: false
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository_owner }}/kim-math
@@ -42,6 +46,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Verify backup and deployment safeguards
+        run: python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -189,11 +196,16 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 30m
           script: |
+            set -euo pipefail
             cd /home/suhui/kim-math
 
             # Pull latest code
-            git pull origin main
+            git pull --ff-only origin main
+
+            # A failed backup must stop deployment before any containers change.
+            bash ./scripts/backup-mysql.sh
 
             # Login to GitHub Container Registry
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
