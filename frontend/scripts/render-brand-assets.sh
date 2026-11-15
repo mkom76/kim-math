@@ -39,6 +39,7 @@ resize_png() {
 }
 
 FEATURE_SVG="$FRONTEND_DIR/store-assets/feature-graphic-source.svg"
+OG_SOURCE="$FRONTEND_DIR/store-assets/og-image-source.html"
 SPLASH_PORTRAIT_SVG="$FRONTEND_DIR/store-assets/splash-portrait-source.svg"
 SPLASH_LANDSCAPE_SVG="$FRONTEND_DIR/store-assets/splash-landscape-source.svg"
 
@@ -95,7 +96,8 @@ resize_png "$FRONTEND_DIR/store-assets/splash-landscape-source.png" "$FRONTEND_D
 resize_png "$APP_ICON_SOURCE" "$FRONTEND_DIR/public/favicon-32.png" 32 32
 resize_png "$APP_ICON_SOURCE" "$FRONTEND_DIR/public/favicon-16.png" 16 16
 resize_png "$APP_ICON_SOURCE" "$FRONTEND_DIR/public/apple-touch-icon.png" 180 180
-cp "$FRONTEND_DIR/store-assets/feature-graphic-1024x500.png" "$FRONTEND_DIR/public/og-image.png"
+render_svg "$OG_SOURCE" "$FRONTEND_DIR/public/og-image-king-portrait.png" 1200 630
+cp "$FRONTEND_DIR/public/og-image-king-portrait.png" "$FRONTEND_DIR/public/og-image.png"
 
 SWIFT_MODULE_CACHE_PATH="$BRAND_SWIFT_CACHE" \
 CLANG_MODULE_CACHE_PATH="$BRAND_SWIFT_CACHE" \
