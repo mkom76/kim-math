@@ -18,11 +18,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.mock.web.MockHttpSession;
 
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.blankOrNullString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -37,6 +39,32 @@ class CsrfEndpointTest {
     @Autowired AcademyRepository academyRepository;
     @Autowired TeacherRepository teacherRepository;
     @Autowired TeacherAcademyRepository teacherAcademyRepository;
+
+    @Test
+    void rename_requires_csrf_token_with_authenticated_admin_session() throws Exception {
+        Academy academy = academyRepository.save(Academy.builder().name("이름 변경 학원").build());
+        Teacher teacher = teacherRepository.save(Teacher.builder().name("기존 이름")
+                .username("rename-csrf").build());
+        teacherAcademyRepository.save(TeacherAcademy.builder().teacherId(teacher.getId())
+                .academyId(academy.getId()).role(TeacherAcademyRole.ACADEMY_ADMIN).build());
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute("userId", teacher.getId());
+        session.setAttribute("userRole", "TEACHER");
+        session.setAttribute("activeAcademyId", academy.getId());
+        session.setAttribute("activeRole", "ACADEMY_ADMIN");
+        mockMvc.perform(patch("/api/admin/teachers/{id}/name", teacher.getId()).session(session)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"새 이름\"}"))
+                .andExpect(status().isForbidden());
+        org.assertj.core.api.Assertions.assertThat(teacherRepository.findById(teacher.getId()).orElseThrow().getName())
+                .isEqualTo("기존 이름");
+        MvcResult csrf = mockMvc.perform(get("/api/auth/csrf").session(session)).andReturn();
+        JsonNode body = objectMapper.readTree(csrf.getResponse().getContentAsString());
+        mockMvc.perform(patch("/api/admin/teachers/{id}/name", teacher.getId()).session(session)
+                        .cookie(csrf.getResponse().getCookie("XSRF-TOKEN"))
+                        .header(body.get("headerName").asText(), body.get("token").asText())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"새 이름\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.name").value("새 이름"));
+    }
 
     @Test
     void csrf_endpoint_returns_token_and_cookie() throws Exception {

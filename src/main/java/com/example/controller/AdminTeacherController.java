@@ -4,6 +4,7 @@ import com.example.config.security.TenantContext;
 import com.example.dto.AdminTeacherDto;
 import com.example.dto.InviteTeacherRequest;
 import com.example.dto.UpdateRoleRequest;
+import com.example.dto.UpdateTeacherNameRequest;
 import com.example.entity.Teacher;
 import com.example.entity.TeacherAcademy;
 import com.example.entity.TeacherAcademyRole;
@@ -104,6 +105,21 @@ public class AdminTeacherController {
                 "username", teacher.getUsername(),
                 "role", role.name()
         ));
+    }
+
+    @PatchMapping("/{teacherId}/name")
+    @Transactional
+    public ResponseEntity<?> updateName(@PathVariable Long teacherId,
+                                         @Valid @RequestBody UpdateTeacherNameRequest req) {
+        Long academyId = TenantContext.current().academyId();
+        if (teacherAcademyRepository.findByTeacherIdAndAcademyId(teacherId, academyId).isEmpty()) {
+            throw new ForbiddenException("멤버가 아닙니다");
+        }
+        Teacher teacher = teacherRepository.findById(teacherId)
+                .orElseThrow(() -> new ForbiddenException("멤버가 아닙니다"));
+        teacher.setName(req.getName().strip());
+        teacherRepository.save(teacher);
+        return ResponseEntity.ok(Map.of("teacherId", teacher.getId(), "name", teacher.getName()));
     }
 
     @PatchMapping("/{teacherId}/role")
