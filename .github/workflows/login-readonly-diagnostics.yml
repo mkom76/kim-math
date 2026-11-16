@@ -1,0 +1,97 @@
+name: Read-only login diagnostics
+
+on:
+  push:
+    branches: [codex/login-readonly-diagnostics]
+    paths: [.github/workflows/login-readonly-diagnostics.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate remote Python syntax before SSH
+        run: |
+          python3 - <<'PY'
+          import ast, pathlib, textwrap
+          workflow = pathlib.Path('.github/workflows/login-readonly-diagnostics.yml').read_text()
+          script = workflow.split("            python3 - <<'PY'\n", 1)[1].rsplit('            PY', 1)[0]
+          ast.parse(textwrap.dedent(script))
+          print('Remote Python syntax valid')
+          PY
+      - name: Read service state and classified errors without changes
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 6m
+          script: |
+            python3 - <<'PY'
+            import collections, datetime, json, re, subprocess
+            def run(args, timeout=20):
+                try:
+                    p = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+                    return p.returncode, p.stdout + p.stderr
+                except subprocess.TimeoutExpired:
+                    return 124, ''
+            def emit(label, value):
+                print(label + '=' + json.dumps(value, ensure_ascii=True), flush=True)
+            emit('checked_at_utc', datetime.datetime.now(datetime.timezone.utc).isoformat())
+            for label, args in [('uptime',['uptime']), ('memory',['free','-m']), ('disk',['df','-Pm','/home/suhui/kim-math']), ('inodes',['df','-Pi','/home/suhui/kim-math'])]:
+                code, output = run(args)
+                emit(label, {'code':code,'output':output})
+            code, sha = run(['git','-C','/home/suhui/kim-math','rev-parse','HEAD'])
+            emit('server_sha', sha.strip() if re.fullmatch(r'[a-f0-9]{40}\s*',sha) else 'unavailable')
+            signatures = [
+                'OutOfMemoryError','Java heap space','unable to create native thread',
+                'Too many connections','Connection is not available','Communications link failure',
+                'Connection refused','Connection timed out','Read timed out','No space left on device',
+                'Access denied for user','Schema-validation','missing column','missing table',
+                'Application run failed','Started KimMathApplication','HikariPool',
+                'upstream timed out','connect() failed','no live upstreams','host not found in upstream',
+                'StackOverflowError','SQLGrammarException','Lock wait timeout','Deadlock found',
+                'Invalid CSRF','InvalidCsrfTokenException','MissingCsrfTokenException',
+                'Shutdown initiated','Shutdown completed','ERROR','WARN']
+            for name in ['kim-math-backend','kim-math-mysql','kim-math-nginx','kim-math-frontend']:
+                code, raw = run(['docker','inspect',name])
+                if code == 0:
+                    d = json.loads(raw)[0]; s = d['State']; h = s.get('Health',{})
+                    emit(name+'_state', {k:s.get(k) for k in ['Status','Running','OOMKilled','ExitCode','StartedAt','FinishedAt']})
+                    emit(name+'_restart_count', d.get('RestartCount'))
+                    emit(name+'_health', h.get('Status'))
+                    emit(name+'_health_exit_codes', [x.get('ExitCode') for x in h.get('Log',[])])
+                    emit(name+'_networks', {k:v.get('IPAddress') for k,v in d.get('NetworkSettings',{}).get('Networks',{}).items()})
+                else:
+                    emit(name+'_inspect_exit', code)
+                code, logs = run(['docker','logs','--since','48h','--tail','8000','--timestamps',name],30)
+                emit(name+'_log_exit',code)
+                # Raw logs never leave this process: emit only fixed signatures,
+                # exception class names and their timestamps, no request/user data.
+                found = {}
+                for sig in signatures:
+                    lines = [l for l in logs.splitlines() if sig.lower() in l.lower()]
+                    if lines:
+                        dates = [m.group(0) for l in lines if (m:=re.match(r'\d{4}-\d\d-\d\dT[0-9:.]+Z',l))]
+                        found[sig] = {'count':len(lines),'last_utc':dates[-1] if dates else None}
+                emit(name+'_signatures',found)
+                emit(name+'_exception_classes',dict(collections.Counter(re.findall(r'\b(?:[a-zA-Z_$][\w$]*\.)+[A-Z][\w$]*(?:Exception|Error)\b',logs))))
+                emit(name+'_schema_errors',re.findall(r'Schema-validation: (?:missing (?:column|table)|wrong column type encountered)[^\r\n]{0,160}',logs)[-5:])
+            code, output = run(['docker','stats','--no-stream','--format','{{.Name}} CPU={{.CPUPerc}} MEM={{.MemUsage}} PIDS={{.PIDs}}'],30)
+            emit('container_stats',{'code':code,'output':output})
+            code, output = run(['journalctl','-k','--since','48 hours ago','--no-pager'],20)
+            emit('kernel_log_exit',code)
+            emit('kernel_oom_events',sum('out of memory' in l.lower() or 'killed process' in l.lower() for l in output.splitlines()))
+            probes = [
+                ('backend_health',['docker','exec','kim-math-backend','curl','-s','--connect-timeout','3','--max-time','8','-o','/dev/null','-w','%{http_code} %{time_total}','http://localhost:8080/actuator/health']),
+                ('backend_csrf',['docker','exec','kim-math-backend','curl','-s','--connect-timeout','3','--max-time','8','-o','/dev/null','-w','%{http_code} %{time_total}','http://localhost:8080/api/auth/csrf']),
+                ('proxy_csrf',['curl','-k','-s','--connect-timeout','3','--max-time','10','--resolve','kim-math.site:443:127.0.0.1','-o','/dev/null','-w','%{http_code} %{time_total}','https://kim-math.site/api/auth/csrf'])]
+            for label,args in probes:
+                code, output = run(args,15)
+                emit(label,{'exit':code,'status_seconds':output if re.fullmatch(r'[0-9]{3} [0-9.]+',output) else 'unavailable'})
+            PY
