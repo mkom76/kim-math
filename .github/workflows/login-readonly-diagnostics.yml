@@ -12,7 +12,7 @@ jobs:
   diagnose:
     if: github.actor == github.repository_owner
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 4
     steps:
       - uses: actions/checkout@v4
       - name: Validate remote Python syntax before SSH
@@ -24,14 +24,46 @@ jobs:
           ast.parse(textwrap.dedent(script))
           print('Remote Python syntax valid')
           PY
-      - name: Read service state and classified errors without changes
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 6m
-          script: |
+      - name: Native SSH with bounded connection and command timeouts
+        env:
+          DIAG_HOST: ${{ secrets.SERVER_HOST }}
+          DIAG_USER: ${{ secrets.SERVER_USER }}
+          DIAG_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          python3 - <<'RUNNER'
+          import ast, os, pathlib, socket, subprocess, tempfile, textwrap
+          host = os.environ['DIAG_HOST']
+          with socket.create_connection((host, 22), timeout=8) as sock:
+              sock.settimeout(8)
+              try:
+                  banner = sock.recv(255)
+                  print('ssh_banner_received=' + str(banner.startswith(b'SSH-')), flush=True)
+              except TimeoutError:
+                  print('ssh_banner_timeout=true', flush=True)
+          workflow = pathlib.Path('.github/workflows/login-readonly-diagnostics.yml').read_text()
+          script = workflow.split("            python3 - <<'PY'\n", 1)[1].rsplit('            PY', 1)[0]
+          script = textwrap.dedent(script)
+          ast.parse(script)
+          with tempfile.TemporaryDirectory() as tmp:
+              key = pathlib.Path(tmp)/'key'; key.write_text(os.environ['DIAG_KEY']+'\n'); key.chmod(0o600)
+              known = pathlib.Path(tmp)/'known_hosts'
+              scan = subprocess.run(['ssh-keyscan','-T','8',host],capture_output=True,text=True,timeout=30)
+              known.write_text(scan.stdout)
+              print('ssh_host_keys_received=' + str(bool(scan.stdout)),flush=True)
+              command = ['ssh','-i',str(key),'-o','BatchMode=yes','-o','ConnectTimeout=10','-o','ServerAliveInterval=5','-o','ServerAliveCountMax=2','-o','StrictHostKeyChecking=yes','-o','UserKnownHostsFile='+str(known),os.environ['DIAG_USER']+'@'+host,'python3 -']
+              try:
+                  result = subprocess.run(command,input=script,text=True,capture_output=True,timeout=150)
+                  print('ssh_exit='+str(result.returncode),flush=True)
+                  print(result.stdout,flush=True)
+                  for kind in ['Connection timed out','Connection refused','Permission denied','Host key verification failed','Connection closed','Connection reset','banner exchange','No route to host']:
+                      if kind.lower() in result.stderr.lower(): print('ssh_error='+kind,flush=True)
+              except subprocess.TimeoutExpired as exc:
+                  print('ssh_command_timeout=true',flush=True)
+                  if exc.stdout: print(exc.stdout.decode() if isinstance(exc.stdout,bytes) else exc.stdout,flush=True)
+          RUNNER
+      - name: Remote diagnostic source (executed only through native SSH above)
+        if: false
+        run: |
             python3 - <<'PY'
             import collections, datetime, json, re, subprocess
             def run(args, timeout=20):
