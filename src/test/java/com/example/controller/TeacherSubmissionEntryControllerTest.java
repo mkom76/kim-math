@@ -379,6 +379,47 @@ class TeacherSubmissionEntryControllerTest {
         org.assertj.core.api.Assertions.assertThat(submissionRepository.findByStudentIdAndTestId(studentA.getId(), exam.getId())).isEmpty();
     }
 
+    @Test void omr_pdf_normalizes_each_pages_rotation_and_keeps_unreadable_pages_separate() throws Exception {
+        addEssay();
+        try (var stream = getClass().getResourceAsStream("/omr/2026omr.pdf");
+             var template = org.apache.pdfbox.Loader.loadPDF(stream.readAllBytes());
+             var pdf = new org.apache.pdfbox.pdmodel.PDDocument();
+             var bytes = new java.io.ByteArrayOutputStream()) {
+            var pageSize = template.getPage(0).getMediaBox();
+            var image = new org.apache.pdfbox.rendering.PDFRenderer(template).renderImage(0, 1600f / pageSize.getWidth());
+            var pen = image.createGraphics(); pen.setColor(java.awt.Color.BLACK); pen.fillRect(830,146,11,22); pen.dispose();
+            var raster = org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory.createFromImage(pdf, image);
+            for (int angle : new int[]{0,90,180,270}) {
+                var page = new org.apache.pdfbox.pdmodel.PDPage(pageSize); page.setRotation(angle); pdf.addPage(page);
+                try (var content = new org.apache.pdfbox.pdmodel.PDPageContentStream(pdf, page)) {
+                    content.drawImage(raster,0,0,pageSize.getWidth(),pageSize.getHeight());
+                }
+            }
+            pdf.addPage(new org.apache.pdfbox.pdmodel.PDPage(pageSize)); // unrelated blank page
+            pdf.save(bytes);
+            String response = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/tests/{testId}/omr/scan", exam.getId())
+                            .file("file", bytes.toByteArray()).session(teacherSession()))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.pages", hasSize(5)))
+                    .andExpect(jsonPath("$.expectedQuestions", hasSize(3)))
+                    .andExpect(jsonPath("$.questions", hasSize(1)))
+                    .andReturn().getResponse().getContentAsString();
+            var pages = objectMapper.readTree(response).path("pages");
+            for (int index = 0; index < 4; index++) {
+                var page = pages.get(index);
+                org.assertj.core.api.Assertions.assertThat(page.path("number").asInt()).isEqualTo(index + 1);
+                org.assertj.core.api.Assertions.assertThat(page.path("recognized").asBoolean()).isTrue();
+                org.assertj.core.api.Assertions.assertThat(page.path("marks").size()).isEqualTo(30);
+                org.assertj.core.api.Assertions.assertThat(page.path("marks").get(0).path("answer").asText()).isEqualTo("1");
+                byte[] previewBytes = java.util.Base64.getDecoder().decode(page.path("preview").asText().split(",",2)[1]);
+                var preview = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(previewBytes));
+                org.assertj.core.api.Assertions.assertThat(preview.getWidth()).isGreaterThan(preview.getHeight());
+            }
+            org.assertj.core.api.Assertions.assertThat(pages.get(4).path("recognized").asBoolean()).isFalse();
+            org.assertj.core.api.Assertions.assertThat(pages.get(4).path("marks").size()).isZero();
+        }
+        org.assertj.core.api.Assertions.assertThat(submissionRepository.findByStudentIdAndTestId(studentA.getId(), exam.getId())).isEmpty();
+    }
+
     @Test
     void omr_scan_rejects_mixed_exam_and_invalid_pdf() throws Exception {
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/tests/{testId}/omr/scan", exam.getId())
