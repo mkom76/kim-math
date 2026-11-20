@@ -3,7 +3,6 @@ import { flushPromises, shallowMount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { authAPI, submissionAPI, testAPI } from '@/api/client'
-import StudentTestTakingView from './StudentTestTakingView.vue'
 import StudentTestTakingViewV2 from './student-v2/StudentTestTakingView.vue'
 
 const push = vi.hoisted(() => vi.fn())
@@ -35,7 +34,7 @@ describe('student submission question snapshots', () => {
     })
   })
 
-  it.each([['original', StudentTestTakingView], ['v2', StudentTestTakingViewV2]] as const)(
+  it.each([['student', StudentTestTakingViewV2]] as const)(
     '%s sends the loaded snapshot and asks to refresh without leaving the exam on conflict', async (_name, view) => {
       const wrapper = shallowMount(view, { global: {
         directives: { loading: () => {} },

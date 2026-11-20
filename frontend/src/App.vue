@@ -6,47 +6,38 @@ import { ElMessage } from 'element-plus'
 import { authAPI } from '@/api/client'
 import type { AuthResponse } from '@/api/client'
 import AcademySwitcher from '@/components/AcademySwitcher.vue'
-import StudentBottomNav from '@/components/StudentBottomNav.vue'
+
 import StudentBottomNavV2 from '@/components/StudentBottomNavV2.vue'
-import StudentClassSwitcher from '@/components/StudentClassSwitcher.vue'
+
 import appIconUrl from '@/assets/app-icon.png'
 import { useAuthStore } from '@/stores/auth'
-import { useStudentUiMode } from '@/composables/useStudentUiMode'
+
 import { initPushNotifications } from '@/utils/push'
 
 const router = useRouter()
 const route = useRoute()
 
 const authStore = useAuthStore()
-const { mode: studentUiMode } = useStudentUiMode()
 
 const currentUser = ref<AuthResponse>({})
 const drawerVisible = ref(false)
 
 const isLoginPage = computed(() => route.path === '/login')
 const isExamTimer = computed(() => route.path === '/exam-timer')
-const isNotebook = computed(() => ['/solution-notebook', '/student/solution-notebook'].includes(route.path))
+const isNotebook = computed(() =>
+  ['/solution-notebook', '/student/solution-notebook'].includes(route.path),
+)
 const isTeacherRoute = computed(
   () => currentUser.value.role === 'TEACHER' && !isLoginPage.value && !isExamTimer.value,
 )
 const isStudentRoute = computed(() => currentUser.value.role === 'STUDENT')
 const isStudentV2 = computed(
-  () =>
-    studentUiMode.value === 'v2' &&
-    isStudentRoute.value &&
-    (route.path.startsWith('/student/') || route.path === '/settings'),
+  () => isStudentRoute.value && (route.path.startsWith('/student/') || route.path === '/settings'),
 )
 // Test-taking screen wants the full viewport; suppress bottom nav there.
 const isTestTaking = computed(() => /^\/student\/tests\/[^/]+$/.test(route.path))
 const showStudentNav = computed(
   () => isStudentRoute.value && route.path.startsWith('/student/') && !isTestTaking.value,
-)
-const showStudentClassSwitcher = computed(
-  () =>
-    isStudentRoute.value &&
-    route.path.startsWith('/student/') &&
-    !isTestTaking.value &&
-    !isStudentV2.value,
 )
 
 const fetchCurrentUser = async () => {
@@ -97,8 +88,7 @@ watch(
   },
 )
 
-// The legacy shell intentionally keeps its desktop padding. Remove it only while
-// the opt-in student UI is active so compact phones can use the full viewport.
+// The student shell uses the full viewport on compact phones.
 watch(
   isStudentV2,
   (enabled) => {
@@ -115,7 +105,11 @@ onBeforeUnmount(() => {
 <template>
   <el-container
     class="app-shell"
-    :class="{ 'student-ui-v2': isStudentV2, 'teacher-app-shell': isTeacherRoute, 'notebook-app-shell': isNotebook }"
+    :class="{
+      'student-ui-v2': isStudentV2,
+      'teacher-app-shell': isTeacherRoute,
+      'notebook-app-shell': isNotebook,
+    }"
     style="
       min-height: 100vh;
       min-height: 100dvh;
@@ -274,26 +268,23 @@ onBeforeUnmount(() => {
       }"
       :style="{
         padding: isLoginPage || isExamTimer || isStudentV2 ? '0' : '24px',
-        paddingBottom:
-          showStudentNav && !isStudentV2
-            ? 'calc(56px + env(safe-area-inset-bottom) + 16px)'
-            : undefined,
         backgroundColor: isLoginPage ? '#fff' : isStudentV2 ? undefined : '#f5f7fa',
       }"
     >
-      <StudentClassSwitcher v-if="showStudentClassSwitcher" />
       <RouterView />
     </el-main>
 
     <!-- Student-side bottom navigation (mobile-friendly; native + web). -->
-    <StudentBottomNavV2 v-if="showStudentNav && isStudentV2" />
-    <StudentBottomNav v-else-if="showStudentNav" />
+    <StudentBottomNavV2 v-if="showStudentNav" />
   </el-container>
 </template>
 
 <style scoped>
 @media (max-width: 768px) {
-  .notebook-app-main { padding-left: 0 !important; padding-right: 0 !important; }
+  .notebook-app-main {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
 }
 .el-menu-item.is-active {
   background-color: #ecf5ff !important;

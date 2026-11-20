@@ -49,6 +49,7 @@ function mountView() {
       stubs: {
         StudentLogoutDialog: logoutDialogStub,
         StudentUiFeedbackDialog: true,
+        StudentUiGuideDialog: true,
         ElButton: { template: '<button @click="$emit(\'click\')"><slot/></button>' },
         ElInput: true,
         ElIcon: { template: '<span><slot/></span>' },

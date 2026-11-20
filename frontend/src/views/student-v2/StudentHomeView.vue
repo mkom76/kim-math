@@ -17,13 +17,13 @@ import type {
   StudentHomework,
   Submission,
 } from '@/api/client'
-import { useStudentUiMode } from '@/composables/useStudentUiMode'
+import StudentUiGuideDialog from '@/components/student-v2/StudentUiGuideDialog.vue'
 
 import StudentPageHeader from '@/components/student-v2/StudentPageHeader.vue'
 import StudentClassSwitcher from '@/components/StudentClassSwitcher.vue'
 
 const router = useRouter()
-const { leavePreview } = useStudentUiMode()
+
 const loading = ref(false)
 const currentUser = ref<AuthResponse>({})
 const studentInfo = ref<Student | null>(null)
@@ -71,11 +71,6 @@ const latestHomework = computed(
     )[0],
 )
 const latestCompletion = computed(() => latestHomework.value?.completion ?? null)
-
-const returnToLegacyUi = async () => {
-  leavePreview()
-  await router.replace('/student/dashboard')
-}
 
 const fetchUnreadCount = async () => {
   try {
@@ -230,7 +225,7 @@ onBeforeUnmount(() => {
         </RouterLink>
       </div>
     </section>
-    <button type="button" class="legacy-link" @click="returnToLegacyUi">기존 UI로 보기</button>
+    <StudentUiGuideDialog auto-open />
   </div>
 </template>
 
@@ -390,17 +385,7 @@ onBeforeUnmount(() => {
 .statistics-row:hover {
   color: var(--student-primary);
 }
-.legacy-link {
-  justify-self: center;
-  min-height: 44px;
-  padding: 8px 16px;
-  border: 0;
-  background: transparent;
-  color: var(--student-muted);
-  font: inherit;
-  font-size: var(--student-font-sm);
-  cursor: pointer;
-}
+
 .dashboard-error {
   padding: var(--student-space-4);
   background: var(--student-danger-soft);
@@ -420,8 +405,7 @@ onBeforeUnmount(() => {
   font: inherit;
   cursor: pointer;
 }
-.dashboard-page a:focus-visible,
-.legacy-link:focus-visible {
+.dashboard-page a:focus-visible {
   outline: 3px solid var(--student-primary);
   outline-offset: 3px;
 }

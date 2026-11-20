@@ -107,6 +107,7 @@
 }
 
 .student-ui-v2,
+.student-guide-overlay,
 .student-logout-overlay,
 .student-feedback-overlay {
   --el-color-primary: var(--student-primary);

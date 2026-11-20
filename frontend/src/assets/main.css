@@ -10,7 +10,7 @@
   #app:has(> .notebook-app-shell) { padding: 0; }
 }
 
-/* The preview student UI owns its mobile gutters. Keep the legacy shell intact. */
+/* Student screens own their mobile gutters; teacher screens keep their spacing. */
 #app.student-ui-v2-root {
   width: 100%;
   min-height: 100vh;

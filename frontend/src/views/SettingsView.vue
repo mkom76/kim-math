@@ -2,18 +2,11 @@
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePinChange } from '@/composables/usePinChange'
-import { useStudentUiMode } from '@/composables/useStudentUiMode'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const { enablePreview, hasSeenPreview } = useStudentUiMode()
 
 const { loading, pinForm, pinLength, handleChangePIN } = usePinChange()
-
-const startPreview = async () => {
-  enablePreview()
-  await router.replace('/student/dashboard')
-}
 </script>
 
 <template>
@@ -21,7 +14,17 @@ const startPreview = async () => {
     <!-- Header -->
     <el-card shadow="never" style="margin-bottom: 24px">
       <div>
-        <h1 style="margin: 0; font-size: 28px; font-weight: 600; color: #303133; display: flex; align-items: center; gap: 12px">
+        <h1
+          style="
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+            color: #303133;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          "
+        >
           <el-icon size="32" color="#409eff">
             <Setting />
           </el-icon>
@@ -31,37 +34,32 @@ const startPreview = async () => {
       </div>
     </el-card>
 
-    <el-card
-      v-if="authStore.role === 'STUDENT'"
-      shadow="never"
-      style="margin-bottom: 24px"
-    >
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap">
-        <div style="min-width: 0">
-          <div style="display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: #303133">
-            <el-icon color="#409eff"><MagicStick /></el-icon>
-            새로운 학생 화면
-          </div>
-          <div style="margin-top: 5px; color: #909399; font-size: 13px">
-            새 디자인을 체험하고 언제든 기존 화면으로 돌아올 수 있습니다.
-          </div>
-        </div>
-        <span class="preview-settings-action">
-          <el-button size="small" plain type="primary" @click="startPreview">
-            새 UI 체험하기
-          </el-button>
-          <span v-if="!hasSeenPreview" class="preview-settings-action__dot" aria-hidden="true" />
-        </span>
-      </div>
-    </el-card>
-
     <el-card shadow="never" style="margin-bottom: 24px">
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap">
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          flex-wrap: wrap;
+        "
+      >
         <div>
           <div style="font-size: 16px; font-weight: 600">Q&A</div>
-          <p style="font-size: 13px; color: #909399">문제 사진으로 선생님 스타일의 손글씨 해설을 받아요.</p>
+          <p style="font-size: 13px; color: #909399">
+            문제 사진으로 선생님 스타일의 손글씨 해설을 받아요.
+          </p>
         </div>
-        <el-button type="primary" plain @click="router.push(authStore.role === 'STUDENT' ? '/student/solution-notebook' : '/solution-notebook')">풀이 받기</el-button>
+        <el-button
+          type="primary"
+          plain
+          @click="
+            router.push(
+              authStore.role === 'STUDENT' ? '/student/solution-notebook' : '/solution-notebook',
+            )
+          "
+          >풀이 받기</el-button
+        >
       </div>
     </el-card>
 
@@ -77,8 +75,12 @@ const startPreview = async () => {
         <div style="display: flex; align-items: center; gap: 12px">
           <el-icon size="24" color="#409eff"><MagicStick /></el-icon>
           <div>
-            <div style="font-size: 16px; font-weight: 600; color: #303133">AI 피드백 프롬프트 설정</div>
-            <div style="font-size: 13px; color: #909399; margin-top: 4px">AI 피드백 생성에 사용되는 프롬프트와 예시 개수를 설정합니다</div>
+            <div style="font-size: 16px; font-weight: 600; color: #303133">
+              AI 피드백 프롬프트 설정
+            </div>
+            <div style="font-size: 13px; color: #909399; margin-top: 4px">
+              AI 피드백 생성에 사용되는 프롬프트와 예시 개수를 설정합니다
+            </div>
           </div>
         </div>
         <el-icon size="20" color="#c0c4cc"><ArrowRight /></el-icon>
@@ -154,16 +156,12 @@ const startPreview = async () => {
           </el-form-item>
         </el-form>
 
-        <el-alert
-          type="info"
-          :closable="false"
-          style="margin-top: 16px"
-        >
+        <el-alert type="info" :closable="false" style="margin-top: 16px">
           <template #title>
             <div style="font-size: 13px">
-              <strong>보안 안내:</strong><br>
-              • PIN은 로그인 시 사용됩니다<br>
-              • 학생: 4자리, 선생님: 6자리<br>
+              <strong>보안 안내:</strong><br />
+              • PIN은 로그인 시 사용됩니다<br />
+              • 학생: 4자리, 선생님: 6자리<br />
               • 주기적으로 변경하는 것을 권장합니다
             </div>
           </template>
@@ -172,23 +170,3 @@ const startPreview = async () => {
     </el-card>
   </div>
 </template>
-
-<style scoped>
-.preview-settings-action {
-  position: relative;
-  display: inline-flex;
-}
-
-.preview-settings-action__dot {
-  position: absolute;
-  z-index: 1;
-  top: 4px;
-  right: 5px;
-  width: 8px;
-  height: 8px;
-  border: 1.5px solid #fff;
-  border-radius: 50%;
-  background: #f56c6c;
-  pointer-events: none;
-}
-</style>

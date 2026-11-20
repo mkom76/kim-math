@@ -13,7 +13,7 @@ import {
   RefreshRight,
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
-import { useStudentUiMode } from '@/composables/useStudentUiMode'
+
 import {
   solutionNotebookAPI,
   type NotebookConfig,
@@ -27,7 +27,7 @@ import sampleUrl from '@/assets/handwriting-solution-sample.png'
 
 const router = useRouter(),
   auth = useAuthStore()
-const { mode: studentUiMode } = useStudentUiMode()
+
 const fileInput = ref<HTMLInputElement | null>(null)
 const cameraInput = ref<HTMLInputElement | null>(null)
 const photo = ref(''),
@@ -58,13 +58,7 @@ const resultImage = ref(''),
   resultSolution = ref<NotebookSolution | null>(null),
   resultMessage = ref('')
 const sampleQuestion = '유리함수 f(x)=(2x+1)/(x−1)의 그래프를 그리고, 두 점근선의 교점을 구하시오.'
-const backPath = computed(() =>
-  auth.role === 'STUDENT'
-    ? studentUiMode.value === 'v2'
-      ? '/student/more'
-      : '/settings'
-    : '/students',
-)
+const backPath = computed(() => (auth.role === 'STUDENT' ? '/student/more' : '/students'))
 const photoStyle = computed(() => ({
   transform: `rotate(${rotation.value}deg)`,
   maxWidth: rotation.value % 180 ? '55%' : '100%',

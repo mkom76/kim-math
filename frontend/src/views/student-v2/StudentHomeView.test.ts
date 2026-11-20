@@ -19,9 +19,6 @@ vi.mock('@/api/client', () => ({
   studentNotificationAPI: { getUnreadCount: api.unread },
 }))
 vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }))
-vi.mock('@/composables/useStudentUiMode', () => ({
-  useStudentUiMode: () => ({ leavePreview: vi.fn() }),
-}))
 
 const wrappers: ReturnType<typeof mount>[] = []
 function mountHome() {
@@ -30,6 +27,7 @@ function mountHome() {
       directives: { loading: {} },
       stubs: {
         StudentClassSwitcher: true,
+        StudentUiGuideDialog: true,
         ElIcon: { template: '<span><slot /></span>' },
         RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' },
       },

@@ -62,7 +62,7 @@ const serviceMenus: MoreMenuItem[] = [
   },
   {
     title: '설정',
-    description: 'PIN · 개인정보 · 새 UI 의견',
+    description: '화면 안내 · PIN · 개인정보 · 사용 의견',
     path: '/settings',
     icon: Setting,
     tone: 'gray',

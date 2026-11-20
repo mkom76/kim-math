@@ -7,11 +7,13 @@ import { usePinChange } from '@/composables/usePinChange'
 import StudentLogoutDialog from '@/components/student-v2/StudentLogoutDialog.vue'
 import StudentUiFeedbackDialog from '@/components/student-v2/StudentUiFeedbackDialog.vue'
 import StudentPageHeader from '@/components/student-v2/StudentPageHeader.vue'
+import StudentUiGuideDialog from '@/components/student-v2/StudentUiGuideDialog.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const { loading, pinForm, pinLength, handleChangePIN } = usePinChange()
 const feedbackDialogVisible = ref(false)
+const guideDialogVisible = ref(false)
 const logoutDialogVisible = ref(false)
 const loggingOut = ref(false)
 
@@ -55,9 +57,27 @@ async function logout() {
         <h2 id="privacy-title">서비스 정보</h2>
       </div>
       <div class="settings-surface">
-        <button type="button" class="settings-row" @click="router.push('/student/solution-notebook')">
-          <span class="settings-row__icon"><el-icon><EditPen /></el-icon></span>
-          <span class="settings-row__content"><strong>Q&A</strong><small>문제 사진으로 수희쌤 스타일 해설을 받아요.</small></span>
+        <button type="button" class="settings-row" @click="guideDialogVisible = true">
+          <span class="settings-row__icon"
+            ><el-icon><InfoFilled /></el-icon
+          ></span>
+          <span class="settings-row__content"
+            ><strong>새 학생 화면 안내</strong
+            ><small>바뀐 메뉴와 사용 방법을 다시 확인해요.</small></span
+          >
+          <el-icon class="settings-row__arrow"><ArrowRight /></el-icon>
+        </button>
+        <button
+          type="button"
+          class="settings-row"
+          @click="router.push('/student/solution-notebook')"
+        >
+          <span class="settings-row__icon"
+            ><el-icon><EditPen /></el-icon
+          ></span>
+          <span class="settings-row__content"
+            ><strong>Q&A</strong><small>문제 사진으로 수희쌤 스타일 해설을 받아요.</small></span
+          >
           <el-icon class="settings-row__arrow"><ArrowRight /></el-icon>
         </button>
         <button type="button" class="settings-row" @click="feedbackDialogVisible = true">
@@ -65,7 +85,7 @@ async function logout() {
             ><el-icon><ChatDotRound /></el-icon
           ></span>
           <span class="settings-row__content">
-            <strong>새 UI 의견 보내기</strong>
+            <strong>화면 사용 의견 보내기</strong>
             <small>좋았던 점이나 불편한 점을 편하게 알려주세요.</small>
           </span>
           <el-icon class="settings-row__arrow"><ArrowRight /></el-icon>
@@ -154,6 +174,7 @@ async function logout() {
 
     <StudentLogoutDialog v-model="logoutDialogVisible" :loading="loggingOut" @confirm="logout" />
     <StudentUiFeedbackDialog v-model="feedbackDialogVisible" />
+    <StudentUiGuideDialog v-model="guideDialogVisible" />
   </div>
 </template>
 
