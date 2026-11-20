@@ -27,7 +27,7 @@ describe('student V2 navigation', () => {
       global: { stubs: { ElIcon: iconStub } },
     })
 
-    expect(wrapper.findAll('.tab').map(tab => tab.text())).toEqual(['홈', '시험', '클리닉', '더보기'])
+    expect(wrapper.findAll('.tab').map(tab => tab.text())).toEqual(['홈', '시험', '클리닉 신청', '더보기'])
     const moreTab = wrapper.findAll('.tab')[3]
     if (!moreTab) throw new Error('더보기 탭을 찾을 수 없습니다')
     await moreTab.trigger('click')

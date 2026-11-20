@@ -28,7 +28,7 @@ const tabs: Tab[] = [
     icon: DocumentChecked,
     matchPrefix: ['/student/exams', '/student/tests'],
   },
-  { label: '클리닉', path: '/student/clinic', icon: Service, matchPrefix: ['/student/clinic'] },
+  { label: '클리닉 신청', path: '/student/clinic', icon: Service, matchPrefix: ['/student/clinic'] },
   {
     label: '더보기',
     path: '/student/more',
