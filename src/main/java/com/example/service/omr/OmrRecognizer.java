@@ -32,11 +32,25 @@ public class OmrRecognizer {
     private record Layout(BufferedImage image, List<Table> tables) {}
 
     public Result read(BufferedImage input) {
-        BufferedImage landscape = input.getWidth() < input.getHeight() ? rotate(input, Math.PI / 2) : input;
-        Layout layout = locate(landscape);
-        if (layout == null) layout = locate(rotate(landscape, Math.PI));
-        if (layout == null) return new Result(landscape, false, List.of());
+        Result match = null;
+        for (int turns = 0; turns < 4; turns++) {
+            int width = turns % 2 == 0 ? input.getWidth() : input.getHeight();
+            int height = turns % 2 == 0 ? input.getHeight() : input.getWidth();
+            if (width / (double) height < 1.25 || width / (double) height > 1.6) continue;
+            // Rotate directly from the source to avoid cumulative resampling or clipping.
+            BufferedImage oriented = quarterTurn(input, turns);
+            Layout layout = locate(oriented);
+            if (layout == null) continue;
+            Result candidate = readLayout(layout);
+            if (!candidate.recognized()) continue;
+            // Two valid layouts cannot safely establish question/choice identity.
+            if (match != null) return new Result(input, false, List.of());
+            match = candidate;
+        }
+        return match != null ? match : new Result(input, false, List.of());
+    }
 
+    private Result readLayout(Layout layout) {
         BufferedImage image = layout.image();
         List<Mark> marks = new ArrayList<>();
         int outlined = 0;
@@ -198,6 +212,21 @@ public class OmrRecognizer {
             }
         }
         return total == 0 ? 0 : sum / total;
+    }
+
+    private static BufferedImage quarterTurn(BufferedImage source, int turns) {
+        if (turns == 0) return source;
+        int w = turns % 2 == 0 ? source.getWidth() : source.getHeight();
+        int h = turns % 2 == 0 ? source.getHeight() : source.getWidth();
+        BufferedImage target = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = target.createGraphics();
+        g.setColor(Color.WHITE); g.fillRect(0, 0, w, h);
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        if (turns == 1) { g.translate(w, 0); g.rotate(Math.PI / 2); }
+        else if (turns == 2) { g.translate(w, h); g.rotate(Math.PI); }
+        else { g.translate(0, h); g.rotate(-Math.PI / 2); }
+        g.drawImage(source, 0, 0, null); g.dispose();
+        return target;
     }
 
     private static BufferedImage rotate(BufferedImage source, double radians) {

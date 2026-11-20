@@ -114,4 +114,65 @@ class OmrRecognizerTest {
         assertThat(result.marks().get(3).status()).isEqualTo("UNCERTAIN");
         assertThat(result.marks().subList(4,30)).allSatisfy(mark -> assertThat(mark.status()).isEqualTo("BLANK"));
     }
+
+    private BufferedImage turn(BufferedImage image, int turns) {
+        int width = turns % 2 == 0 ? image.getWidth() : image.getHeight();
+        int height = turns % 2 == 0 ? image.getHeight() : image.getWidth();
+        var rotated = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        // Independent pixel mapping preserves the scanned marks exactly.
+        for (int y = 0; y < image.getHeight(); y++) for (int x = 0; x < image.getWidth(); x++) {
+            int dx = switch (turns) { case 1 -> image.getHeight() - 1 - y; case 2 -> image.getWidth() - 1 - x; case 3 -> y; default -> x; };
+            int dy = switch (turns) { case 1 -> x; case 2 -> image.getHeight() - 1 - y; case 3 -> image.getWidth() - 1 - x; default -> y; };
+            rotated.setRGB(dx, dy, image.getRGB(x, y));
+        }
+        return rotated;
+    }
+
+    @Test void every_quarter_turn_preserves_all_question_numbers_choices_and_review_states() throws Exception {
+        var image = form();
+        var pen = image.createGraphics();
+        pen.setColor(Color.BLACK);
+        pen.fillRect(830,146,11,22); pen.fillRect(1050,756,11,22);
+        pen.fillRect(1376,152,11,22); pen.fillRect(1485,760,11,22);
+        pen.fillRect(886,187,11,22); pen.fillRect(995,187,11,22);
+        pen.setColor(new Color(128,128,128)); pen.fillRect(940,231,11,22);
+        pen.setColor(new Color(210,210,210)); pen.fillRect(830,275,11,22);
+        pen.dispose();
+        var expected = recognizer.read(image);
+        assertThat(expected.recognized()).isTrue();
+        for (int turns = 0; turns < 4; turns++) {
+            var result = recognizer.read(turn(image, turns));
+            assertThat(result.recognized()).as("turns %s", turns).isTrue();
+            assertThat(result.image().getWidth()).isEqualTo(image.getWidth());
+            assertThat(result.image().getHeight()).isEqualTo(image.getHeight());
+            assertThat(result.marks()).as("answers and preview boxes at turns %s", turns).isEqualTo(expected.marks());
+        }
+    }
+
+    @Test void a_table_shaped_decoy_must_not_prevent_trying_the_correct_orientation() throws Exception {
+        var original = form();
+        var pen = original.createGraphics(); pen.setColor(Color.BLACK); pen.fillRect(830,146,11,22); pen.dispose();
+        var inverted = turn(original, 2);
+        var g = inverted.createGraphics(); g.setColor(Color.BLACK);
+        for (int[] edges : new int[][]{{732,805,1085},{1171,1244,1524}}) {
+            for (int x : edges) g.fillRect(x - 1,101,3,697);
+            g.fillRect(edges[0],100,edges[2] - edges[0] + 1,3);
+            g.fillRect(edges[0],796,edges[2] - edges[0] + 1,3);
+        }
+        g.dispose();
+        var result = recognizer.read(inverted);
+        assertThat(result.recognized()).isTrue();
+        assertThat(result.marks().getFirst().answer()).isEqualTo("1");
+        assertThat(result.marks().getLast().answer()).isEmpty();
+    }
+
+    @Test void unreadable_pages_remain_rejected_in_all_four_directions() throws Exception {
+        var cropped = form();
+        var g = cropped.createGraphics(); g.setColor(Color.WHITE); g.fillRect(1160,0,440,1132); g.dispose();
+        for (int turns = 0; turns < 4; turns++) {
+            var result = recognizer.read(turn(cropped, turns));
+            assertThat(result.recognized()).as("cropped turns %s", turns).isFalse();
+            assertThat(result.marks()).isEmpty();
+        }
+    }
 }
